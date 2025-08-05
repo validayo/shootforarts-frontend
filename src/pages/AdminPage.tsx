@@ -82,29 +82,44 @@ const AdminPage: React.FC = () => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   useEffect(() => {
-    if (!currentUser) return;
+  if (!currentUser) return;
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const BASE_URL = 'https://photo-backend-5gnqa1tvp-ayos-projects-9c5c5522.vercel.app';
+      // Get the Supabase access token
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
 
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [contactsRes, subsRes] = await Promise.all([
-          fetch('http://localhost:3001/contact-form/contacts'),
-          fetch('http://localhost:3001/newsletter/subscribers'),
-        ]);
-        const contactData: Contact[] = await contactsRes.json();
-        const subscriberData: Subscriber[] = await subsRes.json();
+      const [contactsRes, subsRes] = await Promise.all([
+        fetch(`${BASE_URL}/contact-form/contacts`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }),
+        fetch(`${BASE_URL}/newsletter/subscribers`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }),
+      ]);
 
-        setContacts(contactData);
-        setSubscribers(subscriberData);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      const contactData: Contact[] = await contactsRes.json();
+      const subscriberData: Subscriber[] = await subsRes.json();
+      console.log("✅ Contacts:", contactData);
+      console.log("✅ Subscribers:", subscriberData);
 
-    fetchData();
-  }, [currentUser]);
+      setContacts(contactData);
+      setSubscribers(subscriberData);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchData();
+}, [currentUser]);
 
   const handleLogout = async () => {
     try {

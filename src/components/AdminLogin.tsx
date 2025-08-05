@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../utils/supabaseClient"; // Adjust the path if your supabaseClient file is elsewhere
+import { useNavigate } from 'react-router-dom';
 
 const AdminLogin: React.FC = () => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -25,7 +28,7 @@ const AdminLogin: React.FC = () => {
 
       if (error) throw error;
 
-      window.location.href = "/admin/"; // Redirect to admin dashboard on successful login
+      navigate("/admin/"); // Redirect to admin dashboard on successful login
     } catch (err) {
       if (err instanceof Error) {
         console.error("Login error:", err.message);

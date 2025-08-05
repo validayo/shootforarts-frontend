@@ -1,40 +1,47 @@
-import express from "express";
-import { supabase } from "../utils/supabaseServer";
-import { sendContactEmail } from "../utils/email";
+import express, { Request, Response } from "express";
+import { supabase } from "../utils/supabaseServer.js";
+import { sendNewsletterEmail } from "../utils/email.js";
+//import { verifyToken } from "../utils/verifyToken.js";
 
 const router = express.Router();
 
-// POST: Handle contact form submission
-router.post("/", async (req, res) => {
+// 📬 POST: Public newsletter subscription
+router.post("/", async (req: Request, res: Response) => {
   try {
-    const formData = req.body;
+    const { email } = req.body;
 
-    const { error } = await supabase.from("contact_submissions").insert([formData]);
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const { error } = await supabase
+      .from("newsletter_subscribers")
+      .insert([{ email, subscribedAt: new Date().toISOString() }]);
 
     if (error) throw error;
 
-    await sendContactEmail(formData);
+    await sendNewsletterEmail(email);
 
-    res.json({ message: "Form submitted successfully" });
+    res.json({ message: "Newsletter notification sent" });
   } catch (err: any) {
-    console.error("❌ Error submitting form:", err.message);
+    console.error("❌ Error subscribing to newsletter:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ NEW: GET /contacts for AdminPage
-router.get("/contacts", async (req, res) => {
+// 🔐 GET: Protected route to fetch subscribers
+router.get("/subscribers", async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
-      .from("contact_submissions")
+      .from("newsletter_subscribers")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("subscribedAt", { ascending: false });
 
     if (error) throw error;
 
     res.json(data);
   } catch (err: any) {
-    console.error("❌ Error fetching contacts:", err.message);
+    console.error("❌ Error fetching subscribers:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

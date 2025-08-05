@@ -4,6 +4,7 @@ import sharp from "sharp";
 import crypto from "crypto";
 import cors from "cors";
 import { createClient } from "@supabase/supabase-js";
+//import { verifyToken } from "../utils/verifyToken.js"; // ✅ Import middleware
 
 const router = express.Router();
 const upload = multer();
@@ -59,18 +60,12 @@ router.post("/", upload.array("files"), async (req, res) => {
   try {
     const files = req.files as Express.Multer.File[];
     const { category, title } = req.body;
-    const token = req.headers.authorization?.replace("Bearer ", "") ?? null;
+    const userId = req.body.userId;
 
-    if (!files?.length || !category || !token) {
-      return res.status(400).json({ error: "Missing files, category, or token" });
+    if (!files?.length || !category || !userId) {
+      return res.status(400).json({ error: "Missing files, category, or user" });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const userId = user.id;
     const uploadedAt = new Date().toISOString();
 
     const uploadedPhotos = await Promise.all(

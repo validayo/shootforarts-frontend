@@ -5,10 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/contact-form': 'http://localhost:3001',
-      '/newsletter': 'http://localhost:3001',
-      '/upload-photos': 'http://localhost:3001',
-      '/images': 'http://localhost:3001'
+      '/contact-form': 'https://photo-backend-5gnqa1tvp-ayos-projects-9c5c5522.vercel.app',
+      '/newsletter': 'https://photo-backend-5gnqa1tvp-ayos-projects-9c5c5522.vercel.app',
+      '/upload-photos': 'https://photo-backend-5gnqa1tvp-ayos-projects-9c5c5522.vercel.app',
+      '/gallery': 'https://photo-backend-5gnqa1tvp-ayos-projects-9c5c5522.vercel.app'
     }
   },
   optimizeDeps: {

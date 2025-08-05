@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { Photo } from "../utils";
 
 interface AdminUploadProps {
@@ -9,6 +10,7 @@ interface AdminUploadProps {
 const MAX_FILE_SIZE_MB = 5;
 
 const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
+  const supabase = useSupabaseClient();
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const [category, setCategory] = useState<string>("");
@@ -17,7 +19,8 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [progressMap, setProgressMap] = useState<{ [filename: string]: number }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (!selectedFiles) return;
 
@@ -39,7 +42,6 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
       validFiles.push(file);
       initialProgress[file.name] = 0;
 
-      // Generate thumbnail preview
       const reader = new FileReader();
       reader.onloadend = () => {
         previews.push(reader.result as string);
@@ -57,7 +59,8 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
     setError("");
     setFiles(validFiles);
   };
-    const handleDrop = (e: React.DragEvent) => {
+
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFileChange({ target: { files: e.dataTransfer.files } } as React.ChangeEvent<HTMLInputElement>);
@@ -67,8 +70,7 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!files.length) {
@@ -88,15 +90,26 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
     try {
       const uploadedMetadata: Photo[] = [];
 
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.access_token) {
+        throw new Error("Unable to retrieve access token.");
+      }
+
+      const token = session.access_token;
+
       for (const file of files) {
         const formData = new FormData();
         formData.append("files", file);
         formData.append("category", category);
 
-        const response = await fetch("https://obhiuvlfopgtbgjuznok.supabase.co/functions/v1/storage", {
+        const response = await fetch("https://your-vercel-backend.vercel.app/upload-photos", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${token}`,
           },
           body: formData,
         });
@@ -108,7 +121,6 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
 
         const photo: Photo = await response.json();
         uploadedMetadata.push(photo);
-
         setProgressMap((prev) => ({ ...prev, [file.name]: 100 }));
       }
 
@@ -129,7 +141,8 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
       setUploading(false);
     }
   };
-    return (
+
+  return (
     <motion.div
       className="container-custom py-16 mt-20"
       initial={{ opacity: 0 }}
@@ -230,6 +243,6 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
       </div>
     </motion.div>
   );
-  };
+};
 
 export default AdminUpload;
