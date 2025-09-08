@@ -19,6 +19,6 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
   throw new Error("❌ Supabase environment variables are missing");
 }
 
-console.log("🔑 Supabase URL loaded");
+console.log(`🔑 Supabase client initialized (env: ${process.env.NODE_ENV}, url: ${supabaseUrl})`);
 
 export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);

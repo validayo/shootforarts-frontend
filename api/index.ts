@@ -47,7 +47,7 @@ app.get("/ping", (_, res) => {
 app.get("/health", (_, res) => {
   res.status(200).send("✅ Backend is healthy");
 });
-
+console.log("Loaded router file: <filename>");
 
 // Mount routers
 app.use("/contact-form", contactFormRouter);
@@ -65,8 +65,5 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// Vercel serverless handler export
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-export default function handler(req: VercelRequest, res: VercelResponse) {
-  app(req, res);
-}
+
+export default app;
