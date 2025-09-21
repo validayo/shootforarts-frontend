@@ -1,11 +1,11 @@
-// Define Photo interface based on Firestore data model
 export interface Photo {
   id: string;
-  category: "PORTRAITS" | "EVENTS" | "WEDDINGS" | "EXTRAS";
-  thumbUrl: string; // URL to thumbnail in Storage
-  fullUrl: string;  // URL to full-size image in Storage
-  uploadedAt: any; // FirebaseFirestore.Timestamp
-  title?: string; // optional caption
+  url: string; // original full-size
+  url_thumb?: string; // 400px
+  url_medium?: string; // 800px
+  url_large?: string; // 1600px
+  category: string;
+  uploaded_at?: any;
 }
 
 // Define form data interface for contact form
@@ -34,17 +34,11 @@ export const serviceOptions = [
   "Corporate Event",
   "Family Session",
   "Engagement Session",
-  "Other"
+  "Other",
 ];
 
 // Referral source options
-export const referralOptions = [
-  "Instagram",
-  "Facebook",
-  "Word of mouth",
-  "Google",
-  "Other"
-];
+export const referralOptions = ["Instagram", "Facebook", "Word of mouth", "Google", "Other"];
 
 // Admin credentials interface
 export interface AdminCredentials {

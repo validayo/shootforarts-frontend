@@ -4,16 +4,14 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// ESM __dirname shim
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env before anything else (in dev)
 if (process.env.NODE_ENV !== "production") {
   dotenv.config({ path: path.resolve(__dirname, "../backend/.env") });
 }
 
-// Import routers
+// routers
 import contactFormRouter from "../backend/routes/contactForm.js";
 import newsletterRouter from "../backend/routes/newsletter.js";
 import storageRouter from "../backend/routes/storage.js";
@@ -22,7 +20,6 @@ import galleryRouter from "../backend/routes/gallery.js";
 const app = express();
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
 
-// CORS must come first
 app.use(cors({
   origin: corsOrigin,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -31,7 +28,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Handle OPTIONS for all routes
 app.options("*", (req, res) => {
   res.header("Access-Control-Allow-Origin", corsOrigin);
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
@@ -40,7 +36,7 @@ app.options("*", (req, res) => {
   res.sendStatus(204);
 });
 
-// Basic endpoints
+// Basic endpoints js to test 
 app.get("/ping", (_, res) => {
   res.json({ message: "🏓 Pong from backend!" });
 });

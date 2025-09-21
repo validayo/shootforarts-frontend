@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { Photo } from "../utils";
+import { supabase } from "../lib/supabase";
 
 interface AdminUploadProps {
   onUploadComplete?: () => void;
@@ -10,7 +10,6 @@ interface AdminUploadProps {
 const MAX_FILE_SIZE_MB = 5;
 
 const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
-  const supabase = useSupabaseClient();
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const [category, setCategory] = useState<string>("");
@@ -25,8 +24,8 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
     if (!selectedFiles) return;
 
     const validFiles: File[] = [];
-    const previews: string[] = [];
     const initialProgress: { [filename: string]: number } = {};
+    const previewPromises: Promise<string>[] = [];
 
     Array.from(selectedFiles).forEach((file) => {
       if (!file.type.startsWith("image/")) {
@@ -42,22 +41,33 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
       validFiles.push(file);
       initialProgress[file.name] = 0;
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        previews.push(reader.result as string);
-        setFilePreviews((prev) => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
+      previewPromises.push(
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        })
+      );
     });
 
     if (validFiles.length === 0) {
       setFiles([]);
+      setFilePreviews([]);
       return;
     }
+
+    Promise.all(previewPromises).then((results) => {
+      setFilePreviews(results);
+    });
 
     setProgressMap(initialProgress);
     setError("");
     setFiles(validFiles);
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setFilePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -70,7 +80,8 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
-    const handleSubmit = async (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!files.length) {
@@ -90,37 +101,39 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
     try {
       const uploadedMetadata: Photo[] = [];
 
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (sessionError || !session?.access_token) {
-        throw new Error("Unable to retrieve access token.");
-      }
-
-      const token = session.access_token;
-
       for (const file of files) {
-        const formData = new FormData();
-        formData.append("files", file);
-        formData.append("category", category);
+        const safeFilename = file.name.replace(/\s/g, "_");
+        const filePath = `portfolio/${category}/${Date.now()}-${safeFilename}`;
 
-        const response = await fetch("https://your-vercel-backend.vercel.app/upload-photos", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        });
+        const { error: storageError } = await supabase.storage.from("images").upload(filePath, file);
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(errorData?.error || "Upload failed.");
+        if (storageError) throw storageError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("images").getPublicUrl(filePath);
+
+        const { data: photoRow, error: dbError } = await supabase
+          .from("photos")
+          .insert([
+            {
+              category,
+              url: publicUrl,
+              uploaded_at: new Date().toISOString(),
+            },
+          ])
+          .select()
+          .single();
+
+        if (photoRow) {
+          await supabase.functions.invoke("process-image", {
+            body: { id: photoRow.id, path: filePath },
+          });
         }
 
-        const photo: Photo = await response.json();
-        uploadedMetadata.push(photo);
+        if (dbError) throw dbError;
+
+        uploadedMetadata.push(photoRow);
         setProgressMap((prev) => ({ ...prev, [file.name]: 100 }));
       }
 
@@ -143,23 +156,14 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
   };
 
   return (
-    <motion.div
-      className="container-custom py-16 mt-20"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
+    <motion.div className="container-custom py-16 mt-20" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
       <div className="max-w-xl mx-auto">
         <h2 className="text-3xl font-serif mb-8">Upload Photos</h2>
 
         {error && <div className="bg-red-50 text-red-800 p-4 mb-6">{error}</div>}
 
         {showSuccess && (
-          <motion.div
-            className="bg-green-50 text-green-900 p-4 mb-6 rounded text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <motion.div className="bg-green-50 text-green-900 p-4 mb-6 rounded text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <h3 className="text-xl font-semibold mb-2">✅ Upload Complete!</h3>
             <p>Your photos were uploaded successfully.</p>
           </motion.div>
@@ -174,14 +178,7 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
               onDragOver={handleDragOver}
               onClick={() => fileInputRef.current?.click()}
             >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/*"
-                multiple
-              />
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" multiple />
               <div className="flex flex-col items-center">
                 <span className="text-3xl mb-2">+</span>
                 <span>Drop files here or click to select</span>
@@ -192,8 +189,18 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
           {filePreviews.length > 0 && (
             <div className="grid grid-cols-2 gap-4 mt-6">
               {filePreviews.map((src, i) => (
-                <div key={i} className="relative">
+                <div key={i} className="relative group">
                   <img src={src} alt={`preview-${i}`} className="rounded border w-full" />
+
+                  {/* Remove button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFile(i)}
+                    className="absolute top-2 right-2 bg-black bg-opacity-60 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                  >
+                    ✕
+                  </button>
+
                   {uploading && (
                     <div className="absolute bottom-2 left-0 right-0 px-2">
                       <div className="bg-gray-200 rounded-full h-2.5 overflow-hidden">
@@ -215,18 +222,14 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
             <label htmlFor="category" className="block text-primary mb-2">
               Category*
             </label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full border border-accent p-2"
-              required
-            >
-              <option value="" disabled>Select category</option>
-              <option value="PORTRAITS">Portraits</option>
-              <option value="EVENTS">Events</option>
-              <option value="WEDDINGS">Weddings</option>
-              <option value="EXTRAS">Extras</option>
+            <select id="category" value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border border-accent p-2" required>
+              <option value="" disabled>
+                Select category
+              </option>
+              <option value="Portraits">Portraits</option>
+              <option value="Events">Events</option>
+              <option value="Weddings">Weddings</option>
+              <option value="Extras">Extras</option>
             </select>
           </div>
 

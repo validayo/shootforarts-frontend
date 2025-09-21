@@ -9,14 +9,20 @@ const supabase = createClient(
 
 router.get('/', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('photos').select('*');
+    const { data, error } = await supabase
+      .from('photos')
+      .select('*')
+      .order('uploaded_at', { ascending: false });
+
     if (error) throw error;
 
-    const images = data.map((img) => {
-      const thumb = supabase.storage.from('photos').getPublicUrl(`thumbnails/${img.category}/${img.thumb_url.split('/').pop()}`).data.publicUrl;
-      const full = supabase.storage.from('photos').getPublicUrl(`fullsize/${img.category}/${img.full_url.split('/').pop()}`).data.publicUrl;
-      return { thumb, full, category: img.category, title: img.title };
-    });
+    // Map to a simple structure for frontend
+    const images = data.map((img) => ({
+      url: img.url,
+      category: img.category,
+      id: img.id,
+      uploaded_at: img.uploaded_at,
+    }));
 
     res.json(images);
   } catch (err: any) {
