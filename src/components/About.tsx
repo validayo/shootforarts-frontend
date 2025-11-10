@@ -12,12 +12,12 @@ const About: React.FC = () => {
             <img
               src="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/AYO.jpg"
               alt="Ayodeji Adigun — Shoot For Arts"
-              className="w-[420px] h-[350px] object-cover rounded-xl shadow-lg ml-auto md:ml-12"
+              className="w-full h-auto max-w-[420px] md:max-w-full object-cover rounded-xl shadow-lg mx-auto md:mx-0"
             />
           </motion.div>
 
           {/* Right side — heading + text */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
+          <motion.div className="min-w-0" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
             <h2 className="text-3xl md:text-4xl font-serif mb-6 tracking-wide">About Shoot For Arts</h2>
             <p className="mb-4 text-lg leading-relaxed">
               I’m Ayo, I founded Shoot For Arts with the intention to bring art, emotion, and storytelling into every frame. I love capturing still moments that

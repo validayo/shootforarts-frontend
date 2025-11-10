@@ -1,9 +1,19 @@
 import React from 'react';
 import ContactForm from '../components/ContactForm';
+import SEO from '../components/SEO';
 
 const ContactPage: React.FC = () => {
   return (
     <div className="pt-20 pb-20">
+      <SEO
+        title="Contact - Shoot For Arts"
+        description="Let’s make something together. Reach out to Ayo for portraits, events, or creative shoots — wherever your story takes you."
+        keywords={["book a photoshoot","contact photographer","portrait session","event shoot","creative photos","Shoot For Arts","Ayo"]}
+        ogTitle="Contact - Shoot For Arts"
+        ogDescription="Ready to create something special? Contact Ayo at Shoot For Arts to plan your next shoot or creative project."
+        ogImage="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png"
+        canonicalPath="/contact"
+      />
       <div className="max-w-3xl mx-auto px-6 mb-12 text-center">
         <h2 className="text-3xl font-serif mb-6">Contact</h2>
         <p className="text-lg mb-4">

@@ -7,6 +7,8 @@
     "dev": "concurrently \"npm run dev:frontend\"",
     "dev:frontend": "vite",
     "build": "tsc -b && vite build",
+    "postbuild": "node scripts/generate-sitemaps.mjs",
+    "generate:sitemaps": "node scripts/generate-sitemaps.mjs",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://www.shootforarts.com/</loc>
+    <image:image>
+      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png</image:loc>
+      <image:title>Shoot For Arts - Life is better with cherished memories.</image:title>
+      <image:caption>Visual storytelling through portraits, events, and creative shoots.</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://www.shootforarts.com/about</loc>
+    <image:image>
+      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/AYO.jpg</image:loc>
+      <image:title>About — Shoot For Arts</image:title>
+      <image:caption>Ayo, photographer and creator of Shoot For Arts.</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://www.shootforarts.com/services</loc>
+    <image:image>
+      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/BASE.jpg</image:loc>
+      <image:title>Base Photoshoot</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/Creative.jpg</image:loc>
+      <image:title>Creative Photoshoot</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/PROM.jpg</image:loc>
+      <image:title>Prom / HOCO</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/GRAD.jpg</image:loc>
+      <image:title>Grad Photoshoots</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/EVENTS.JPG</image:loc>
+      <image:title>Event Photography</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/WEDDING.jpg</image:loc>
+      <image:title>Wedding Photography</image:title>
+    </image:image>
+  </url>
+</urlset>

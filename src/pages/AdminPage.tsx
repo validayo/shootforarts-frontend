@@ -69,16 +69,30 @@ const AdminPage: React.FC = () => {
   const parseDateTime = (dateStr?: string, timeStr?: string) => {
     if (!dateStr) return null;
     try {
-      if (!timeStr) return new Date(dateStr);
-      const m = timeStr.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*([AP]M)$/i);
-      if (!m) return new Date(dateStr);
-      let hour = parseInt(m[1], 10);
-      const minute = parseInt(m[2] || "0", 10);
-      const ampm = m[3].toUpperCase();
-      if (ampm === "PM" && hour < 12) hour += 12;
-      if (ampm === "AM" && hour === 12) hour = 0;
-      const d = new Date(dateStr);
-      d.setHours(hour, minute, 0, 0);
+      // Parse YYYY-MM-DD explicitly as local time to avoid timezone and locale ambiguities
+      let year: number | undefined, month: number | undefined, day: number | undefined;
+      const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (isoMatch) {
+        year = parseInt(isoMatch[1], 10);
+        month = parseInt(isoMatch[2], 10) - 1; // 0-based
+        day = parseInt(isoMatch[3], 10);
+      }
+
+      let hour = 0;
+      let minute = 0;
+      if (timeStr) {
+        const m = timeStr.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*([AP]M)$/i);
+        if (m) {
+          hour = parseInt(m[1], 10);
+          minute = parseInt(m[2] || "0", 10);
+          const ampm = m[3].toUpperCase();
+          if (ampm === "PM" && hour < 12) hour += 12;
+          if (ampm === "AM" && hour === 12) hour = 0;
+        }
+      }
+
+      const d = typeof year === 'number' ? new Date(year, month!, day!, hour, minute, 0, 0) : new Date(dateStr);
+      if (!timeStr) return d; // all-day at local midnight
       return d;
     } catch {
       return dateStr ? new Date(dateStr) : null;

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact - Shoot For Arts</title>
+    <link rel="icon" type="image/svg+xml" href="/SFA.svg" />
+
+    <!-- Primary Meta -->
+    <meta name="description" content="Let’s make something together. Reach out to Ayo for portraits, events, or creative shoots — wherever your story takes you." />
+    <meta name="keywords" content="book a photoshoot, contact photographer, portrait session, event shoot, creative photos, Shoot For Arts, Ayo" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.shootforarts.com/contact" />
+    <meta property="og:title" content="Contact - Shoot For Arts" />
+    <meta property="og:description" content="Ready to create something special? Contact Ayo at Shoot For Arts to plan your next shoot or creative project." />
+    <meta property="og:image" content="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Contact - Shoot For Arts" />
+    <meta name="twitter:description" content="Ready to create something special? Contact Ayo at Shoot For Arts to plan your next shoot or creative project." />
+    <meta name="twitter:image" content="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://www.shootforarts.com/contact" />
+
+    <!-- GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2WZ8G4PZ88"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-2WZ8G4PZ88', { send_page_view: false });
+    </script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      (function() {
+        function injectScript(src) {
+          var s = document.createElement('script');
+          s.type = 'module';
+          s.src = src;
+          document.body.appendChild(s);
+        }
+        function injectStyle(href) {
+          var l = document.createElement('link');
+          l.rel = 'stylesheet';
+          l.href = href;
+          document.head.appendChild(l);
+        }
+        fetch('/index.html', { cache: 'no-store' })
+          .then(function(r){ return r.text(); })
+          .then(function(html){
+            var styleRe = /<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["'][^>]*>/ig, sm;
+            while ((sm = styleRe.exec(html)) !== null) {
+              injectStyle(sm[1]);
+            }
+            var m = html.match(/<script[^>]+type=\"module\"[^>]+src=\"([^\"]+)\"/i);
+            injectScript(m ? m[1] : '/src/main.tsx');
+          })
+          .catch(function(){ injectScript('/src/main.tsx'); });
+      })();
+    </script>
+  </body>
+  </html>

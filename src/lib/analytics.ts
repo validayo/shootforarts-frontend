@@ -7,11 +7,24 @@ declare global {
 }
 
 // Send a basic page view (used by RouteChangeTracker)
-export const trackPageView = (url: string) => {
+export const trackPageView = (url: string, title?: string) => {
+  const payload = {
+    page_path: url,
+    page_title: title || document.title,
+    page_location: typeof window !== "undefined" ? window.location.href : undefined,
+  } as Record<string, any>;
+
+  // Push to dataLayer first so events aren't lost if gtag isn't ready yet
+  if (typeof window !== "undefined") {
+    (window as any).dataLayer = (window as any).dataLayer || [];
+    (window as any).dataLayer.push({ event: "page_view", ...payload });
+  }
+
   if (window.gtag) {
-    window.gtag("event", "page_view", {
-      page_path: url,
-    });
+    window.gtag("event", "page_view", payload);
+  } else if ((import.meta as any)?.env?.DEV) {
+    // eslint-disable-next-line no-console
+    console.warn("[GA] gtag not found at call time; event queued in dataLayer:", payload);
   }
 };
 

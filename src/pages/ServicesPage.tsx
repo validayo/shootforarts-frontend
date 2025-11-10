@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import SEO from "../components/SEO";
 import Accordion from "../components/Accordion";
 
 const ServicesPage: React.FC = () => {
-  const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const categoryImages: Record<string, string> = {
     base: "https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/BASE.jpg",
@@ -17,8 +18,8 @@ const ServicesPage: React.FC = () => {
   };
 
   const basePhotoshoot = [
-    { title: "Tier 1 (Solo Shoot)", price: "$150", details: ["30-minute shoot", "5 Pro-Edited + 5 Base-Edited photos", "1 outfit"] },
-    { title: "Tier 2 (solo shoot)", price: "$200", details: ["1-hour shoot", "8 Pro-Edited + 10 Base-Edited photos", "1 outfit"] },
+    { title: "Tier 1 (Solo Shoot)", price: "$150", details: ["1-hour shoot", "6 Pro-Edited + 5 Base-Edited photos", "1 outfit"] },
+    { title: "Tier 2 (solo shoot)", price: "$200", details: ["1-hour shoot", "12 Pro-Edited + 10 Base-Edited photos", "2 outfit"] },
     { title: "Tier 1 (Couple/Family)", price: "$250", details: ["1-hour shoot", "11 Pro-Edited + 15 Base-Edited photos", "2 outfits"] },
     { title: "Tier 2 (Couple/Family)", price: "$350", details: ["2-hour shoot", "15 Pro-Edited + 20 Base-Edited photos", "4 outfits"] },
   ];
@@ -33,8 +34,8 @@ const ServicesPage: React.FC = () => {
   ];
 
   const promHoco = [
-    { title: "Tier 1", price: "$120", details: ["Solo coverage only", "45-min session", "15–20 edited photos", "Group photos (client must be in all)"] },
-    { title: "Tier 2", price: "$200", details: ["Solo + small group coverage", "1.5 hours", "25–30 edited photos"] },
+    { title: "Tier 1", price: "$110", details: ["Solo coverage only", "45-min session", "15–20 edited photos", "Group photos (client must be in all)"] },
+    { title: "Tier 2", price: "$150", details: ["Solo + small group coverage", "1.5 hours", "25–30 edited photos"] },
   ];
 
   const gradPhotoshoots = [
@@ -63,7 +64,8 @@ const ServicesPage: React.FC = () => {
         "Studio rental – varies",
         "Highlight reel – $80",
         "Drone footage – $200",
-        "Rush delivery – $50",
+        "Rush delivery 24hr turnaround– $100",
+        "Rush delivery 48hr turnaround– $50",
       ],
     },
   ];
@@ -78,8 +80,28 @@ const ServicesPage: React.FC = () => {
     { key: "addons", label: "General Add-Ons", tiers: generalAddOns },
   ];
 
+  // Map internal section keys to ContactForm service options
+  const serviceKeyMap: Record<string, string | undefined> = {
+    base: "Base Photoshoot",
+    creative: "Creative Photoshoot",
+    prom: "Prom / HOCO",
+    grad: "Grad Photoshoots",
+    event: "Event Photography",
+    wedding: "Wedding Photography",
+    addons: undefined, // not a direct bookable service
+  };
+
   return (
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto">
+      <SEO
+        title="Services - Shoot For Arts"
+        description="Let’s make something together. Reach out to Ayo for portraits, events, or creative shoots — wherever your story takes you."
+        keywords={["book a photoshoot", "contact photographer", "portrait session", "event shoot", "creative photos", "Shoot For Arts", "Ayo"]}
+        ogTitle="Services - Shoot For Arts"
+        ogDescription="Ready to create something special? Contact Ayo at Shoot For Arts to plan your next shoot or creative project."
+        ogImage="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png"
+        canonicalPath="/services"
+      />
       <motion.h1
         className="text-4xl font-serif mb-16 text-center"
         initial={{ opacity: 0, y: -10 }}
@@ -105,6 +127,28 @@ const ServicesPage: React.FC = () => {
           />
           <div className="flex-1 w-full md:w-1/2 bg-secondary/20 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
             <Accordion category={section.label} tiers={section.tiers} />
+            {serviceKeyMap[section.key] && (
+              <div className="mt-6 flex justify-center">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    const selectedService = serviceKeyMap[section.key]!;
+                    if (typeof window !== "undefined" && (window as any).gtag) {
+                      (window as any).gtag("event", "service_book_now", {
+                        event_category: "Services",
+                        event_label: selectedService,
+                      });
+                    }
+                    navigate(`/contact?service=${encodeURIComponent(selectedService)}`);
+                  }}
+                  aria-label={`Book ${serviceKeyMap[section.key]} now`}
+                  className="inline-flex items-center px-6 py-2.5 rounded-full border border-primary text-primary bg-transparent hover:bg-primary hover:text-white transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
+                >
+                  Book Now
+                </motion.button>
+              </div>
+            )}
           </div>
         </motion.div>
       ))}

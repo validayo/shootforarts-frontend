@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ContactFormData, serviceOptions, referralOptions } from "../utils";
 import { trackContactSubmit } from "../lib/analytics";
+import { useLocation } from "react-router-dom";
 
 const ContactForm: React.FC = () => {
   const [formData, setFormData] = useState<
@@ -30,6 +31,16 @@ const ContactForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState("");
+  const location = useLocation();
+
+  // Prefill service from ?service= query param and show a small message
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const svc = params.get("service");
+    if (svc && serviceOptions[svc]) {
+      setFormData((prev) => ({ ...prev, service: svc }));
+    }
+  }, [location.search]);
 
   const generateTimeSlots = () => {
     const slots = [];
@@ -125,6 +136,11 @@ const ContactForm: React.FC = () => {
   return (
     <motion.div className="max-w-3xl mx-auto p-6 bg-secondary" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       {error && <div className="mb-6 p-4 bg-red-50 text-red-800">{error}</div>}
+      {formData.service && serviceOptions[formData.service] && (
+        <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-white/60 text-gray-800">
+          You’re booking a {formData.service} session — adjust details below if needed.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name */}
@@ -240,6 +256,8 @@ const ContactForm: React.FC = () => {
               "Additional Time (After 8PM) - $80/hour",
               "VHS Camera Edit (15 sec) + Clips - $50",
               "Creative Graphic Edit - prices vary",
+              "Rush Delivery (24hr turnaround) - $100",
+              "Rush Delivery (48hr turnaround) - $50",
             ].map((addon, i) => (
               <label key={i} className="flex items-start space-x-2">
                 <input type="checkbox" value={addon.split(" - ")[0]} onChange={handleCheckboxChange} className="mt-1" />
