@@ -5,7 +5,7 @@ const ContactPage: React.FC = () => {
   return (
     <div className="pt-20 pb-20">
       <div className="max-w-3xl mx-auto px-6 mb-12 text-center">
-        <h2 className="text-3xl font-serif mb-6">Contact Us</h2>
+        <h2 className="text-3xl font-serif mb-6">Contact</h2>
         <p className="text-lg mb-4">
           My inbox is always open! Any questions, inquiries, and comments can be sent directly to me through this form.
         </p>

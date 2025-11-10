@@ -3,13 +3,12 @@ import { Photo } from "../utils";
 
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-export const supabaseServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase environment variables");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export const uploadPhoto = async (file: File, category: string, title?: string, onProgress?: (progress: number) => void): Promise<Photo> => {
   try {
@@ -37,27 +36,28 @@ export const uploadPhoto = async (file: File, category: string, title?: string, 
   }
 };
 
-export const getPhotos = async (category?: string, page: number = 0, pageSize: number = 20): Promise<Photo[]> => {
+export const getPhotos = async (category?: string): Promise<Photo[]> => {
   try {
-    // base query
-    let query = supabase
-      .from("photos")
-      .select("*")
-      .order("uploaded_at", { ascending: false })
-      .range(page * pageSize, page * pageSize + pageSize - 1);
+    // Build backend URL dynamically
+    const url = new URL(`${import.meta.env.VITE_BACKEND_URL}/images`);
 
-    // category filter (case-insensitive, skip if ALL)
+    // Add category filter if not "ALL"
     if (category && category !== "ALL") {
-      query = query.ilike("category", category); // matches Portraits / portraits / PORTRAITS
+      url.searchParams.append("category", category);
     }
 
-    const { data, error } = await query;
-    if (error) throw error;
+    // Fetch photos from backend
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    console.log("Supabase query response:", { category, data, error });
-    return data || [];
+    const json = await response.json();
+    
+
+    // Return just the photo array
+    return json.photos || [];
   } catch (err) {
-    console.error("Error fetching photos:", err);
+    console.error("❌ Error fetching photos:", err);
     return [];
   }
 };
+

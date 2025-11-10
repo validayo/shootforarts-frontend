@@ -12,7 +12,12 @@
     @apply font-sans antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-serif;
   }
 
@@ -36,37 +41,42 @@
 
 @layer components {
   .container-custom {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-[90rem] mx-auto px-6 sm:px-8 lg:px-3;
   }
-  
+
+  /* Custom 1080px breakpoint helpers for Navbar */
+  .nav-desktop-1080 {
+    display: none;
+  }
+
   .nav-link {
     @apply text-primary hover:text-accent-dark transition-colors duration-300 lowercase tracking-wide;
   }
-  
+
   .nav-link-active {
     @apply text-primary border-b border-primary;
   }
-  
+
   .btn {
     @apply px-4 py-2 transition-all duration-300 ease-out-expo;
   }
-  
+
   .btn-primary {
     @apply bg-primary text-secondary hover:bg-accent-dark;
   }
-  
+
   .btn-outline {
     @apply border border-primary text-primary hover:bg-primary hover:text-secondary;
   }
-  
+
   .input-field {
     @apply w-full border border-accent p-2 focus:outline-none focus:ring-1 focus:ring-primary;
   }
-  
+
   .category-btn {
     @apply px-4 py-1 rounded-full text-sm transition-all duration-300 bg-transparent hover:bg-accent-light;
   }
-  
+
   .category-btn-active {
     @apply bg-primary text-secondary hover:bg-primary;
   }
@@ -74,17 +84,17 @@
 
 .my-masonry-grid {
   display: flex;
-  margin-left: -24px;
+  margin-left: -7px;
   width: auto;
 }
 
 .my-masonry-grid_column {
-  padding-left: 24px;
+  padding-left: 7px;
   background-clip: padding-box;
 }
 
 .my-masonry-grid_item {
-  margin-bottom: 24px;
+  margin-bottom: 7px;
   break-inside: avoid;
 }
 
@@ -98,15 +108,15 @@
 /* Responsive Grid Adjustments */
 @media (min-width: 1024px) {
   .my-masonry-grid {
-    margin-left: -24px;
+    margin-left: -7px;
   }
-  
+
   .my-masonry-grid_column {
-    padding-left: 24px;
+    padding-left: 7px;
   }
-  
+
   .my-masonry-grid_item {
-    margin-bottom: 24px;
+    margin-bottom: 7px;
   }
 }
 
@@ -114,11 +124,11 @@
   .my-masonry-grid {
     margin-left: -16px;
   }
-  
+
   .my-masonry-grid_column {
     padding-left: 16px;
   }
-  
+
   .my-masonry-grid_item {
     margin-bottom: 16px;
   }
@@ -135,8 +145,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Mobile Navigation */
@@ -150,4 +164,17 @@
 
 .mobile-menu.closed {
   @apply translate-x-full;
+}
+
+.transition-opacity {
+  transition: opacity 0.4s ease-in-out;
+}
+
+@media (min-width: 1080px) {
+  .nav-desktop-1080 {
+    display: block;
+  }
+  .hamburger-1080 {
+    display: none !important;
+  }
 }

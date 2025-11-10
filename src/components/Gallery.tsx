@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Masonry from "react-masonry-css";
 import { motion, AnimatePresence } from "framer-motion";
 import Lightbox from "yet-another-react-lightbox";
@@ -8,9 +8,10 @@ import { ArrowUp } from "lucide-react";
 import { Photo } from "../utils";
 import { getPhotos } from "../lib/supabase";
 import CategoryFilter from "./CategoryFilter";
-import "lazysizes";
+import Skeleton from "../components/Skeleton";
+import { trackGalleryView } from "../lib/analytics";
 
-const PAGE_SIZE = 20;
+import "lazysizes";
 
 const Gallery: React.FC = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -20,146 +21,97 @@ const Gallery: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [page, setPage] = useState(0);
-  const [finished, setFinished] = useState(false);
-
-  // guards for racing / duplicates
-  const inFlightRef = useRef(false);
-  const requestIdRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const breakpointColumns = {
-    default: 5,
-    1536: 5,
-    1280: 4,
-    1024: 2,
-    768: 2,
-  };
-
-  const bestThumb = (p: Photo) => p.url_thumb || p.url_medium || p.url_large || p.url;
-  const bestMedium = (p: Photo) => p.url_medium || p.url_large || p.url;
-  const bestLarge = (p: Photo) => p.url_large || p.url;
-  const bestFull = (p: Photo) => p.url || p.url_large || p.url_medium || p.url_thumb;
-
-  // Preload N upcoming full-size images for smoother lightbox
-  const preloadFull = useCallback((src: string) => {
-    const img = new Image();
-    img.src = src;
+  // Dynamically compute columns so zooming out reveals more columns
+  const [columns, setColumns] = useState<number>(5);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const compute = () => {
+      const width = el.clientWidth || window.innerWidth;
+      // Target ~300px per column; clamp between 2 and 12
+      let next = Math.max(2, Math.min(12, Math.round(width / 300)));
+      // Keep exactly 5 columns until 1900px wide, then allow 6+
+      if (next >= 6 && width < 1980) next = 5;
+      setColumns(next);
+    };
+    compute();
+    let ro: ResizeObserver | null = null;
+    if ("ResizeObserver" in window) {
+      ro = new ResizeObserver(compute);
+      ro.observe(el);
+    }
+    return () => {
+      if (ro) ro.disconnect();
+    };
   }, []);
 
-  const preloadNextImages = useCallback(() => {
-    if (!photos.length) return;
-    for (let i = 1; i <= 3; i++) {
-      const nextIndex = (currentImageIndex + i) % photos.length;
-      preloadFull(bestFull(photos[nextIndex]));
-    }
-  }, [currentImageIndex, photos, preloadFull]);
+  
 
-  // De-dupe helper by id
-  const mergeUnique = (prev: Photo[], incoming: Photo[]) => {
-    const seen = new Set(prev.map((p) => p.id));
-    const merged = [...prev];
-    for (const p of incoming) {
-      if (!seen.has(p.id)) {
-        merged.push(p);
-        seen.add(p.id);
-      }
-    }
-    return merged;
-  };
-
-  // Fetch with pagination + race protection
-  const fetchMorePhotos = useCallback(async () => {
-    if (loading || finished || inFlightRef.current) return;
-    inFlightRef.current = true;
-    setLoading(true);
-    setError(null);
-
-    const thisRequest = ++requestIdRef.current;
-    try {
-      const categoryParam = activeCategory !== "ALL" ? activeCategory : undefined;
-      const newPhotos = await getPhotos(categoryParam, page, PAGE_SIZE);
-
-      // ignore stale responses (e.g., user changed category mid-flight)
-      if (thisRequest !== requestIdRef.current) return;
-
-      if (!newPhotos.length) {
-        setFinished(true);
-      } else {
-        setPhotos((prev) => mergeUnique(prev, newPhotos));
-        setPage((prev) => prev + 1);
-        // warm up a few thumbnails (lazySizes will take over)
-        newPhotos.slice(0, 5).forEach((p) => {
-          const img = new Image();
-          img.src = bestThumb(p);
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching photos:", err);
-      setError("Failed to load photos. Please try again later.");
-    } finally {
-      if (thisRequest === requestIdRef.current) {
-        setLoading(false);
-        inFlightRef.current = false;
-      }
-    }
-  }, [activeCategory, page, finished, loading]);
-
-  // Reset on category change
+  // Track gallery view when category changes (including initial load)
   useEffect(() => {
-    // bump request id so any in-flight resolves are ignored
-    requestIdRef.current++;
-    inFlightRef.current = false;
-    setPhotos([]);
-    setPage(0);
-    setFinished(false);
-    setError(null);
+    try {
+      trackGalleryView(activeCategory);
+    } catch (_) {
+      // no-op
+    }
   }, [activeCategory]);
 
-  // Initial and subsequent loads
+  // Fetch all photos (no pagination)
   useEffect(() => {
-    if (page === 0 && !finished) {
-      fetchMorePhotos();
-    }
-  }, [page, finished, fetchMorePhotos]);
+    const loadPhotos = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const categoryParam = activeCategory !== "ALL" ? activeCategory : undefined;
+        const newPhotos = await getPhotos(categoryParam);
 
-  // Lightbox preloads
-  useEffect(() => {
-    preloadNextImages();
-  }, [currentImageIndex, preloadNextImages]);
+        // Avoid duplicates, sort newest first
+        const unique = Array.from(new Map(newPhotos.map((p) => [p.id, p])).values()).sort((a, b) => {
+          const dateA = new Date(a.uploaded_at || "").getTime();
+          const dateB = new Date(b.uploaded_at || "").getTime();
+          return dateB - dateA;
+        });
 
-  // Infinite scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 800);
-
-      if (!containerRef.current || loading || finished) return;
-      const { bottom } = containerRef.current.getBoundingClientRect();
-      // ask earlier to avoid gaps
-      if (bottom < window.innerHeight + 600) fetchMorePhotos();
+        setPhotos(unique);
+        
+      } catch (err) {
+        console.error("❌ Error loading gallery:", err);
+        setError("Failed to load photos. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
     };
 
+    loadPhotos();
+  }, [activeCategory]);
+
+  // Show scroll-to-top button
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 800);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [loading, finished, fetchMorePhotos]);
+  }, []);
 
-  // open lightbox
   const handleImageClick = (index: number) => {
     setCurrentImageIndex(index);
     setIsLightboxOpen(true);
-    preloadNextImages();
   };
 
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
-
-  // Lightbox slides use largest available URL
-  const lightboxSlides = photos.map((p) => ({ src: bestFull(p) }));
+  const scrollToTop = () =>
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
 
   return (
-    <div className="py-6 md:py-8 mt-20" ref={containerRef}>
-      <CategoryFilter activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+    <div className="py-6 md:py-8 mt-16 md:mt-20" ref={containerRef}>
+      <div className="container-custom">
+        <CategoryFilter activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+      </div>
 
-      {/* Loading state (initial) */}
+      {/* Loading State */}
       {loading && photos.length === 0 && (
         <div className="flex justify-center items-center py-20">
           <div className="loader" />
@@ -172,73 +124,61 @@ const Gallery: React.FC = () => {
       {/* Empty */}
       {!loading && !error && photos.length === 0 && <div className="text-center py-20">No photos found in this category.</div>}
 
-      {/* Grid */}
+      {/* Gallery Grid */}
       {photos.length > 0 && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="px-4">
-          <Masonry breakpointCols={breakpointColumns} className="my-masonry-grid" columnClassName="my-masonry-grid_column">
-            {photos.map((photo, index) => {
-              const thumb = bestThumb(photo);
-              const med = bestMedium(photo);
-              const large = bestLarge(photo);
-              const full = bestFull(photo);
+          <Masonry breakpointCols={columns} className="my-masonry-grid" columnClassName="my-masonry-grid_column">
+            {photos.map((photo, index) => (
+              <motion.div
+                key={`${photo.id}-${index}`}
+                className="my-masonry-grid_item"
+                layout
+                initial={{ opacity: 0, y: 25 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  delay: Math.min(index * 0.02, 0.4),
+                  duration: 0.4,
+                }}
+                whileHover={{ scale: 1.02 }}
+              >
+                <div className="relative cursor-pointer overflow-hidden rounded" onClick={() => handleImageClick(index)}>
+                  {/* Skeleton placeholder */}
+                  <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse rounded" id={`skeleton-${photo.id}`} />
 
-              return (
-                <motion.div
-                  key={photo.id}
-                  className="my-masonry-grid_item"
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(index * 0.02, 0.4), duration: 0.4 }}
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <div className="cursor-pointer overflow-hidden" onClick={() => handleImageClick(index)}>
-                    {/* lazysizes with responsive sources */}
-                    <img
-                      // lazysizes expects data-* attributes
-                      data-src={thumb}
-                      data-srcset={`
-                        ${thumb} 400w,
-                        ${med} 800w,
-                        ${large} 1600w,
-                        ${full} 2400w
-                      `}
-                      sizes="(max-width: 768px) 100vw,
-                             (max-width: 1280px) 50vw,
-                             25vw"
-                      className="lazyload w-full object-cover rounded shadow"
-                      alt={`Shoot For Arts photography #${index + 1}`}
-                    />
-                  </div>
-                </motion.div>
-              );
-            })}
+                  <img
+                    data-src={photo.url}
+                    className="lazyload w-full object-cover rounded shadow transition-opacity duration-300 opacity-0"
+                    alt={`Shoot For Arts photography #${index + 1}`}
+                    onLoad={(e) => {
+                      e.currentTarget.classList.add("opacity-100");
+                      const skeleton = document.getElementById(`skeleton-${photo.id}`);
+                      if (skeleton) skeleton.style.display = "none";
+                    }}
+                  />
+                </div>
+              </motion.div>
+            ))}
           </Masonry>
         </motion.div>
       )}
 
       {/* Lightbox */}
-      {lightboxSlides.length > 0 && (
+      {photos.length > 0 && (
         <Lightbox
           open={isLightboxOpen}
           close={() => setIsLightboxOpen(false)}
-          slides={lightboxSlides}
+          slides={photos.map((p) => ({ src: p.url }))}
           index={currentImageIndex}
           plugins={[Zoom]}
           zoom={{ maxZoomPixelRatio: 5, zoomInMultiplier: 2 }}
-          on={{
-            click: () => {
-              const nextIndex = (currentImageIndex + 1) % photos.length;
-              setCurrentImageIndex(nextIndex);
-              preloadNextImages();
-            },
-          }}
           carousel={{ finite: true, preload: 3 }}
-          styles={{ container: { backgroundColor: "rgba(0,0,0,0.9)" } }}
+          styles={{
+            container: { backgroundColor: "rgba(0,0,0,0.9)" },
+          }}
         />
       )}
 
-      {/* Scroll-to-top */}
+      {/* Scroll-to-Top Button */}
       <AnimatePresence>
         {showScrollTop && (
           <motion.button
@@ -258,3 +198,6 @@ const Gallery: React.FC = () => {
 };
 
 export default Gallery;
+
+
+

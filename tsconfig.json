@@ -4,7 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "outDir": "dist",
-    "rootDir": ".",
+    "rootDir": "src",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "allowJs": true,
@@ -12,15 +12,6 @@
     "skipLibCheck": true,
     "jsx": "react-jsx"
   },
-  "include": [
-    "src",
-    "src/vite-env.d.ts",
-    "backend/types",
-    "backend/routes",
-    "backend/utils",
-    "api"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src", "src/vite-env.d.ts"],
+  "exclude": ["node_modules"]
 }

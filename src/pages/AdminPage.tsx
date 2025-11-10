@@ -9,568 +9,473 @@ import { enUS } from "date-fns/locale";
 
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-
 import { motion } from "framer-motion";
-import { Upload, Users, Mail, Calendar as CalendarIcon, Download, LogOut } from "lucide-react";
-import * as XLSX from "xlsx";
+import { Upload, Users, Calendar as CalendarIcon, LogOut, Menu, X } from "lucide-react";
 
-import { supabase, supabaseAnonKey, supabaseUrl } from "../lib/supabase";
+import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import AdminLogin from "../components/AdminLogin";
 import AdminUpload from "../components/AdminUpload";
+import AdminData from "../components/AdminData";
+import { Contact, CalendarEvent, Tab } from "../utils";
+import { serviceOptions } from "../utils";
+
 
 const locales = { "en-US": enUS };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
-const DragAndDropCalendar = withDragAndDrop(BigCalendar);
+const DragAndDropCalendar = withDragAndDrop(BigCalendar as any);
 
-interface Contact {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  service: string;
-  occasion: string;
-  date: string;
-  time?: string;
-  instagram?: string;
-  location?: string;
-  referralSource?: string;
-  questions?: string;
-  add_ons: string[];
-  pinterestInspo?: string;
-  created_at: string;
-}
-
-interface Subscriber {
-  id: string;
-  email: string;
-  created_at: string;
-}
-
-interface CalendarEvent {
-  title: string;
-  start: Date;
-  end: Date;
-  resource: Contact;
-}
-
-type Tab = "dashboard" | "upload" | "calendar";
-type DashboardTab = "contacts" | "subscribers";
 const AdminPage: React.FC = () => {
   const { currentUser, loading } = useAuth();
-
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
-  const [dashboardTab, setDashboardTab] = useState<DashboardTab>("contacts");
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
   const [selectedService, setSelectedService] = useState<string>("All");
-  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({
+    start: null,
+    end: null,
+  });
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
-
-    const fetchData = async () => {
-      setIsLoading(true);
+    const fetchContacts = async () => {
       try {
-        // query both tables in parallel
-        const [contactsRes, subsRes] = await Promise.all([
-          supabase.from("contact_submissions").select("*"),
-          supabase.from("newsletter_subscribers").select("*"),
-        ]);
+        const { data, error } = await supabase.from("contact_submissions").select("*");
+        if (error) throw error;
+        let contactsData = data || [];
 
-        if (contactsRes.error) throw contactsRes.error;
-        if (subsRes.error) throw subsRes.error;
+        if (import.meta.env.VITE_BACKEND_URL) {
+          try {
+            const backend = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contact-form`).then((r) => r.json());
+            const backendList = Array.isArray(backend.submissions) ? backend.submissions : backend;
+            const merged = [...contactsData, ...backendList];
+            const unique = Array.from(new Map(merged.map((c: any) => [c.id || c.email + c.created_at, c])).values());
+            contactsData = unique as any;
+          } catch (e) {
+            console.warn("Backend sync failed for calendar; using Supabase only");
+          }
+        }
 
-        // console.log("✅ Contacts:", contactsRes.data);
-        // console.log("✅ Subscribers:", subsRes.data);
-
-        setContacts(contactsRes.data || []);
-        setSubscribers(subsRes.data || []);
+        setContacts(contactsData);
       } catch (err) {
-        console.error("Error fetching data:", err);
-      } finally {
-        setIsLoading(false);
+        console.error("Error fetching contacts:", err);
       }
     };
-
-    fetchData();
+    fetchContacts();
   }, [currentUser]);
+
+  const parseDateTime = (dateStr?: string, timeStr?: string) => {
+    if (!dateStr) return null;
+    try {
+      if (!timeStr) return new Date(dateStr);
+      const m = timeStr.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*([AP]M)$/i);
+      if (!m) return new Date(dateStr);
+      let hour = parseInt(m[1], 10);
+      const minute = parseInt(m[2] || "0", 10);
+      const ampm = m[3].toUpperCase();
+      if (ampm === "PM" && hour < 12) hour += 12;
+      if (ampm === "AM" && hour === 12) hour = 0;
+      const d = new Date(dateStr);
+      d.setHours(hour, minute, 0, 0);
+      return d;
+    } catch {
+      return dateStr ? new Date(dateStr) : null;
+    }
+  };
+
+  const toGCalDateParam = (d: Date) => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const y = d.getUTCFullYear();
+    const m = pad(d.getUTCMonth() + 1);
+    const day = pad(d.getUTCDate());
+    const hh = pad(d.getUTCHours());
+    const mm = pad(d.getUTCMinutes());
+    const ss = pad(d.getUTCSeconds());
+    return `${y}${m}${day}T${hh}${mm}${ss}Z`;
+  };
+
+  const buildGoogleCalUrl = (c: Contact) => {
+    const title = encodeURIComponent(`${c.service} - ${c.firstName} ${c.lastName}`);
+    const details = encodeURIComponent(
+      [
+        c.email ? `Email: ${c.email}` : "",
+        c.service_tier ? `Tier: ${c.service_tier}` : "",
+        c.questions ? `Notes: ${c.questions}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    );
+    const location = encodeURIComponent(c.location || "");
+
+    const start = parseDateTime(c.date, c.time);
+    if (!start) return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}`;
+
+    // If time provided, make 1 hour event; else all-day
+    if (c.time) {
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      const dates = `${toGCalDateParam(start)}/${toGCalDateParam(end)}`;
+      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
+    } else {
+      const allDayStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const allDayEnd = new Date(allDayStart.getTime() + 24 * 60 * 60 * 1000);
+      const dates = `${toGCalDateParam(allDayStart).slice(0, 8)}/${toGCalDateParam(allDayEnd).slice(0, 8)}`;
+      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
+    }
+  };
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
+      window.location.href = "/admin/login";
     } catch (error) {
       console.error("Error logging out:", error);
     }
   };
 
-  const exportToExcel = (data: any[], filename: string) => {
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    XLSX.writeFile(wb, `${filename}.xlsx`);
-  };
-
-  const handleExportContacts = () => {
-    const exportData = contacts.map((contact) => ({
-      "Submitted At": new Date(contact.created_at).toLocaleString(),
-      "First Name": contact.firstName,
-      "Last Name": contact.lastName,
-      Email: contact.email,
-      Instagram: contact.instagram || "N/A",
-      Service: contact.service,
-      Occasion: contact.occasion,
-      "Booking Date": contact.date,
-      "Booking Time": contact.time || "N/A",
-      Location: contact.location || "N/A",
-      "Referral Source": contact.referralSource || "N/A",
-      "Add-ons": contact.add_ons.join(", "),
-      "Pinterest Board": contact.pinterestInspo || "N/A",
-      "Questions/Comments": contact.questions || "N/A",
-    }));
-    exportToExcel(exportData, "contacts-export");
-  };
-
-  const handleExportSubscribers = () => {
-    const exportData = subscribers.map((subscriber) => ({
-      "Submitted At": new Date(subscriber.created_at).toLocaleString(),
-      Email: subscriber.email,
-    }));
-    exportToExcel(exportData, "subscribers-export");
-  };
-
-  const handleExportCalendarEvents = () => {
-    const exportData = filteredEvents.map((event) => {
-      const contact = event.resource;
+  const calendarEvents: CalendarEvent[] = contacts
+    .map((contact) => {
+      const start = parseDateTime(contact.date, contact.time) || (contact.date ? new Date(contact.date) : null);
+      if (!start) return null;
+      const end = contact.time ? new Date(start.getTime() + 60 * 60 * 1000) : start;
       return {
-        "Booking Date": contact.date,
-        "Booking Time": contact.time || "N/A",
-        "First Name": contact.firstName,
-        "Last Name": contact.lastName,
-        Email: contact.email,
-        Service: contact.service,
-        Occasion: contact.occasion,
-        Location: contact.location || "N/A",
-        Instagram: contact.instagram || "N/A",
-        "Referral Source": contact.referralSource || "N/A",
-        "Add-ons": contact.add_ons.join(", "),
-        "Pinterest Board": contact.pinterestInspo || "N/A",
-        "Questions/Comments": contact.questions || "N/A",
-      };
-    });
-    exportToExcel(exportData, "calendar-events-export");
-  };
-
-  const formatDate = (timestamp: string) => {
-    if (!timestamp) return "N/A";
-    return new Intl.DateTimeFormat("en-US", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(timestamp));
-  };
-
-  const calendarEvents: CalendarEvent[] = contacts.map((contact) => ({
-    title: `${contact.service} - ${contact.firstName} ${contact.lastName}`,
-    start: new Date(contact.date),
-    end: new Date(contact.date),
-    resource: contact,
-  }));
+        title: `${contact.service} - ${contact.firstName} ${contact.lastName}`,
+        start,
+        end,
+        resource: contact,
+      } as CalendarEvent;
+    })
+    .filter(Boolean) as CalendarEvent[];
 
   const filteredEvents = calendarEvents.filter((event) => {
-    const serviceMatch = selectedService === "All" || event.resource.service === selectedService;
+    const norm = (s?: string) => (s || "").toLowerCase().trim();
+    const serviceMatch = selectedService === "All" || norm(event.resource.service) === norm(selectedService);
     const dateMatch = (!dateRange.start || event.start >= dateRange.start) && (!dateRange.end || event.end <= dateRange.end);
     const nameMatch = `${event.resource.firstName} ${event.resource.lastName}`.toLowerCase().includes(searchQuery.toLowerCase());
-
     return serviceMatch && dateMatch && nameMatch;
   });
 
-  if (loading) {
+  if (loading)
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="loader"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
       </div>
     );
-  }
 
-  if (!currentUser) {
-    return <AdminLogin />;
-  }
+  if (!currentUser) return <AdminLogin />;
+
   return (
-    <div className="container-custom py-20 mt-20">
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-serif">Admin Dashboard</h2>
-        <div className="flex space-x-4">
-          <button
-            onClick={() => setActiveTab("dashboard")}
-            className={`flex items-center px-4 py-2 rounded-lg transition-colors duration-300 ${
-              activeTab === "dashboard" ? "bg-primary text-white" : "text-primary hover:bg-gray-100"
-            }`}
-          >
-            <Users className="w-5 h-5 mr-2" />
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab("calendar")}
-            className={`flex items-center px-4 py-2 rounded-lg transition-colors duration-300 ${
-              activeTab === "calendar" ? "bg-primary text-white" : "text-primary hover:bg-gray-100"
-            }`}
-          >
-            <CalendarIcon className="w-5 h-5 mr-2" />
-            Calendar
-          </button>
-          <button
-            onClick={() => setActiveTab("upload")}
-            className={`flex items-center px-4 py-2 rounded-lg transition-colors duration-300 ${
-              activeTab === "upload" ? "bg-primary text-white" : "text-primary hover:bg-gray-100"
-            }`}
-          >
-            <Upload className="w-5 h-5 mr-2" />
-            Upload Photos
-          </button>
-          <button onClick={handleLogout} className="flex items-center px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-300">
-            <LogOut className="w-5 h-5 mr-2" />
-            Logout
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Dashboard</h2>
 
-      {activeTab === "calendar" && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="h-[700px]">
-          <div className="mb-4 flex flex-wrap gap-4 items-center">
-            <div>
-              <label className="mr-2 font-medium">Filter by Service:</label>
-              <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)} className="border border-gray-300 rounded px-2 py-1">
-                <option value="All">All</option>
-                <option value="Wedding">Wedding</option>
-                <option value="Portrait">Portrait</option>
-                <option value="Event">Event</option>
-                <option value="Branding">Branding</option>
-              </select>
-            </div>
-            <div>
-              <label className="mr-2 font-medium">Start Date:</label>
-              <input
-                type="date"
-                onChange={(e) =>
-                  setDateRange((prev) => ({
-                    ...prev,
-                    start: e.target.value ? new Date(e.target.value) : null,
-                  }))
-                }
-                className="border border-gray-300 rounded px-2 py-1"
-              />
-            </div>
-            <div>
-              <label className="mr-2 font-medium">End Date:</label>
-              <input
-                type="date"
-                onChange={(e) =>
-                  setDateRange((prev) => ({
-                    ...prev,
-                    end: e.target.value ? new Date(e.target.value) : null,
-                  }))
-                }
-                className="border border-gray-300 rounded px-2 py-1"
-              />
-            </div>
-            <div>
-              <label className="mr-2 font-medium">Search by Name:</label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="e.g. Jane Doe"
-                className="border border-gray-300 rounded px-2 py-1"
-              />
-            </div>
-            <button onClick={handleExportCalendarEvents} className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark transition-colors">
-              Export Calendar View
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="sm:hidden fixed top-4 right-4 z-50 bg-white p-2 rounded-lg shadow-lg">
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+
+          <div
+            className={`${
+              mobileMenuOpen ? "flex" : "hidden"
+            } sm:flex flex-col sm:flex-row gap-2 sm:gap-3 fixed sm:relative top-16 sm:top-0 left-0 right-0 bg-white sm:bg-transparent p-4 sm:p-0 shadow-lg sm:shadow-none z-40`}
+          >
+            <a
+              href="/"
+              className="flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100"
+            >
+              Back to Site
+            </a>
+            <button
+              onClick={() => {
+                setActiveTab("dashboard");
+                setMobileMenuOpen(false);
+              }}
+              className={`flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg transition-all duration-200 ${
+                activeTab === "dashboard" ? "bg-blue-600 text-white shadow-lg" : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <Users className="w-5 h-5 mr-2" />
+              Dashboard
             </button>
-          </div>{" "}
-          <DndProvider backend={HTML5Backend}>
-            <DragAndDropCalendar
-              localizer={localizer}
-              events={filteredEvents}
-              startAccessor={(event: object) => new Date((event as CalendarEvent).start)}
-              endAccessor={(event) => new Date((event as CalendarEvent).start)}
-              style={{ height: "100%" }}
-              views={["month", "week", "day"]}
-              tooltipAccessor={(event) => {
-                const contact = (event as CalendarEvent).resource;
-                return `${contact.firstName} ${contact.lastName} • ${contact.service}`;
+            <button
+              onClick={() => {
+                setActiveTab("calendar");
+                setMobileMenuOpen(false);
               }}
-              eventPropGetter={(event: object) => {
-                const calendarEvent = event as CalendarEvent;
-                const contact = calendarEvent.resource;
-
-                const serviceColors: Record<string, string> = {
-                  Wedding: "#FFB6C1",
-                  Portrait: "#ADD8E6",
-                  Event: "#90EE90",
-                  Branding: "#FFD700",
-                  Other: "#D3D3D3",
-                };
-
-                const backgroundColor = serviceColors[contact.service] || "#D3D3D3";
-
-                return {
-                  style: {
-                    backgroundColor,
-                    borderRadius: "4px",
-                    color: "#000",
-                    border: "none",
-                    padding: "2px",
-                  },
-                };
+              className={`flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg transition-all duration-200 ${
+                activeTab === "calendar" ? "bg-blue-600 text-white shadow-lg" : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <CalendarIcon className="w-5 h-5 mr-2" />
+              Calendar
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("upload");
+                setMobileMenuOpen(false);
               }}
-              onSelectEvent={(event: object) => {
-                const contact = (event as CalendarEvent).resource;
-                setSelectedContact(contact);
+              className={`flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg transition-all duration-200 ${
+                activeTab === "upload" ? "bg-blue-600 text-white shadow-lg" : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <Upload className="w-5 h-5 mr-2" />
+              Upload
+            </button>
+            <button
+              onClick={() => {
+                handleLogout();
+                setMobileMenuOpen(false);
               }}
-              onEventDrop={({ event, start }) => {
-                const contact = (event as CalendarEvent).resource;
-                const dateObj = start instanceof Date ? start : new Date(start);
-                const updatedDate = dateObj.toISOString().split("T")[0];
-
-                const updatedContacts = contacts.map((c) => (c.id === contact.id ? { ...c, date: updatedDate } : c));
-                setContacts(updatedContacts);
-              }}
-            />
-          </DndProvider>
-          {selectedContact && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-              <div className="bg-white p-6 rounded-lg max-w-lg w-full shadow-lg relative">
-                <button onClick={() => setSelectedContact(null)} className="absolute top-2 right-2 text-gray-500 hover:text-gray-800">
-                  ✕
-                </button>
-                <h3 className="text-xl font-semibold mb-4">
-                  {selectedContact.service} Inquiry — {selectedContact.firstName} {selectedContact.lastName}
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <p>
-                    <strong>Email:</strong> {selectedContact.email}
-                  </p>
-                  <p>
-                    <strong>Date:</strong> {selectedContact.date}
-                  </p>
-                  {selectedContact.time && (
-                    <p>
-                      <strong>Time:</strong> {selectedContact.time}
-                    </p>
-                  )}
-                  {selectedContact.location && (
-                    <p>
-                      <strong>Location:</strong> {selectedContact.location}
-                    </p>
-                  )}
-                  {selectedContact.instagram && (
-                    <p>
-                      <strong>Instagram:</strong> {selectedContact.instagram}
-                    </p>
-                  )}
-                  {selectedContact.pinterestInspo && (
-                    <p>
-                      <strong>Pinterest:</strong>{" "}
-                      <a href={selectedContact.pinterestInspo} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                        View Board
-                      </a>
-                    </p>
-                  )}
-                  {selectedContact.add_ons.length > 0 && (
-                    <div>
-                      <strong>Add-ons:</strong>
-                      <ul className="list-disc ml-4">
-                        {selectedContact.add_ons.map((addon, i) => (
-                          <li key={i}>{addon}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {selectedContact.questions && (
-                    <p>
-                      <strong>Comments:</strong> {selectedContact.questions}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </motion.div>
-      )}
-      {activeTab === "dashboard" && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <div className="mb-6">
-            <div className="border-b border-accent flex justify-between items-center">
-              <div>
-                <button
-                  className={`px-4 py-2 mr-4 ${dashboardTab === "contacts" ? "border-b-2 border-primary" : ""}`}
-                  onClick={() => setDashboardTab("contacts")}
-                >
-                  <Users className="w-4 h-4 inline-block mr-2" />
-                  Contact Submissions
-                </button>
-                <button
-                  className={`px-4 py-2 ${dashboardTab === "subscribers" ? "border-b-2 border-primary" : ""}`}
-                  onClick={() => setDashboardTab("subscribers")}
-                >
-                  <Mail className="w-4 h-4 inline-block mr-2" />
-                  Newsletter Subscribers
-                </button>
-              </div>
-              <button
-                onClick={() => (dashboardTab === "contacts" ? handleExportContacts() : handleExportSubscribers())}
-                className="flex items-center px-4 py-2 text-primary hover:bg-gray-100 rounded-lg transition-colors duration-300"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export to Excel
-              </button>
-            </div>
+              className="flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-200"
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              Logout
+            </button>
           </div>
+        </div>
 
-          {isLoading ? (
-            <div className="flex justify-center items-center py-20">
-              <div className="loader"></div>
+        {activeTab === "dashboard" && <AdminData />}
+
+        {activeTab === "calendar" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
+          >
+            <div className="mb-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Service</label>
+                  <select
+                    value={selectedService}
+                    onChange={(e) => setSelectedService(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="All">All Services</option>
+                    {Object.keys(serviceOptions).map((service) => (
+                      <option key={service} value={service}>
+                        {service}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    onChange={(e) =>
+                      setDateRange((prev) => ({
+                        ...prev,
+                        start: e.target.value ? new Date(e.target.value) : null,
+                      }))
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                  <input
+                    type="date"
+                    onChange={(e) =>
+                      setDateRange((prev) => ({
+                        ...prev,
+                        end: e.target.value ? new Date(e.target.value) : null,
+                      }))
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Search Name</label>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="e.g. Jane Doe"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
             </div>
-          ) : (
-            <>
-              {dashboardTab === "contacts" && (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-accent">
-                        <th className="text-left py-2 px-4">Submitted At</th>
-                        <th className="text-left py-2 px-4">Name</th>
-                        <th className="text-left py-2 px-4">Email</th>
-                        <th className="text-left py-2 px-4">Service</th>
-                        <th className="text-left py-2 px-4">Details</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {contacts.map((contact) => (
-                        <tr key={contact.id} className="border-b border-accent hover:bg-gray-50">
-                          <td className="py-2 px-4">{formatDate(contact.created_at)}</td>
-                          <td className="py-2 px-4">{`${contact.firstName} ${contact.lastName}`}</td>
-                          <td className="py-2 px-4">
-                            <a href={`mailto:${contact.email}`} className="text-primary hover:underline">
-                              {contact.email}
-                            </a>
-                          </td>
-                          <td className="py-2 px-4">{contact.service}</td>
-                          <td className="py-2 px-4">
-                            <details className="cursor-pointer">
-                              <summary>View Details</summary>
-                              <div className="mt-2 text-sm space-y-2">
-                                {contact.instagram && (
-                                  <div>
-                                    <strong>Instagram:</strong> {contact.instagram}
-                                  </div>
-                                )}
-                                <div>
-                                  <strong>Session Details:</strong>
-                                  <ul className="ml-4 mt-1">
-                                    <li>
-                                      <strong>Service Type:</strong> {contact.service}
-                                    </li>
-                                    <li>
-                                      <strong>Vision/Occasion:</strong> {contact.occasion}
-                                    </li>
-                                    {contact.location && (
-                                      <li>
-                                        <strong>Desired Location:</strong> {contact.location}
-                                      </li>
-                                    )}
-                                  </ul>
-                                </div>
-                                <div>
-                                  <strong>Scheduling:</strong>
-                                  <ul className="ml-4 mt-1">
-                                    <li>
-                                      <strong>Date:</strong> {contact.date}
-                                    </li>
-                                    {contact.time && (
-                                      <li>
-                                        <strong>Preferred Time:</strong> {contact.time}
-                                      </li>
-                                    )}
-                                  </ul>
-                                </div>
-                                {contact.add_ons.length > 0 && (
-                                  <div>
-                                    <strong>Selected Add-ons:</strong>
-                                    <ul className="list-disc ml-4 mt-1">
-                                      {contact.add_ons.map((addon, i) => (
-                                        <li key={i}>{addon}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                                {contact.pinterestInspo && (
-                                  <div>
-                                    <strong>Pinterest Board:</strong>{" "}
-                                    <a href={contact.pinterestInspo} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                      View Board
-                                    </a>
-                                  </div>
-                                )}
-                                {contact.referralSource && (
-                                  <div>
-                                    <strong>Found Through:</strong> {contact.referralSource}
-                                  </div>
-                                )}
-                                {contact.questions && (
-                                  <div>
-                                    <strong>Questions/Comments:</strong>
-                                    <p className="mt-1">{contact.questions}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </details>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
 
-              {dashboardTab === "subscribers" && (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-accent">
-                        <th className="text-left py-2 px-4">Submitted At</th>
-                        <th className="text-left py-2 px-4">Email</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {subscribers.map((subscriber) => (
-                        <tr key={subscriber.id} className="border-b border-accent hover:bg-gray-50">
-                          <td className="py-2 px-4">{formatDate(subscriber.created_at)}</td>
-                          <td className="py-2 px-4">
-                            <a href={`mailto:${subscriber.email}`} className="text-primary hover:underline">
-                              {subscriber.email}
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
-          )}
-        </motion.div>
-      )}
+            <div className="h-[500px] sm:h-[600px] lg:h-[700px]">
+              <DndProvider backend={HTML5Backend}>
+                <DragAndDropCalendar
+                  localizer={localizer}
+                  events={filteredEvents}
+                  startAccessor={(event: any) => event.start}
+                  endAccessor={(event: any) => event.end}
+                  style={{ height: "100%" }}
+                  views={["month", "week", "day"]}
+                  tooltipAccessor={(event: any) => {
+                    const contact = event.resource;
+                    return `${contact.firstName} ${contact.lastName} • ${contact.service}`;
+                  }}
+                  eventPropGetter={(event: any) => {
+                    const contact = event.resource;
+                    const serviceColors: Record<string, string> = {
+                      "Base Photoshoot": "#90EE90",
+                      "Creative Photoshoot": "#ADD8E6",
+                      "Event Photography": "#FFD700",
+                      "Wedding Photography": "#FFB6C1",
+                      "Prom / HOCO": "#D8BFD8",
+                      "Grad Photoshoots": "#FFA07A",
+                      Other: "#D3D3D3",
+                    };
 
-      {activeTab === "upload" && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <AdminUpload />
-        </motion.div>
-      )}
+                    const backgroundColor = serviceColors[contact.service] || "#D3D3D3";
+                    return {
+                      style: {
+                        backgroundColor,
+                        borderRadius: "4px",
+                        color: "#000",
+                        border: "none",
+                        padding: "2px",
+                      },
+                    };
+                  }}
+                  onSelectEvent={(event: any) => {
+                    const contact = event.resource;
+                    setSelectedContact(contact);
+                  }}
+                  onEventDrop={({ event, start }: any) => {
+                    const contact = event.resource;
+                    const updatedDate = new Date(start).toISOString().split("T")[0];
+                    const updatedContacts = contacts.map((c) => (c.id === contact.id ? { ...c, date: updatedDate } : c));
+                    setContacts(updatedContacts);
+                  }}
+                />
+              </DndProvider>
+            </div>
+
+            {selectedContact && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative overflow-y-auto max-h-[90vh]"
+                >
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900">{selectedContact.service}</h3>
+                      <p className="text-gray-600 mt-1">
+                        {selectedContact.firstName} {selectedContact.lastName}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <a
+                        href={selectedContact ? buildGoogleCalUrl(selectedContact) : "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-3 py-1.5 text-sm rounded bg-green-600 text-white hover:bg-green-700"
+                      >
+                        Add to Google Calendar
+                      </a>
+                      <button onClick={() => setSelectedContact(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                        <X className="w-6 h-6" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Email</p>
+                        <a href={`mailto:${selectedContact.email}`} className="text-blue-600 hover:underline">
+                          {selectedContact.email}
+                        </a>
+                      </div>
+                      {selectedContact.service_tier && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Service Tier</p>
+                          <p className="text-gray-900">{selectedContact.service_tier}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Occasion</p>
+                        <p className="text-gray-900">{selectedContact.occasion}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Date</p>
+                        <p className="text-gray-900">{selectedContact.date}</p>
+                      </div>
+                      {selectedContact.time && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Time</p>
+                          <p className="text-gray-900">{selectedContact.time}</p>
+                        </div>
+                      )}
+                      {selectedContact.location && (
+                        <div className="sm:col-span-2">
+                          <p className="text-sm font-medium text-gray-500">Location</p>
+                          <p className="text-gray-900">{selectedContact.location}</p>
+                        </div>
+                      )}
+                      {selectedContact.instagram && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Instagram</p>
+                          <p className="text-gray-900">{selectedContact.instagram}</p>
+                        </div>
+                      )}
+                      {selectedContact.referralSource && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Referral Source</p>
+                          <p className="text-gray-900">{selectedContact.referralSource}</p>
+                        </div>
+                      )}
+                    </div>
+                    {selectedContact.add_ons && selectedContact.add_ons.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 mb-2">Add-ons</p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedContact.add_ons.map((addon: string, i: number) => (
+                            <span key={i} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+                              {addon}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedContact.pinterestInspo && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Pinterest Board</p>
+                        <a href={selectedContact.pinterestInspo} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          View Inspiration Board
+                        </a>
+                      </div>
+                    )}
+                    {selectedContact.extra_questions && Object.keys(selectedContact.extra_questions).length > 0 && (
+                      <div className="sm:col-span-2">
+                        <p className="text-sm font-medium text-gray-500">Extra Details</p>
+                        <ul className="mt-1 list-disc ml-5 text-gray-900">
+                          {Object.entries(selectedContact.extra_questions).map(([key, value]) => (
+                            <li key={key}>
+                              {key
+                                .replace(/([a-z])([A-Z])/g, "$1 $2")
+                                .replace(/_/g, " ")
+                                .replace(/^\w/, (c) => c.toUpperCase())}
+                              : {String(value)}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {selectedContact.questions && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 mb-2">Comments</p>
+                        <p className="text-gray-900 bg-gray-50 p-4 rounded-lg">{selectedContact.questions}</p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {activeTab === "upload" && <AdminUpload />}
+      </div>
     </div>
   );
 };

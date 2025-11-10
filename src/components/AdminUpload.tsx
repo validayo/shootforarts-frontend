@@ -1,13 +1,13 @@
-import React, { useState, useRef } from "react";
+﻿import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Photo } from "../utils";
-import { supabase } from "../lib/supabase";
+import { trackPhotoUpload } from "../lib/analytics";
 
 interface AdminUploadProps {
   onUploadComplete?: () => void;
 }
 
-const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_MB = 13;
 
 const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
   const [files, setFiles] = useState<File[]>([]);
@@ -19,6 +19,7 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
   const [progressMap, setProgressMap] = useState<{ [filename: string]: number }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /** Handle selecting files (append to current selection; no replacement) */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (!selectedFiles) return;
@@ -27,15 +28,21 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
     const initialProgress: { [filename: string]: number } = {};
     const previewPromises: Promise<string>[] = [];
 
+    const existingKeys = new Set(files.map((f) => `${f.name}_${f.size}_${f.lastModified}`));
+
     Array.from(selectedFiles).forEach((file) => {
       if (!file.type.startsWith("image/")) {
         setError(`${file.name} is not a valid image.`);
         return;
       }
-
       if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
         setError(`${file.name} exceeds the ${MAX_FILE_SIZE_MB}MB limit.`);
         return;
+      }
+
+      const key = `${file.name}_${file.size}_${file.lastModified}`;
+      if (existingKeys.has(key)) {
+        return; // skip duplicates already in the list
       }
 
       validFiles.push(file);
@@ -51,25 +58,26 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
     });
 
     if (validFiles.length === 0) {
-      setFiles([]);
-      setFilePreviews([]);
+      // nothing new to add; keep current selection
       return;
     }
 
     Promise.all(previewPromises).then((results) => {
-      setFilePreviews(results);
+      setFilePreviews((prev) => [...prev, ...results]);
     });
 
-    setProgressMap(initialProgress);
+    setProgressMap((prev) => ({ ...prev, ...initialProgress }));
     setError("");
-    setFiles(validFiles);
+    setFiles((prev) => [...prev, ...validFiles]);
   };
 
+  /** Remove file before upload */
   const handleRemoveFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
     setFilePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
+  /** Handle drag+drop */
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -81,6 +89,7 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
     e.preventDefault();
   };
 
+  /** Upload via Sharp backend */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -99,54 +108,53 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
     setProgressMap({});
 
     try {
-      const uploadedMetadata: Photo[] = [];
+      const uploadedPhotos: Photo[] = [];
 
       for (const file of files) {
-        const safeFilename = file.name.replace(/\s/g, "_");
-        const filePath = `portfolio/${category}/${Date.now()}-${safeFilename}`;
+        const formData = new FormData();
+        formData.append("files", file);
+        formData.append("category", category);
 
-        const { error: storageError } = await supabase.storage.from("images").upload(filePath, file);
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", `${import.meta.env.VITE_BACKEND_URL}/upload-photos`);
 
-        if (storageError) throw storageError;
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              setProgressMap((prev) => ({ ...prev, [file.name]: percent }));
+            }
+          };
 
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("images").getPublicUrl(filePath);
+          xhr.onload = async () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const response = JSON.parse(xhr.responseText);
+              uploadedPhotos.push(response);
+              setProgressMap((prev) => ({ ...prev, [file.name]: 100 }));
+              try {
+                trackPhotoUpload(file.name);
+              } catch (_) {
+                // no-op
+              }
+              resolve();
+            } else {
+              const err = JSON.parse(xhr.responseText || "{}");
+              reject(new Error(err.error || "Upload failed"));
+            }
+          };
 
-        const { data: photoRow, error: dbError } = await supabase
-          .from("photos")
-          .insert([
-            {
-              category,
-              url: publicUrl,
-              uploaded_at: new Date().toISOString(),
-            },
-          ])
-          .select()
-          .single();
-
-        if (photoRow) {
-          await supabase.functions.invoke("process-image", {
-            body: { id: photoRow.id, path: filePath },
-          });
-        }
-
-        if (dbError) throw dbError;
-
-        uploadedMetadata.push(photoRow);
-        setProgressMap((prev) => ({ ...prev, [file.name]: 100 }));
+          xhr.onerror = () => reject(new Error("Network error"));
+          xhr.send(formData);
+        });
       }
 
+      console.log("✅ Uploaded via Sharp backend:", uploadedPhotos);
       setShowSuccess(true);
       setFiles([]);
       setFilePreviews([]);
       setCategory("");
 
-      if (typeof onUploadComplete === "function") {
-        onUploadComplete();
-      }
-
-      console.log("✅ Uploaded:", uploadedMetadata);
+      if (typeof onUploadComplete === "function") onUploadComplete();
     } catch (err: any) {
       console.error("🚨 Upload error:", err.message);
       setError(err.message || "Something went wrong.");
@@ -165,7 +173,7 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
         {showSuccess && (
           <motion.div className="bg-green-50 text-green-900 p-4 mb-6 rounded text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <h3 className="text-xl font-semibold mb-2">✅ Upload Complete!</h3>
-            <p>Your photos were uploaded successfully.</p>
+            <p>Your photos were uploaded successfully and optimized via Sharp.</p>
           </motion.div>
         )}
 
@@ -192,7 +200,6 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
                 <div key={i} className="relative group">
                   <img src={src} alt={`preview-${i}`} className="rounded border w-full" />
 
-                  {/* Remove button */}
                   <button
                     type="button"
                     onClick={() => handleRemoveFile(i)}

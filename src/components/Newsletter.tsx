@@ -1,37 +1,42 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { supabase } from '../lib/supabase';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { supabase } from "../lib/supabase";
 
 const Newsletter: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    
+
     setIsSubmitting(true);
-    setError('');
+    setError("");
 
     try {
-      const { error } = await supabase
-        .from('newsletter_subscribers')
-        .insert([{ email }]);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/newsletter`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const { error } = await response.json();
+        throw new Error(error || "Failed to subscribe to newsletter");
+      }
 
       setShowSuccess(true);
-      setEmail('');
-      
+      setEmail("");
+
       // Hide success message after 3 seconds
       setTimeout(() => {
         setShowSuccess(false);
       }, 3000);
     } catch (error) {
-      console.error('Error subscribing:', error);
-      setError('Failed to subscribe. Please try again.');
+      console.error("Error subscribing:", error);
+      setError("Failed to subscribe. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -39,11 +44,7 @@ const Newsletter: React.FC = () => {
 
   if (showSuccess) {
     return (
-      <motion.div 
-        className="bg-white border-y border-accent"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
+      <motion.div className="bg-white border-y border-accent" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <div className="container-custom py-8 text-center">
           <h3 className="text-xl font-serif mb-2">Thank you for subscribing!</h3>
           <p>You'll receive our updates soon.</p>
@@ -53,12 +54,7 @@ const Newsletter: React.FC = () => {
   }
 
   return (
-    <motion.div 
-      className="bg-white border-y border-accent"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
+    <motion.div className="bg-white border-y border-accent" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <div className="container-custom py-8">
         <form onSubmit={handleSubmit} className="flex items-center justify-center gap-4 flex-wrap">
           <p className="text-sm font-serif">Subscribe for updates and special offers</p>
@@ -80,12 +76,8 @@ const Newsletter: React.FC = () => {
               Subscribe
             </button>
           </div>
-          
-          {error && (
-            <p className="text-sm text-red-600">
-              {error}
-            </p>
-          )}
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
         </form>
       </div>
     </motion.div>

@@ -28,7 +28,7 @@ const AdminLogin: React.FC = () => {
 
       if (error) throw error;
 
-      navigate("/admin/"); // Redirect to admin dashboard on successful login
+      navigate("/admin/dashboard"); // Redirect to admin dashboard on successful login
     } catch (err) {
       if (err instanceof Error) {
         console.error("Login error:", err.message);

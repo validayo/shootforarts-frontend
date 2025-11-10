@@ -29,7 +29,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
               activeCategory === category
                 ? 'bg-blue-100 text-blue-600'
                 : 'text-primary hover:bg-gray-100'
-            } px-3 py-1 text-sm rounded-full transition-all duration-300`}
+            } px-4 py-1.5 text-sm md:text-base rounded-full transition-all duration-300`}
           >
             {category.toLowerCase()}
           </button>
