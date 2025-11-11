@@ -167,5 +167,3 @@ const Navbar: React.FC<NavbarProps> = ({ funEnabled = false, onToggleFun }) => {
 }
 
 export default Navbar;
-
-

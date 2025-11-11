@@ -70,6 +70,19 @@ export const serviceOptions: Record<string, string[]> = {
 // Referral source options
 export const referralOptions = ["Instagram", "Facebook", "Word of mouth", "Google", "Other"];
 
+// Shared Add‑On options used on Services page and Contact form
+export const addOnOptions: string[] = [
+  "Additional Time (Before 8PM) - $60/hour",
+  "Additional Time (After 8PM) - $80/hour",
+  "VHS Camera Edit (15 sec) + Clips - $50",
+  "Creative Graphic Edit - prices vary",
+  "Highlight reel - $80",
+  "Drone footage - $200",
+  "Studio rental - varies",
+  "Rush Delivery (24hr turnaround) - $100",
+  "Rush Delivery (48hr turnaround) - $50",
+];
+
 // Admin credentials interface
 export interface AdminCredentials {
   email: string;

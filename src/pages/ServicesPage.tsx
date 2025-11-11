@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
 import Accordion from "../components/Accordion";
+import { addOnOptions } from "../utils";
 
 const ServicesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -58,15 +59,7 @@ const ServicesPage: React.FC = () => {
     {
       title: "Add-On Options",
       price: "",
-      details: [
-        "Extra outfit – $25",
-        "Additional 30 mins – $40",
-        "Studio rental – varies",
-        "Highlight reel – $80",
-        "Drone footage – $200",
-        "Rush delivery 24hr turnaround– $100",
-        "Rush delivery 48hr turnaround– $50",
-      ],
+      details: addOnOptions,
     },
   ];
 

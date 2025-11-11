@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ContactFormData, serviceOptions, referralOptions } from "../utils";
+import { ContactFormData, serviceOptions, referralOptions, addOnOptions } from "../utils";
 import { trackContactSubmit } from "../lib/analytics";
 import { useLocation } from "react-router-dom";
 
@@ -41,6 +41,11 @@ const ContactForm: React.FC = () => {
       setFormData((prev) => ({ ...prev, service: svc }));
     }
   }, [location.search]);
+
+  // Reset tier when service changes to avoid invalid selection
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, service_tier: "" }));
+  }, [formData.service]);
 
   const generateTimeSlots = () => {
     const slots = [];
@@ -251,16 +256,15 @@ const ContactForm: React.FC = () => {
           <h3 className="text-primary mb-4">Add Ons</h3>
           <p className="text-sm text-accent-dark mb-2">Additional edits and options available</p>
           <div className="space-y-2">
-            {[
-              "Additional Time (Before 8PM) - $60/hour",
-              "Additional Time (After 8PM) - $80/hour",
-              "VHS Camera Edit (15 sec) + Clips - $50",
-              "Creative Graphic Edit - prices vary",
-              "Rush Delivery (24hr turnaround) - $100",
-              "Rush Delivery (48hr turnaround) - $50",
-            ].map((addon, i) => (
-              <label key={i} className="flex items-start space-x-2">
-                <input type="checkbox" value={addon.split(" - ")[0]} onChange={handleCheckboxChange} className="mt-1" />
+            {addOnOptions.map((addon) => (
+              <label key={addon} className="flex items-start space-x-2">
+                <input
+                  type="checkbox"
+                  value={addon.split(" - ")[0]}
+                  onChange={handleCheckboxChange}
+                  checked={formData.add_ons.includes(addon.split(" - ")[0])}
+                  className="mt-1"
+                />
                 <span>{addon}</span>
               </label>
             ))}
@@ -319,3 +323,4 @@ const ContactForm: React.FC = () => {
 };
 
 export default ContactForm;
+
