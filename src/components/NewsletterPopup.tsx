@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackPopupClosed, trackPopupShown } from "../lib/analytics";
+import { subscribe as subscribeNewsletter } from "../lib/services";
 
 const SESSION_KEY = "newsletterPopupClosed";
 const SUPPRESS_KEY = "newsletterPopupSuppressUntil"; // ISO date threshold
@@ -62,15 +63,7 @@ const NewsletterPopup: React.FC = () => {
     setSubmitting(true);
     setError("");
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/newsletter`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!response.ok) {
-        const { error } = await response.json();
-        throw new Error(error || "Failed to subscribe");
-      }
+      await subscribeNewsletter(email);
       setSuccess(true);
       sessionStorage.setItem(SESSION_KEY, "true");
     } catch (err) {

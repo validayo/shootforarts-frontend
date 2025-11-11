@@ -1,10 +1,16 @@
 import { Photo } from "../utils";
 import { supabaseUrl, supabaseAnonKey } from "./supabaseClient";
+import { getGallery } from "./services";
 // Re-export the singleton client for consumers importing from "../lib/supabase"
 export { supabase } from "./supabaseClient";
 export { supabaseUrl, supabaseAnonKey };
 
-export const uploadPhoto = async (file: File, category: string, title?: string, onProgress?: (progress: number) => void): Promise<Photo> => {
+export const uploadPhoto = async (
+  file: File,
+  category: string,
+  title?: string,
+  onProgress?: (progress: number) => void
+): Promise<Photo> => {
   try {
     const formData = new FormData();
     formData.append("file", file);
@@ -32,26 +38,13 @@ export const uploadPhoto = async (file: File, category: string, title?: string, 
 
 export const getPhotos = async (category?: string): Promise<Photo[]> => {
   try {
-    // Build backend URL dynamically
-    const url = new URL(`${import.meta.env.VITE_BACKEND_URL}/images`);
-
-    // Add category filter if not "ALL"
-    if (category && category !== "ALL") {
-      url.searchParams.append("category", category);
-    }
-
-    // Fetch photos from backend
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const json = await response.json();
-    
-
-    // Return just the photo array
-    return json.photos || [];
+    // Emulate old behavior: fetch all, filter locally by UI's ALL/PORTRAITS/EVENTS/WEDDINGS/EXTRAS
+    const all = await getGallery("ALL", { width: 1200, quality: 80, format: "webp" });
+    if (!category || category === "ALL") return Array.isArray(all) ? all : [];
+    const target = category.toUpperCase();
+    return (Array.isArray(all) ? all : []).filter((p) => (p.category || "").toUpperCase() === target);
   } catch (err) {
-    console.error("❌ Error fetching photos:", err);
+    console.error("Error fetching photos:", err);
     return [];
   }
 };
-

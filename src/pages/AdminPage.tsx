@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { Upload, Users, Calendar as CalendarIcon, LogOut, Menu, X } from "lucide-react";
 
 import { supabase } from "../lib/supabase";
+import { BASE } from "../lib/services";
 import { useAuth } from "../contexts/AuthContext";
 import AdminLogin from "../components/AdminLogin";
 import AdminUpload from "../components/AdminUpload";
@@ -46,16 +47,20 @@ const AdminPage: React.FC = () => {
         if (error) throw error;
         let contactsData = data || [];
 
-        if (import.meta.env.VITE_BACKEND_URL) {
-          try {
-            const backend = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contact-form`).then((r) => r.json());
-            const backendList = Array.isArray(backend.submissions) ? backend.submissions : backend;
+        // Try to augment with protected Edge Function feed (JWT required)
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          if (token) {
+            const headers = { Authorization: `Bearer ${token}` } as HeadersInit;
+            const backend = await fetch(`${BASE}/contact-submissions?limit=50&offset=0`, { headers }).then((r) => r.json());
+            const backendList = Array.isArray(backend?.submissions) ? backend.submissions : backend || [];
             const merged = [...contactsData, ...backendList];
             const unique = Array.from(new Map(merged.map((c: any) => [c.id || c.email + c.created_at, c])).values());
             contactsData = unique as any;
-          } catch (e) {
-            console.warn("Backend sync failed for calendar; using Supabase only");
           }
+        } catch (e) {
+          console.warn("Protected backend sync failed for calendar; using Supabase only");
         }
 
         setContacts(contactsData);

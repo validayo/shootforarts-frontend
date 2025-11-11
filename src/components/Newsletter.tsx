@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
+import { subscribe as subscribeNewsletter } from "../lib/services";
 
 const Newsletter: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -16,16 +17,7 @@ const Newsletter: React.FC = () => {
     setError("");
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/newsletter`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        const { error } = await response.json();
-        throw new Error(error || "Failed to subscribe to newsletter");
-      }
+      await subscribeNewsletter(email);
 
       setShowSuccess(true);
       setEmail("");

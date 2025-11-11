@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ContactFormData, serviceOptions, referralOptions, addOnOptions } from "../utils";
 import { trackContactSubmit } from "../lib/analytics";
+import { submitContact } from "../lib/services";
 import { useLocation } from "react-router-dom";
 
 const ContactForm: React.FC = () => {
@@ -88,16 +89,7 @@ const ContactForm: React.FC = () => {
     setError("");
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contact-form`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const { error } = await response.json();
-        throw new Error(error || "Failed to submit form");
-      }
+      await submitContact(formData);
 
       trackContactSubmit();
       setShowSuccess(true);

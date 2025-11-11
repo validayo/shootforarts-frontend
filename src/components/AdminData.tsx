@@ -3,6 +3,7 @@ import { motion, Subscriber } from "framer-motion";
 import { Download, TrendingUp, Users, Calendar, Mail, Filter, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "../lib/supabase";
+import { BASE } from "../lib/services";
 import { Contact, CalendarEvent, Tab } from "../utils";
 import { serviceOptions } from "../utils";
 
@@ -44,24 +45,34 @@ const AdminData: React.FC = () => {
         setContacts(contactsData);
         setSubscribers(subsData);
 
-        if (import.meta.env.VITE_BACKEND_URL) {
-          try {
+        // Try to pull from protected Edge Functions (JWT required)
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          if (token) {
+            const headers = { Authorization: `Bearer ${token}` } as HeadersInit;
             const [backendContacts, backendSubs] = await Promise.all([
-              fetch(`${import.meta.env.VITE_BACKEND_URL}/contact-form`).then((res) => res.json()),
-              fetch(`${import.meta.env.VITE_BACKEND_URL}/newsletter/subscribers`).then((res) => res.json()),
+              fetch(`${BASE}/contact-submissions?limit=50&offset=0`, { headers }).then((res) => res.json()),
+              fetch(`${BASE}/newsletter`, { headers }).then((res) => res.json()),
             ]);
 
-            const mergedContacts = [...contactsData, ...(Array.isArray(backendContacts.submissions) ? backendContacts.submissions : backendContacts)];
-            const mergedSubs = [...subsData, ...(Array.isArray(backendSubs.subscribers) ? backendSubs.subscribers : backendSubs)];
+            const mergedContacts = [
+              ...contactsData,
+              ...(Array.isArray(backendContacts?.submissions) ? backendContacts.submissions : backendContacts || []),
+            ];
+            const mergedSubs = [
+              ...subsData,
+              ...(Array.isArray(backendSubs?.subscribers) ? backendSubs.subscribers : backendSubs || []),
+            ];
 
-            const uniqueContacts = Array.from(new Map(mergedContacts.map((c) => [c.email + c.created_at, c])).values());
-            const uniqueSubs = Array.from(new Map(mergedSubs.map((s) => [s.email + s.created_at, s])).values());
+            const uniqueContacts = Array.from(new Map(mergedContacts.map((c: any) => [c.id || c.email + c.created_at, c])).values());
+            const uniqueSubs = Array.from(new Map(mergedSubs.map((s: any) => [s.id || s.email + s.created_at, s])).values());
 
             setContacts(uniqueContacts);
             setSubscribers(uniqueSubs);
-          } catch (backendErr) {
-            console.warn("Backend sync failed, using Supabase data only");
           }
+        } catch (backendErr) {
+          console.warn("Protected backend sync failed; using Supabase data only");
         }
       } catch (err) {
         console.error("Error fetching admin data:", err);

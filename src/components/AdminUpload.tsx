@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import { Photo } from "../utils";
 import { trackPhotoUpload } from "../lib/analytics";
+import { BASE } from "../lib/services";
 
 interface AdminUploadProps {
   onUploadComplete?: () => void;
@@ -117,7 +118,7 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
 
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open("POST", `${import.meta.env.VITE_BACKEND_URL}/upload-photos`);
+          xhr.open("POST", `${BASE}/upload-photos`);
 
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
