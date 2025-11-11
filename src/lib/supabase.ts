@@ -1,14 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import { Photo } from "../utils";
-
-export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables");
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabaseUrl, supabaseAnonKey } from "./supabaseClient";
+// Re-export the singleton client for consumers importing from "../lib/supabase"
+export { supabase } from "./supabaseClient";
+export { supabaseUrl, supabaseAnonKey };
 
 export const uploadPhoto = async (file: File, category: string, title?: string, onProgress?: (progress: number) => void): Promise<Photo> => {
   try {

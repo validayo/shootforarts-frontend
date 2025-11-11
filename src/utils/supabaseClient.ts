@@ -1,7 +1,2 @@
-// frontend/src/utils/supabaseClient.ts
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Re-export the single HMR-safe client to avoid multiple instances
+export { supabase } from "../lib/supabaseClient";
