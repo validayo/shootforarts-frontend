@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.shootforarts.com/sitemap.xml
-Sitemap: https://www.shootforarts.com/sitemap-images.xml
+Sitemap: https://shootforarts.com/sitemap.xml
+Sitemap: https://shootforarts.com/sitemap-images.xml

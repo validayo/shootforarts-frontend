@@ -12,10 +12,12 @@
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.shootforarts.com/about" />
+    <meta property="og:url" content="https://shootforarts.com/about" />
     <meta property="og:title" content="About - Shoot For Arts" />
     <meta property="og:description" content="Ayo is the creative behind Shoot For Arts, using photography to tell stories full of color, emotion, and meaning." />
     <meta property="og:image" content="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -24,7 +26,7 @@
     <meta name="twitter:image" content="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png" />
 
     <!-- Canonical -->
-    <link rel="canonical" href="https://www.shootforarts.com/about" />
+    <link rel="canonical" href="https://shootforarts.com/about" />
 
     <!-- GA4 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-2WZ8G4PZ88"></script>
@@ -37,6 +39,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+
+    <!-- JSON-LD Breadcrumbs: Home > About -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://shootforarts.com/"},
+          {"@type": "ListItem", "position": 2, "name": "About", "item": "https://shootforarts.com/about"}
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

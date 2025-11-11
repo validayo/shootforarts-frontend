@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, '..');
 
-const BASE_URL = 'https://www.shootforarts.com';
+const BASE_URL = 'https://shootforarts.com';
 
 const exists = (p) => {
   try { fs.accessSync(p, fs.constants.F_OK); return true; } catch { return false; }
