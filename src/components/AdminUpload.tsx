@@ -156,9 +156,10 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
       setCategory("");
 
       if (typeof onUploadComplete === "function") onUploadComplete();
-    } catch (err: any) {
-      console.error("🚨 Upload error:", err.message);
-      setError(err.message || "Something went wrong.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong.";
+      console.error("🚨 Upload error:", message);
+      setError(message);
     } finally {
       setUploading(false);
     }

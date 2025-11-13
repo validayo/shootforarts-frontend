@@ -2,7 +2,7 @@ export interface Photo {
   id: string;
   url: string;
   category: string;
-  uploaded_at?: any;
+  uploaded_at?: string | Date | null;
 }
 
 // Form data interface for contact form
@@ -22,7 +22,7 @@ export interface ContactFormData {
   location?: string;
   referralSource?: string;
   questions?: string;
-  extra_questions?: Record<string, any>; // flexible for dynamic Qs
+  extra_questions?: Record<string, unknown>; // flexible for dynamic Qs
 }
 
 // AdminPage-related types
@@ -43,7 +43,7 @@ export interface Contact {
   pinterestInspo?: string;
   questions?: string;
   created_at?: string;
-  extra_questions?: Record<string, any>;
+  extra_questions?: Record<string, unknown>;
 }
 
 export interface CalendarEvent {

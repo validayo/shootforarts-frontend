@@ -8,13 +8,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // HMR-safe global singleton to avoid multiple GoTrueClient instances
-const g = globalThis as any;
-export const supabase: SupabaseClient =
-  g.__SFA_SUPABASE__ ||
-  (g.__SFA_SUPABASE__ = createClient(supabaseUrl, supabaseAnonKey, {
+interface SupabaseGlobal {
+  __SFA_SUPABASE__?: SupabaseClient;
+}
+
+const globalWithSupabase = globalThis as SupabaseGlobal;
+
+if (!globalWithSupabase.__SFA_SUPABASE__) {
+  globalWithSupabase.__SFA_SUPABASE__ = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
       storageKey: "sfa-auth",
     },
-  }));
+  });
+}
 
+export const supabase: SupabaseClient = globalWithSupabase.__SFA_SUPABASE__;

@@ -8,7 +8,6 @@ import { ArrowUp } from "lucide-react";
 import { Photo } from "../utils";
 import { getPhotos } from "../lib/supabase";
 import CategoryFilter from "./CategoryFilter";
-import Skeleton from "../components/Skeleton";
 import { trackGalleryView } from "../lib/analytics";
 
 import "lazysizes";

@@ -1,10 +1,12 @@
-import { Photo, ContactFormData } from "../utils";
+import { Photo, ContactFormData, Contact } from "../utils";
+import type { AdminSubscriber } from "../utils/adminHelpers";
+import { supabase } from "./supabaseClient";
 
 // Supabase Edge Functions base URL
 export const BASE = "https://obhiuvlfopgtbgjuznok.functions.supabase.co";
 
 // Contact form submit
-export async function submitContact(payload: ContactFormData & Record<string, any>) {
+export async function submitContact(payload: ContactFormData) {
   const r = await fetch(`${BASE}/contact-form`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -52,4 +54,16 @@ export async function uploadPhotos(category: string, files: File[] | FileList) {
   const r = await fetch(`${BASE}/upload-photos`, { method: "POST", body: fd });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
+}
+
+export async function getContactSubmissions(): Promise<Contact[]> {
+  const { data, error } = await supabase.from("contact_submissions").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getNewsletterSubscribers(): Promise<AdminSubscriber[]> {
+  const { data, error } = await supabase.from("newsletter_subscribers").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
 }

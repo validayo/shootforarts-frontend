@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { motion, Subscriber } from "framer-motion";
-import { Download, TrendingUp, Users, Calendar, Mail, Filter, Search } from "lucide-react";
+import { motion } from "framer-motion";
+import { Download, TrendingUp, Users, Calendar, Mail, Search } from "lucide-react";
 import * as XLSX from "xlsx";
-import { supabase } from "../lib/supabase";
-import { BASE } from "../lib/services";
-import { Contact, CalendarEvent, Tab } from "../utils";
+import { supabase, supabaseAnonKey } from "../lib/supabase";
+import { BASE, getContactSubmissions, getNewsletterSubscribers } from "../lib/services";
+import { Contact } from "../utils";
 import { serviceOptions } from "../utils";
+import { dedupeByIdentity, isLocalEnvironment, toContactList, toSubscriberList, type AdminSubscriber } from "../utils/adminHelpers";
+import type { Session } from "@supabase/supabase-js";
+
+type DateFilterOption = "all" | "7days" | "30days" | "90days";
+type Subscriber = AdminSubscriber;
+
+const edgeSyncEnabled = (import.meta.env.VITE_ENABLE_EDGE_SYNC ?? "false") === "true";
 
 const AdminData: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -13,8 +20,9 @@ const AdminData: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"contacts" | "subscribers">("contacts");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState<"all" | "7days" | "30days" | "90days">("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterOption>("all");
   const [selectedService, setSelectedService] = useState<string>("All");
+  const [session, setSession] = useState<Session | null>(null);
 
   const formatDate = (timestamp?: string) => {
     if (!timestamp) return "N/A";
@@ -24,76 +32,113 @@ const AdminData: React.FC = () => {
     }).format(new Date(timestamp));
   };
 
-  interface Subscriber {
-    id: string;
-    email: string;
-    created_at: string;
-  }
-
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    let isMounted = true;
+
+    const hydrateSession = async () => {
       try {
-        const [contactsRes, subsRes] = await Promise.all([
-          supabase.from("contact_submissions").select("*").order("created_at", { ascending: false }),
-          supabase.from("newsletter_subscribers").select("*").order("created_at", { ascending: false }),
-        ]);
-
-        const contactsData = contactsRes.data || [];
-        const subsData = subsRes.data || [];
-
-        setContacts(contactsData);
-        setSubscribers(subsData);
-
-        // Try to pull from protected Edge Functions (JWT required)
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const token = sessionData?.session?.access_token;
-          if (token) {
-            const headers = { Authorization: `Bearer ${token}` } as HeadersInit;
-            const [backendContacts, backendSubs] = await Promise.all([
-              fetch(`${BASE}/contact-submissions?limit=50&offset=0`, { headers }).then((res) => res.json()),
-              fetch(`${BASE}/newsletter`, { headers }).then((res) => res.json()),
-            ]);
-
-            const mergedContacts = [
-              ...contactsData,
-              ...(Array.isArray(backendContacts?.submissions) ? backendContacts.submissions : backendContacts || []),
-            ];
-            const mergedSubs = [
-              ...subsData,
-              ...(Array.isArray(backendSubs?.subscribers) ? backendSubs.subscribers : backendSubs || []),
-            ];
-
-            const uniqueContacts = Array.from(new Map(mergedContacts.map((c: any) => [c.id || c.email + c.created_at, c])).values());
-            const uniqueSubs = Array.from(new Map(mergedSubs.map((s: any) => [s.id || s.email + s.created_at, s])).values());
-
-            setContacts(uniqueContacts);
-            setSubscribers(uniqueSubs);
-          }
-        } catch (backendErr) {
-          console.warn("Protected backend sync failed; using Supabase data only");
+        const { data } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        setSession(data.session ?? null);
+      } catch (error) {
+        if (isMounted) {
+          console.error("Failed to hydrate session:", error);
+          setSession(null);
         }
-      } catch (err) {
-        console.error("Error fetching admin data:", err);
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchData();
+    hydrateSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!isMounted) return;
+      setSession(newSession);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const filterByDate = (items: any[]) => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchSupabaseData = async () => {
+      setLoading(true);
+      try {
+        const [contactsData, subscriberData] = await Promise.all([getContactSubmissions(), getNewsletterSubscribers()]);
+        if (cancelled) return;
+        setContacts(contactsData);
+        setSubscribers(subscriberData);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Error fetching admin data from Supabase:", err);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchSupabaseData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!edgeSyncEnabled || !session || isLocalEnvironment()) return;
+
+    let cancelled = false;
+
+    const fetchProtectedData = async () => {
+      try {
+        const headers: Record<string, string> = { Authorization: `Bearer ${session.access_token}` };
+        if (supabaseAnonKey) {
+          headers.apikey = supabaseAnonKey;
+        }
+        const [backendContacts, backendSubs] = await Promise.all([
+          fetch(`${BASE}/contact-submissions?limit=50&offset=0`, { headers }).then((response) => response.json()),
+          fetch(`${BASE}/newsletter`, { headers }).then((response) => response.json()),
+        ]);
+
+        if (cancelled) return;
+
+        const contactList = toContactList(backendContacts);
+        const subscriberList = toSubscriberList(backendSubs);
+
+        setContacts((prev) => dedupeByIdentity([...prev, ...contactList]));
+        setSubscribers((prev) => dedupeByIdentity([...prev, ...subscriberList]));
+      } catch (err) {
+        if (!cancelled && edgeSyncEnabled) {
+          console.warn("Protected backend sync failed; using Supabase data only", err);
+        }
+      }
+    };
+
+    fetchProtectedData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  const filterByDate = <T extends { created_at?: string | null }>(items: T[]): T[] => {
     if (dateFilter === "all") return items;
 
-    const now = new Date();
-    const daysAgoMap = { "7days": 7, "30days": 30, "90days": 90 };
-    const cutoffDate = new Date(now.setDate(now.getDate() - (daysAgoMap[dateFilter] || 0)));
+    const daysAgoMap: Record<Exclude<typeof dateFilter, "all">, number> = { "7days": 7, "30days": 30, "90days": 90 };
+    const cutoffDate = new Date();
+    const daysToSubtract = daysAgoMap[dateFilter as Exclude<typeof dateFilter, "all">] || 0;
+    cutoffDate.setDate(cutoffDate.getDate() - daysToSubtract);
 
     return items.filter((item) => {
       if (!item.created_at) return false;
-      const createdAt = new Date(item.created_at as string);
+      const createdAt = new Date(item.created_at);
       return createdAt >= cutoffDate;
     });
   };
@@ -128,14 +173,15 @@ const AdminData: React.FC = () => {
   const stats = {
     totalContacts: contacts.length,
     totalSubscribers: subscribers.length,
-    recentContacts: contacts.filter((c) => c.created_at && new Date(c.created_at as string).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length,
+    recentContacts: contacts.filter((c) => c.created_at && new Date(c.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length,
     serviceBreakdown: contacts.reduce((acc, c) => {
-      acc[c.service] = (acc[c.service] || 0) + 1;
+      const key = c.service || "Other";
+      acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {} as Record<string, number>),
   };
 
-  const exportToExcel = (data: any[], filename: string) => {
+  const exportToExcel = (data: Array<Record<string, string>>, filename: string) => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
@@ -276,7 +322,7 @@ const AdminData: React.FC = () => {
 
               <select
                 value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value as any)}
+                onChange={(e) => setDateFilter(e.target.value as DateFilterOption)}
                 className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Time</option>

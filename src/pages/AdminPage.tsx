@@ -1,30 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
-import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import { motion } from "framer-motion";
 import { Upload, Users, Calendar as CalendarIcon, LogOut, Menu, X } from "lucide-react";
 
-import { supabase } from "../lib/supabase";
-import { BASE } from "../lib/services";
+import { supabase, supabaseAnonKey } from "../lib/supabase";
+import { BASE, getContactSubmissions } from "../lib/services";
 import { useAuth } from "../contexts/AuthContext";
 import AdminLogin from "../components/AdminLogin";
 import AdminUpload from "../components/AdminUpload";
 import AdminData from "../components/AdminData";
 import { Contact, CalendarEvent, Tab } from "../utils";
 import { serviceOptions } from "../utils";
+import { dedupeByIdentity, isLocalEnvironment, toContactList } from "../utils/adminHelpers";
+import type { Session } from "@supabase/supabase-js";
 
 
 const locales = { "en-US": enUS };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
-const DragAndDropCalendar = withDragAndDrop(BigCalendar as any);
+
+const edgeSyncEnabled = (import.meta.env.VITE_ENABLE_EDGE_SYNC ?? "false") === "true";
 
 const AdminPage: React.FC = () => {
   const { currentUser, loading } = useAuth();
@@ -38,38 +37,99 @@ const AdminPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    if (!currentUser) return;
-    const fetchContacts = async () => {
+    let isMounted = true;
+
+    const hydrateSession = async () => {
       try {
-        const { data, error } = await supabase.from("contact_submissions").select("*");
-        if (error) throw error;
-        let contactsData = data || [];
-
-        // Try to augment with protected Edge Function feed (JWT required)
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const token = sessionData?.session?.access_token;
-          if (token) {
-            const headers = { Authorization: `Bearer ${token}` } as HeadersInit;
-            const backend = await fetch(`${BASE}/contact-submissions?limit=50&offset=0`, { headers }).then((r) => r.json());
-            const backendList = Array.isArray(backend?.submissions) ? backend.submissions : backend || [];
-            const merged = [...contactsData, ...backendList];
-            const unique = Array.from(new Map(merged.map((c: any) => [c.id || c.email + c.created_at, c])).values());
-            contactsData = unique as any;
-          }
-        } catch (e) {
-          console.warn("Protected backend sync failed for calendar; using Supabase only");
+        const { data } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        setSession(data.session ?? null);
+      } catch (error) {
+        if (isMounted) {
+          console.error("Failed to hydrate session:", error);
+          setSession(null);
         }
-
-        setContacts(contactsData);
-      } catch (err) {
-        console.error("Error fetching contacts:", err);
       }
     };
-    fetchContacts();
+
+    hydrateSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!isMounted) return;
+      setSession(newSession);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setContacts([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchSupabaseContacts = async () => {
+      try {
+        const contactsData = await getContactSubmissions();
+        if (!cancelled) {
+          setContacts(contactsData);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Error fetching contacts from Supabase:", err);
+        }
+      }
+    };
+
+    fetchSupabaseContacts();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!edgeSyncEnabled || !currentUser || !session || isLocalEnvironment()) return;
+
+    let cancelled = false;
+
+    const fetchProtectedContacts = async () => {
+      try {
+        const headers: Record<string, string> = { Authorization: `Bearer ${session.access_token}` };
+        if (supabaseAnonKey) {
+          headers.apikey = supabaseAnonKey;
+        }
+        const response = await fetch(`${BASE}/contact-submissions?limit=50&offset=0`, { headers });
+        if (!response.ok) {
+          throw new Error(`Request failed (${response.status}): ${response.statusText}`);
+        }
+        const backend = await response.json();
+        if (cancelled) return;
+        const backendList = toContactList(backend);
+        setContacts((prev) => dedupeByIdentity([...prev, ...backendList]));
+      } catch (err) {
+        if (!cancelled && edgeSyncEnabled) {
+          console.warn("Protected backend sync failed for calendar; using Supabase only", err);
+        }
+      }
+    };
+
+    fetchProtectedContacts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, session]);
 
   const parseDateTime = (dateStr?: string, timeStr?: string) => {
     if (!dateStr) return null;
@@ -320,53 +380,45 @@ const AdminPage: React.FC = () => {
             </div>
 
             <div className="h-[500px] sm:h-[600px] lg:h-[700px]">
-              <DndProvider backend={HTML5Backend}>
-                <DragAndDropCalendar
-                  localizer={localizer}
-                  events={filteredEvents}
-                  startAccessor={(event: any) => event.start}
-                  endAccessor={(event: any) => event.end}
-                  style={{ height: "100%" }}
-                  views={["month", "week", "day"]}
-                  tooltipAccessor={(event: any) => {
-                    const contact = event.resource;
-                    return `${contact.firstName} ${contact.lastName} • ${contact.service}`;
-                  }}
-                  eventPropGetter={(event: any) => {
-                    const contact = event.resource;
-                    const serviceColors: Record<string, string> = {
-                      "Base Photoshoot": "#90EE90",
-                      "Creative Photoshoot": "#ADD8E6",
-                      "Event Photography": "#FFD700",
-                      "Wedding Photography": "#FFB6C1",
-                      "Prom / HOCO": "#D8BFD8",
-                      "Grad Photoshoots": "#FFA07A",
-                      Other: "#D3D3D3",
-                    };
+              <BigCalendar
+                localizer={localizer}
+                events={filteredEvents}
+                startAccessor={(event: CalendarEvent) => event.start}
+                endAccessor={(event: CalendarEvent) => event.end}
+                style={{ height: "100%" }}
+                views={["month", "week", "day"]}
+                tooltipAccessor={(event: CalendarEvent) => {
+                  const contact = event.resource;
+                  return `${contact.firstName} ${contact.lastName} • ${contact.service}`;
+                }}
+                eventPropGetter={(event: CalendarEvent) => {
+                  const contact = event.resource;
+                  const serviceColors: Record<string, string> = {
+                    "Base Photoshoot": "#90EE90",
+                    "Creative Photoshoot": "#ADD8E6",
+                    "Event Photography": "#FFD700",
+                    "Wedding Photography": "#FFB6C1",
+                    "Prom / HOCO": "#D8BFD8",
+                    "Grad Photoshoots": "#FFA07A",
+                    Other: "#D3D3D3",
+                  };
 
-                    const backgroundColor = serviceColors[contact.service] || "#D3D3D3";
-                    return {
-                      style: {
-                        backgroundColor,
-                        borderRadius: "4px",
-                        color: "#000",
-                        border: "none",
-                        padding: "2px",
-                      },
-                    };
-                  }}
-                  onSelectEvent={(event: any) => {
-                    const contact = event.resource;
-                    setSelectedContact(contact);
-                  }}
-                  onEventDrop={({ event, start }: any) => {
-                    const contact = event.resource;
-                    const updatedDate = new Date(start).toISOString().split("T")[0];
-                    const updatedContacts = contacts.map((c) => (c.id === contact.id ? { ...c, date: updatedDate } : c));
-                    setContacts(updatedContacts);
-                  }}
-                />
-              </DndProvider>
+                  const backgroundColor = serviceColors[contact.service] || "#D3D3D3";
+                  return {
+                    style: {
+                      backgroundColor,
+                      borderRadius: "4px",
+                      color: "#000",
+                      border: "none",
+                      padding: "2px",
+                    },
+                  };
+                }}
+                onSelectEvent={(event: CalendarEvent) => {
+                  const contact = event.resource;
+                  setSelectedContact(contact);
+                }}
+              />
             </div>
 
             {selectedContact && (

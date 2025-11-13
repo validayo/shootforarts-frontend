@@ -12,6 +12,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+// react-refresh complains because this hook lives alongside a component, but keeping it here avoids circular imports.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
   return useContext(AuthContext);
 }

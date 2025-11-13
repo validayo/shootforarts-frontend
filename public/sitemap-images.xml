@@ -4,15 +4,15 @@
     <loc>https://shootforarts.com/</loc>
     <image:image>
       <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png</image:loc>
-      <image:title>Shoot For Arts - Life is better with cherished memories.</image:title>
-      <image:caption>Visual storytelling through portraits, events, and creative shoots.</image:caption>
+      <image:title>Shoot For Arts | Photography by Ayo</image:title>
+      <image:caption>Explore creative photography by Ayo. Portraits, events, and visual storytelling that connect emotion, color, and story.</image:caption>
     </image:image>
   </url>
   <url>
     <loc>https://shootforarts.com/about</loc>
     <image:image>
       <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/AYO.jpg</image:loc>
-      <image:title>About - Shoot For Arts</image:title>
+      <image:title>About Ayo — Shoot For Arts</image:title>
       <image:caption>Ayo, photographer and creator of Shoot For Arts.</image:caption>
     </image:image>
   </url>
@@ -44,5 +44,3 @@
     </image:image>
   </url>
 </urlset>
-
-

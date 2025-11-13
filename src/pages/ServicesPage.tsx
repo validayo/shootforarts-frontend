@@ -127,8 +127,8 @@ const ServicesPage: React.FC = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     const selectedService = serviceKeyMap[section.key]!;
-                    if (typeof window !== "undefined" && (window as any).gtag) {
-                      (window as any).gtag("event", "service_book_now", {
+                    if (typeof window !== "undefined" && window.gtag) {
+                      window.gtag("event", "service_book_now", {
                         event_category: "Services",
                         event_label: selectedService,
                       });

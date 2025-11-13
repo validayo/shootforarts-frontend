@@ -2,27 +2,31 @@
 
 declare global {
   interface Window {
-    gtag?: (...args: any[]) => void;
+    gtag?: (...args: unknown[]) => void;
+    dataLayer?: Array<Record<string, unknown>>;
   }
 }
 
+const isBrowser = typeof window !== "undefined";
+
 // Send a basic page view (used by RouteChangeTracker)
 export const trackPageView = (url: string, title?: string) => {
-  const payload = {
+  const pageTitle = title || (typeof document !== "undefined" ? document.title : undefined);
+  const payload: Record<string, string | undefined> = {
     page_path: url,
-    page_title: title || document.title,
-    page_location: typeof window !== "undefined" ? window.location.href : undefined,
-  } as Record<string, any>;
+    page_title: pageTitle,
+    page_location: isBrowser ? window.location.href : undefined,
+  };
 
   // Push to dataLayer first so events aren't lost if gtag isn't ready yet
-  if (typeof window !== "undefined") {
-    (window as any).dataLayer = (window as any).dataLayer || [];
-    (window as any).dataLayer.push({ event: "page_view", ...payload });
+  if (isBrowser) {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ event: "page_view", ...payload });
   }
 
-  if (window.gtag) {
+  if (isBrowser && window.gtag) {
     window.gtag("event", "page_view", payload);
-  } else if ((import.meta as any)?.env?.DEV) {
+  } else if (import.meta.env?.DEV) {
     // eslint-disable-next-line no-console
     console.warn("[GA] gtag not found at call time; event queued in dataLayer:", payload);
   }
@@ -30,7 +34,7 @@ export const trackPageView = (url: string, title?: string) => {
 
 // Track when someone views a gallery
 export const trackGalleryView = (category: string) => {
-  if (window.gtag) {
+  if (isBrowser && window.gtag) {
     window.gtag("event", "gallery_view", {
       event_category: "Gallery",
       event_label: category,
@@ -40,7 +44,7 @@ export const trackGalleryView = (category: string) => {
 
 // Track when an admin uploads a photo
 export const trackPhotoUpload = (title: string) => {
-  if (window.gtag) {
+  if (isBrowser && window.gtag) {
     window.gtag("event", "photo_upload", {
       event_category: "Admin",
       event_label: title,
@@ -50,7 +54,7 @@ export const trackPhotoUpload = (title: string) => {
 
 // Track when someone submits the contact form
 export const trackContactSubmit = () => {
-  if (window.gtag) {
+  if (isBrowser && window.gtag) {
     window.gtag("event", "contact_submit", {
       event_category: "Contact",
     });
@@ -59,7 +63,7 @@ export const trackContactSubmit = () => {
 
 // Newsletter popup interactions
 export const trackPopupShown = () => {
-  if (window.gtag) {
+  if (isBrowser && window.gtag) {
     window.gtag("event", "popup_shown", {
       event_category: "Newsletter Popup",
     });
@@ -67,7 +71,7 @@ export const trackPopupShown = () => {
 };
 
 export const trackPopupClosed = () => {
-  if (window.gtag) {
+  if (isBrowser && window.gtag) {
     window.gtag("event", "popup_closed_before_joke_end", {
       event_category: "Newsletter Popup",
     });
@@ -75,7 +79,7 @@ export const trackPopupClosed = () => {
 };
 
 export const trackJokeInteraction = (label: string) => {
-  if (window.gtag) {
+  if (isBrowser && window.gtag) {
     window.gtag("event", "joke_interaction", {
       event_category: "Newsletter Popup",
       event_label: label,

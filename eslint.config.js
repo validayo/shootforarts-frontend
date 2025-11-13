@@ -4,11 +4,13 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import parser from "@typescript-eslint/parser";
 import plugin from "@typescript-eslint/eslint-plugin";
+
+const browserGlobals = Object.fromEntries(Object.entries(globals.browser).map(([key, value]) => [key.trim(), value]));
 export default [
   { ignores: ["dist"] },
   {
     files: ["**/*.{ts,tsx}"],
-    languageOptions: { ecmaVersion: 2020, parser, parserOptions: { sourceType: "module", ecmaVersion: "latest" }, globals: globals.browser },
+    languageOptions: { ecmaVersion: 2020, parser, parserOptions: { sourceType: "module", ecmaVersion: "latest" }, globals: browserGlobals },
     plugins: { "@typescript-eslint": plugin, "react-hooks": reactHooks, "react-refresh": reactRefresh },
     rules: {
       ...js.configs.recommended.rules,

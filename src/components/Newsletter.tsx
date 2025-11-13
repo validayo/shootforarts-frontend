@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "../lib/supabase";
 import { subscribe as subscribeNewsletter } from "../lib/services";
 
 const Newsletter: React.FC = () => {

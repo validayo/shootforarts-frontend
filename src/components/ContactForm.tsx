@@ -6,12 +6,7 @@ import { submitContact } from "../lib/services";
 import { useLocation } from "react-router-dom";
 
 const ContactForm: React.FC = () => {
-  const [formData, setFormData] = useState<
-    ContactFormData & {
-      service_tier?: string;
-      extra_questions?: Record<string, any>;
-    }
-  >({
+  const [formData, setFormData] = useState<ContactFormData>({
     firstName: "",
     lastName: "",
     email: "",
@@ -49,7 +44,7 @@ const ContactForm: React.FC = () => {
   }, [formData.service]);
 
   const generateTimeSlots = () => {
-    const slots = [];
+    const slots: string[] = [];
     for (let hour = 8; hour <= 20; hour++) {
       const period = hour < 12 ? "AM" : "PM";
       const displayHour = hour <= 12 ? hour : hour - 12;
@@ -74,7 +69,7 @@ const ContactForm: React.FC = () => {
     }));
   };
 
-  const handleExtraQuestionChange = (key: string, value: any) => {
+  const handleExtraQuestionChange = (key: string, value: string | number | boolean) => {
     setFormData((prev) => ({
       ...prev,
       extra_questions: { ...prev.extra_questions, [key]: value },

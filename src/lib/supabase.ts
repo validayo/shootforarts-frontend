@@ -5,12 +5,7 @@ import { getGallery } from "./services";
 export { supabase } from "./supabaseClient";
 export { supabaseUrl, supabaseAnonKey };
 
-export const uploadPhoto = async (
-  file: File,
-  category: string,
-  title?: string,
-  onProgress?: (progress: number) => void
-): Promise<Photo> => {
+export const uploadPhoto = async (file: File, category: string, title?: string): Promise<Photo> => {
   try {
     const formData = new FormData();
     formData.append("file", file);
