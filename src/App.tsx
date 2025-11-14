@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -5,22 +6,25 @@ import RouteChangeTracker from "./components/RouteChangeTracker";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// Layout
-import Layout from "./components/Layout";
-
-// Pages
-import HomePage from "./pages/HomePage";
-import AboutPage from "./pages/AboutPage";
-import ServicesPage from "./pages/ServicesPage";
-import ContactPage from "./pages/ContactPage";
-import AdminLogin from "./pages/AdminLoginPage";
-import AdminPage from "./pages/AdminPage";
+const Layout = lazy(() => import("./components/Layout"));
+const HomePage = lazy(() => import("./pages/HomePage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const ServicesPage = lazy(() => import("./pages/ServicesPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const AdminLogin = lazy(() => import("./pages/AdminLoginPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
 
 // Redirect component for /admin based on auth state
 const AdminIndexRedirect = () => {
   const { currentUser } = useAuth();
   return <Navigate to={currentUser ? "/admin/dashboard" : "/admin/login"} replace />;
 };
+
+const PageLoader = () => (
+  <div className="flex min-h-screen items-center justify-center">
+    <div className="loader" aria-label="Loading content" />
+  </div>
+);
 
 function App() {
   return (
@@ -29,25 +33,34 @@ function App() {
         <RouteChangeTracker />
         <ScrollToTop />
         <AnimatePresence mode="wait">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Layout />}>
-              <Route index element={<HomePage />} />
-              <Route path="about" element={<AboutPage />} />
-              <Route path="services" element={<ServicesPage />} />
-              <Route path="contact" element={<ContactPage />} />
-            </Route>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Layout />}>
+                <Route index element={<HomePage />} />
+                <Route path="about" element={<AboutPage />} />
+                <Route path="services" element={<ServicesPage />} />
+                <Route path="contact" element={<ContactPage />} />
+              </Route>
 
-            {/* Admin Routes */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={ <ProtectedRoute> <AdminPage /> </ProtectedRoute> } />
+              {/* Admin Routes */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AdminPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Redirect /admin → /admin/login */}
-            <Route path="/admin" element={<AdminIndexRedirect />} />
+              {/* Redirect /admin -> /admin/login */}
+              <Route path="/admin" element={<AdminIndexRedirect />} />
 
-            {/* Fallback for unknown routes */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Fallback for unknown routes */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </AnimatePresence>
       </BrowserRouter>
     </AuthProvider>
