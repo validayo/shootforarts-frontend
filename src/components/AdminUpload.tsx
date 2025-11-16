@@ -2,7 +2,8 @@
 import { motion } from "framer-motion";
 import { Photo } from "../utils";
 import { trackPhotoUpload } from "../lib/analytics";
-import { BASE } from "../lib/services";
+import { UPLOAD_BASE } from "../lib/services";
+import { getAccessToken } from "../lib/auth";
 
 interface AdminUploadProps {
   onUploadComplete?: () => void;
@@ -109,6 +110,10 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
     setProgressMap({});
 
     try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        throw new Error("You must be logged in to upload photos.");
+      }
       const uploadedPhotos: Photo[] = [];
 
       for (const file of files) {
@@ -118,7 +123,8 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
 
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open("POST", `${BASE}/upload-photos`);
+          xhr.open("POST", `${UPLOAD_BASE.replace(/\/$/, "")}/upload-photos`);
+          xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
 
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {

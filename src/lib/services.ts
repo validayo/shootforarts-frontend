@@ -1,9 +1,14 @@
 import { Photo, ContactFormData, Contact } from "../utils";
 import type { AdminSubscriber } from "../utils/adminHelpers";
 import { supabase } from "./supabaseClient";
+import { getAccessToken } from "./auth";
 
 // Supabase Edge Functions base URL
 export const BASE = "https://obhiuvlfopgtbgjuznok.functions.supabase.co";
+// Dedicated upload backend (Render)
+const DEFAULT_RENDER_BASE = "https://shootforarts-backend.onrender.com";
+export const UPLOAD_BASE = (import.meta.env.VITE_UPLOAD_BASE as string | undefined) || DEFAULT_RENDER_BASE;
+const uploadEndpoint = `${UPLOAD_BASE.replace(/\/$/, "")}/upload-photos`;
 
 // Contact form submit
 export async function submitContact(payload: ContactFormData) {
@@ -47,11 +52,16 @@ export async function getGallery(
 
 // Upload photos (FormData with repeated files)
 export async function uploadPhotos(category: string, files: File[] | FileList) {
+  const token = await getAccessToken();
+  if (!token) throw new Error("Not authenticated");
+
   const fd = new FormData();
   fd.append("category", category);
   const arr: File[] = Array.isArray(files) ? (files as File[]) : Array.from(files as FileList);
   for (const f of arr) fd.append("files", f, f.name);
-  const r = await fetch(`${BASE}/upload-photos`, { method: "POST", body: fd });
+
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  const r = await fetch(uploadEndpoint, { method: "POST", body: fd, headers });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
