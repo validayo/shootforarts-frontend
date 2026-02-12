@@ -13,6 +13,7 @@ const ServicesPage = lazy(() => import("./pages/ServicesPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const AdminLogin = lazy(() => import("./pages/AdminLoginPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
+const AdminGalleryManager = lazy(() => import("./components/AdminGalleryManager"));
 
 // Redirect component for /admin based on auth state
 const AdminIndexRedirect = () => {
@@ -50,6 +51,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/gallery-manager"
+                element={
+                  <ProtectedRoute>
+                    <AdminGalleryManager />
                   </ProtectedRoute>
                 }
               />

@@ -3,6 +3,11 @@ export interface Photo {
   url: string;
   category: string;
   uploaded_at?: string | Date | null;
+  is_top?: boolean;
+  top_rank?: number | null;
+  season_tag?: string | null;
+  season_rank?: number | null;
+  transformed_url?: string;
 }
 
 // Form data interface for contact form

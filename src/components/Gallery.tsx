@@ -26,14 +26,9 @@ const normalizePhotos = (photos: Photo[]): GalleryPhoto[] => {
   });
 
   return Array.from(unique.values())
-    .sort((a, b) => {
-      const timeA = a?.uploaded_at ? new Date(a.uploaded_at).getTime() : 0;
-      const timeB = b?.uploaded_at ? new Date(b.uploaded_at).getTime() : 0;
-      return timeB - timeA;
-    })
     .map((photo) => ({
       ...photo,
-      thumbnailUrl: photo.url,
+      thumbnailUrl: photo.transformed_url ?? photo.url,
     }));
 };
 

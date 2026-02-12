@@ -46,11 +46,11 @@ const FunJokesPopup: React.FC<FunJokesPopupProps> = ({ open, onClose }) => {
   const [reveal, setReveal] = useState(false);
 
   useEffect(() => {
-    if (open) trackPopupShown();
+    if (open) trackPopupShown("fun_jokes");
   }, [open]);
 
-  const close = () => {
-    trackPopupClosed();
+  const close = (reason = "dismissed") => {
+    trackPopupClosed("fun_jokes", reason);
     onClose();
   };
 
@@ -78,7 +78,7 @@ const FunJokesPopup: React.FC<FunJokesPopupProps> = ({ open, onClose }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={close} />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => close("backdrop")} />
           <motion.div
             className="relative w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden bg-white"
             initial={{ scale: 0.9, opacity: 0 }}
@@ -87,7 +87,7 @@ const FunJokesPopup: React.FC<FunJokesPopupProps> = ({ open, onClose }) => {
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
           >
             {/* Close (top-right, red) */}
-            <button onClick={close} aria-label="Close" className="absolute top-3 right-3 w-9 h-9 rounded-full bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 z-10">×</button>
+            <button onClick={() => close("close_button")} aria-label="Close" className="absolute top-3 right-3 w-9 h-9 rounded-full bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 z-10">×</button>
 
             <div className="p-6 md:p-8">
               <div className="flex items-start justify-between">
@@ -130,4 +130,3 @@ const FunJokesPopup: React.FC<FunJokesPopupProps> = ({ open, onClose }) => {
 };
 
 export default FunJokesPopup;
-

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, Mail } from 'lucide-react';
+import { trackOutboundClick } from '../lib/analytics';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -20,6 +21,7 @@ const Footer: React.FC = () => {
               href="https://instagram.com/shootforarts" 
               target="_blank" 
               rel="noopener noreferrer"
+              onClick={() => trackOutboundClick("https://instagram.com/shootforarts", "footer")}
               className="text-accent-dark hover:text-primary transition-colors duration-300"
               aria-label="Instagram"
             >
@@ -27,6 +29,7 @@ const Footer: React.FC = () => {
             </a>
             <a 
               href="mailto:contact@shootforarts.com"
+              onClick={() => trackOutboundClick("mailto:contact@shootforarts.com", "footer")}
               className="text-accent-dark hover:text-primary transition-colors duration-300"
               aria-label="Email"
             >
@@ -45,6 +48,12 @@ const Footer: React.FC = () => {
               Services
             </Link>
             <Link 
+              to="/services#services-faq" 
+              className="text-accent-dark hover:text-primary transition-colors duration-300"
+            >
+              FAQ
+            </Link>
+            <Link 
               to="/contact" 
               className="text-accent-dark hover:text-primary transition-colors duration-300"
             >
@@ -58,6 +67,7 @@ const Footer: React.FC = () => {
           <p className="mt-2">
             <a 
               href="mailto:contact@shootforarts.com"
+              onClick={() => trackOutboundClick("mailto:contact@shootforarts.com", "footer")}
               className="hover:text-primary transition-colors duration-300"
             >
               contact@shootforarts.com

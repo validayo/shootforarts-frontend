@@ -1,6 +1,7 @@
 import React from 'react';
 import ContactForm from '../components/ContactForm';
 import SEO from '../components/SEO';
+import { trackOutboundClick } from '../lib/analytics';
 
 const ContactPage: React.FC = () => {
   return (
@@ -19,12 +20,14 @@ const ContactPage: React.FC = () => {
         <p className="text-lg mb-4">
           My inbox is always open! Any questions, inquiries, and comments can be sent directly to me through this form.
         </p>
+        <p className="text-base mb-4 text-accent-dark">Expected response time: within 24 hours (Monday-Saturday).</p>
         <p className="text-lg mb-8">
           You can also reach me via{' '}
           <a 
             href="https://instagram.com/shootforarts"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackOutboundClick("https://instagram.com/shootforarts", "contact_page")}
             className="text-primary hover:underline"
           >
             Instagram DM
@@ -32,6 +35,7 @@ const ContactPage: React.FC = () => {
           , or send me an email directly at{' '}
           <a 
             href="mailto:contact@shootforarts.com"
+            onClick={() => trackOutboundClick("mailto:contact@shootforarts.com", "contact_page")}
             className="text-primary hover:underline"
           >
             contact@shootforarts.com

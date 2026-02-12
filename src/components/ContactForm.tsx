@@ -1,9 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ContactFormData, serviceOptions, referralOptions, addOnOptions } from "../utils";
-import { trackContactSubmit } from "../lib/analytics";
+import { trackContactFormError, trackContactFormStarted, trackContactSubmit } from "../lib/analytics";
 import { submitContact } from "../lib/services";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { cooldownSeconds, getCooldownRemainingMs, isHoneypotTriggered, isMinFillTimeReached, markSubmissionNow } from "../lib/formProtection";
+
+const CONTACT_MIN_FILL_MS = 2500;
+const CONTACT_COOLDOWN_MS = 45000;
+const CONTACT_COOLDOWN_KEY = "sfa_contact_last_submit";
 
 const ContactForm: React.FC = () => {
   const [formData, setFormData] = useState<ContactFormData>({
@@ -27,6 +32,9 @@ const ContactForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [hasTrackedStart, setHasTrackedStart] = useState(false);
+  const [website, setWebsite] = useState("");
+  const formStartedAtRef = useRef<number>(Date.now());
   const location = useLocation();
 
   // Prefill service from ?service= query param and show a small message
@@ -56,13 +64,22 @@ const ContactForm: React.FC = () => {
 
   const timeSlots = generateTimeSlots();
 
+  const trackStartIfNeeded = (service?: string) => {
+    if (hasTrackedStart) return;
+    trackContactFormStarted(service || formData.service || undefined);
+    setHasTrackedStart(true);
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    const serviceForEvent = name === "service" ? value : formData.service;
+    trackStartIfNeeded(serviceForEvent);
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = e.target;
+    trackStartIfNeeded();
     setFormData((prev) => ({
       ...prev,
       add_ons: checked ? [...prev.add_ons, value] : prev.add_ons.filter((item) => item !== value),
@@ -70,6 +87,7 @@ const ContactForm: React.FC = () => {
   };
 
   const handleExtraQuestionChange = (key: string, value: string | number | boolean) => {
+    trackStartIfNeeded();
     setFormData((prev) => ({
       ...prev,
       extra_questions: { ...prev.extra_questions, [key]: value },
@@ -80,14 +98,37 @@ const ContactForm: React.FC = () => {
     e.preventDefault();
     if (isSubmitting) return;
 
+    if (isHoneypotTriggered(website)) {
+      setShowSuccess(true);
+      return;
+    }
+
+    if (!isMinFillTimeReached(formStartedAtRef.current, CONTACT_MIN_FILL_MS)) {
+      setError("Please wait a few seconds before submitting.");
+      return;
+    }
+
+    const remainingMs = getCooldownRemainingMs(CONTACT_COOLDOWN_KEY, CONTACT_COOLDOWN_MS);
+    if (remainingMs > 0) {
+      setError(`Please wait ${cooldownSeconds(remainingMs)}s before sending another request.`);
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
 
     try {
       await submitContact(formData);
+      markSubmissionNow(CONTACT_COOLDOWN_KEY);
 
-      trackContactSubmit();
+      trackContactSubmit({
+        service: formData.service || undefined,
+        serviceTier: formData.service_tier || undefined,
+      });
       setShowSuccess(true);
+      setHasTrackedStart(false);
+      setWebsite("");
+      formStartedAtRef.current = Date.now();
 
       setFormData({
         firstName: "",
@@ -106,10 +147,10 @@ const ContactForm: React.FC = () => {
         questions: "",
         extra_questions: {},
       });
-
-      setTimeout(() => setShowSuccess(false), 4000);
     } catch (error) {
       console.error("Form submission error:", error);
+      const message = error instanceof Error ? error.message : "Unknown form error";
+      trackContactFormError(message);
       setError("Something went wrong. Please try again later.");
     } finally {
       setIsSubmitting(false);
@@ -120,7 +161,33 @@ const ContactForm: React.FC = () => {
     return (
       <motion.div className="max-w-3xl mx-auto p-6 bg-secondary text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <h3 className="text-2xl font-serif mb-4">Thank you!</h3>
-        <p>Your message has been sent successfully.</p>
+        <p className="mb-3">Your message has been sent successfully.</p>
+        <p className="text-accent-dark mb-6">Expected response time: within 24 hours (Monday-Friday).</p>
+
+        <div className="rounded-lg border border-primary/25 bg-white/70 p-4 text-left max-w-xl mx-auto">
+          <p className="font-medium mb-2">What happens next:</p>
+          <ol className="list-decimal list-inside space-y-1 text-sm text-accent-dark">
+            <li>I review your request details and preferred date.</li>
+            <li>I follow up by email (or Instagram if provided).</li>
+            <li>We confirm your package, then secure your date with deposit + agreement.</li>
+          </ol>
+        </div>
+
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              formStartedAtRef.current = Date.now();
+              setShowSuccess(false);
+            }}
+            className="border border-primary px-6 py-2 text-primary hover:bg-primary hover:text-white transition-all"
+          >
+            Send Another Inquiry
+          </button>
+          <Link to="/services" className="border border-primary px-6 py-2 text-primary hover:bg-primary hover:text-white transition-all">
+            Back to Services
+          </Link>
+        </div>
       </motion.div>
     );
   }
@@ -135,6 +202,11 @@ const ContactForm: React.FC = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+          <label htmlFor="website">Website</label>
+          <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+        </div>
+
         {/* Name */}
         <div>
           <h3 className="text-primary mb-4">Name (required)</h3>

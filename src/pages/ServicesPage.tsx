@@ -1,9 +1,39 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
 import Accordion from "../components/Accordion";
 import { addOnOptions } from "../utils";
+import { trackServiceBookNow } from "../lib/analytics";
+
+const servicesFaqItems = [
+  {
+    question: "What is your turnaround time?",
+    answer: "Most galleries are delivered within 4-10 days depending on the session type and scope.",
+  },
+  {
+    question: "Can I bring props?",
+    answer: "Yes. You are welcome to bring props that fit your concept. Share your ideas in advance so we can plan the setup smoothly.",
+  },
+  {
+    question: "Do you charge for RAW photos?",
+    answer: "All RAW photos are included with all packages.",
+  },
+  {
+    question: "What if I am late or need to reschedule?",
+    answer:
+      "Please communicate as early as possible. If you are more than 15 minutes late, a late fee will be charged. Rescheduling is handled case-by-case based on availability.",
+  },
+  {
+    question: "Can I bring a friend to my shoot?",
+    answer:
+      "Yes, you can bring one friend for support. For larger groups or additional participants, include that in your booking details ahead of time.",
+  },
+  {
+    question: "Do you help with posing?",
+    answer: "Yes, I help with posing throughout the session so you feel comfortable and look your best on camera.",
+  },
+];
 
 const ServicesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,12 +71,12 @@ const ServicesPage: React.FC = () => {
 
   const gradPhotoshoots = [
     { title: "Tier 1", price: "$100", details: ["30-min session", "15 edited photos", "Single graduate only"] },
-    { title: "Tier 2", price: "$150", details: ["1-hour session", "25 edited photos", "Includes family or friend group shots"] },
+    { title: "Tier 2", price: "$200", details: ["1-hour session", "25 edited photos", "Includes family or friend group shots"] },
   ];
 
   const eventPhotography = [
-    { title: "Tier 1", price: "$100/hr", details: ["2-hour minimum", "Unlimited photos", "All color-corrected", "Online gallery delivery"] },
-    { title: "Tier 2", price: "$150/hr", details: ["Includes highlight reel", "Two-camera coverage", "Social clip (30–45 seconds)"] },
+    { title: "Tier 1", price: "$125/hr", details: ["2-hour minimum", "Unlimited photos", "All color-corrected", "Online gallery delivery"] },
+    { title: "Tier 2", price: "$125/hr", details: ["Includes highlight reel", "Two-camera coverage", "Social clip (30–45 seconds)"] },
   ];
 
   const weddingPhotography = [
@@ -84,6 +114,73 @@ const ServicesPage: React.FC = () => {
     addons: undefined, // not a direct bookable service
   };
 
+  const comparisonRows = [
+    {
+      service: "Base Photoshoot",
+      startingAt: "$150",
+      coverage: "1-hour sessions",
+      bestFor: "Headshots, birthdays, and family portraits",
+    },
+    {
+      service: "Creative Photoshoot",
+      startingAt: "$180",
+      coverage: "30 minutes to 2 hours",
+      bestFor: "Editorial and concept-based visuals",
+    },
+    {
+      service: "Prom / HOCO",
+      startingAt: "$110",
+      coverage: "45 to 90 minutes",
+      bestFor: "Prom and graduation event portraits",
+    },
+    {
+      service: "Grad Photoshoots",
+      startingAt: "$100",
+      coverage: "30 to 60 minutes",
+      bestFor: "Solo grads and family add-ons",
+    },
+    {
+      service: "Event Photography",
+      startingAt: "$125/hr",
+      coverage: "2-hour minimum",
+      bestFor: "Parties, corporate events, and celebrations",
+    },
+    {
+      service: "Wedding Photography",
+      startingAt: "$1000",
+      coverage: "5 hours to full-day",
+      bestFor: "Ceremonies, receptions, and full wedding coverage",
+    },
+  ];
+
+  useEffect(() => {
+    const scriptId = "services-faq-jsonld";
+    const existing = document.getElementById(scriptId);
+    if (existing) existing.remove();
+
+    const script = document.createElement("script");
+    script.id = scriptId;
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: servicesFaqItems.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
+    });
+
+    document.head.appendChild(script);
+    return () => {
+      const node = document.getElementById(scriptId);
+      if (node) node.remove();
+    };
+  }, []);
+
   return (
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto">
       <SEO
@@ -95,14 +192,59 @@ const ServicesPage: React.FC = () => {
         ogImage="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png"
         canonicalPath="/services"
       />
-      <motion.h1
-        className="text-4xl font-serif mb-16 text-center"
-        initial={{ opacity: 0, y: -10 }}
+
+      <motion.div
+        className="mb-20 rounded-xl border border-accent bg-secondary/20 p-6 md:p-8"
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
       >
-        Services
-      </motion.h1>
+        <h2 className="text-2xl font-serif mb-2">Starting Prices</h2>
+        <p className="text-accent-dark mb-6">Quick overview of starting rates. Final pricing can vary by scope, location, and add-ons.</p>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+          {comparisonRows.map((row) => (
+            <div key={row.service} className="rounded-lg border border-accent/60 bg-white p-3">
+              <p className="text-sm text-accent-dark">{row.service}</p>
+              <p className="text-lg font-semibold">{row.startingAt}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="overflow-x-auto rounded-lg border border-accent/60 bg-white">
+          <table className="min-w-full text-sm">
+            <thead className="bg-secondary/40">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">Service</th>
+                <th className="px-4 py-3 text-left font-medium">Starting At</th>
+                <th className="px-4 py-3 text-left font-medium">Typical Coverage</th>
+                <th className="px-4 py-3 text-left font-medium">Best For</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparisonRows.map((row) => (
+                <tr key={`${row.service}-table`} className="border-t border-accent/40">
+                  <td className="px-4 py-3">{row.service}</td>
+                  <td className="px-4 py-3 font-medium">{row.startingAt}</td>
+                  <td className="px-4 py-3">{row.coverage}</td>
+                  <td className="px-4 py-3">{row.bestFor}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-6 rounded-lg border border-accent/60 bg-white p-4">
+          <h3 className="text-lg font-serif mb-2">Videography Available</h3>
+          <p className="text-sm text-accent-dark">
+            Need videography for your event or project? Reach out through the contact form or email{" "}
+            <a href="mailto:contact@shootforarts.com" className="text-primary hover:underline">
+              contact@shootforarts.com
+            </a>
+            .
+          </p>
+        </div>
+      </motion.div>
 
       {sections.map((section, index) => (
         <motion.div
@@ -119,7 +261,7 @@ const ServicesPage: React.FC = () => {
             className="w-full md:w-1/2 aspect-[5/4] object-cover rounded-xl shadow-lg hover:scale-[1.03] transition-transform duration-500"
           />
           <div className="flex-1 w-full md:w-1/2 bg-secondary/20 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
-            <Accordion category={section.label} tiers={section.tiers} />
+            <Accordion category={section.label} tiers={section.tiers} defaultOpenIndex={section.key === "addons" ? 0 : null} />
             {serviceKeyMap[section.key] && (
               <div className="mt-6 flex justify-center">
                 <motion.button
@@ -127,12 +269,7 @@ const ServicesPage: React.FC = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     const selectedService = serviceKeyMap[section.key]!;
-                    if (typeof window !== "undefined" && window.gtag) {
-                      window.gtag("event", "service_book_now", {
-                        event_category: "Services",
-                        event_label: selectedService,
-                      });
-                    }
+                    trackServiceBookNow(selectedService);
                     navigate(`/contact?service=${encodeURIComponent(selectedService)}`);
                   }}
                   aria-label={`Book ${serviceKeyMap[section.key]} now`}
@@ -145,6 +282,18 @@ const ServicesPage: React.FC = () => {
           </div>
         </motion.div>
       ))}
+
+      <motion.div id="services-faq" className="mt-8 mb-16" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.4 }}>
+        <h3 className="text-2xl font-serif mb-4">Frequently Asked Questions</h3>
+        <div className="space-y-3">
+          {servicesFaqItems.map((item) => (
+            <details key={item.question} className="rounded-lg border border-accent bg-secondary/20 p-4">
+              <summary className="cursor-pointer font-medium">{item.question}</summary>
+              <p className="mt-3 text-accent-dark">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </motion.div>
 
       {/* CTA section */}
       <motion.div className="mt-20 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}>

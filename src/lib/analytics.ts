@@ -1,88 +1,123 @@
-// src/lib/analytics.ts
-
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
-    dataLayer?: Array<Record<string, unknown>>;
+    dataLayer?: Array<unknown>;
   }
 }
 
+type AnalyticsParams = Record<string, string | number | boolean | null | undefined>;
+type PopupName = "newsletter" | "fun_jokes";
+type NewsletterSource = "footer" | "popup";
+
 const isBrowser = typeof window !== "undefined";
 
-// Send a basic page view (used by RouteChangeTracker)
+const sanitizeParams = (params: AnalyticsParams = {}) =>
+  Object.fromEntries(Object.entries(params).filter(([, value]) => value !== undefined && value !== null));
+
+const sendEvent = (eventName: string, params: AnalyticsParams = {}) => {
+  if (!isBrowser || !window.gtag) return;
+  window.gtag("event", eventName, sanitizeParams(params));
+};
+
 export const trackPageView = (url: string, title?: string) => {
-  const pageTitle = title || (typeof document !== "undefined" ? document.title : undefined);
-  const payload: Record<string, string | undefined> = {
+  sendEvent("page_view", {
     page_path: url,
-    page_title: pageTitle,
+    page_title: title || (typeof document !== "undefined" ? document.title : undefined),
     page_location: isBrowser ? window.location.href : undefined,
-  };
-
-  // Push to dataLayer first so events aren't lost if gtag isn't ready yet
-  if (isBrowser) {
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ event: "page_view", ...payload });
-  }
-
-  if (isBrowser && window.gtag) {
-    window.gtag("event", "page_view", payload);
-  } else if (import.meta.env?.DEV) {
-    // eslint-disable-next-line no-console
-    console.warn("[GA] gtag not found at call time; event queued in dataLayer:", payload);
-  }
+  });
 };
 
-// Track when someone views a gallery
 export const trackGalleryView = (category: string) => {
-  if (isBrowser && window.gtag) {
-    window.gtag("event", "gallery_view", {
-      event_category: "Gallery",
-      event_label: category,
-    });
-  }
+  sendEvent("gallery_view", {
+    category,
+  });
 };
 
-// Track when an admin uploads a photo
 export const trackPhotoUpload = (title: string) => {
-  if (isBrowser && window.gtag) {
-    window.gtag("event", "photo_upload", {
-      event_category: "Admin",
-      event_label: title,
-    });
-  }
+  sendEvent("photo_upload", {
+    file_name: title,
+  });
 };
 
-// Track when someone submits the contact form
-export const trackContactSubmit = () => {
-  if (isBrowser && window.gtag) {
-    window.gtag("event", "contact_submit", {
-      event_category: "Contact",
-    });
-  }
+export const trackContactSubmit = (details?: { service?: string; serviceTier?: string }) => {
+  const payload = {
+    service: details?.service,
+    service_tier: details?.serviceTier,
+  };
+  sendEvent("contact_submit", payload);
+  sendEvent("generate_lead", {
+    ...payload,
+    lead_source: "contact_form",
+  });
 };
 
-// Newsletter popup interactions
-export const trackPopupShown = () => {
-  if (isBrowser && window.gtag) {
-    window.gtag("event", "popup_shown", {
-      event_category: "Newsletter Popup",
-    });
-  }
+export const trackContactFormStarted = (service?: string) => {
+  sendEvent("contact_form_started", {
+    service: service || "unknown",
+  });
 };
 
-export const trackPopupClosed = () => {
-  if (isBrowser && window.gtag) {
-    window.gtag("event", "popup_closed_before_joke_end", {
-      event_category: "Newsletter Popup",
-    });
-  }
+export const trackContactFormError = (message?: string) => {
+  sendEvent("contact_form_error", {
+    error_message: message?.slice(0, 120),
+  });
+};
+
+export const trackPopupShown = (popupName: PopupName) => {
+  sendEvent("popup_shown", {
+    popup_name: popupName,
+  });
+};
+
+export const trackPopupClosed = (popupName: PopupName, reason = "dismissed") => {
+  sendEvent("popup_closed", {
+    popup_name: popupName,
+    reason,
+  });
 };
 
 export const trackJokeInteraction = (label: string) => {
-  if (isBrowser && window.gtag) {
-    window.gtag("event", "joke_interaction", {
-      event_category: "Newsletter Popup",
-      event_label: label,
-    });
-  }
+  sendEvent("joke_interaction", {
+    action: label,
+  });
+};
+
+export const trackNewsletterSubscribeSuccess = (source: NewsletterSource) => {
+  const payload = {
+    source,
+  };
+  sendEvent("newsletter_subscribe_success", payload);
+  sendEvent("sign_up", {
+    method: `newsletter_${source}`,
+  });
+};
+
+export const trackNewsletterSubscribeError = (source: NewsletterSource, message?: string) => {
+  sendEvent("newsletter_subscribe_error", {
+    source,
+    error_message: message?.slice(0, 120),
+  });
+};
+
+export const trackOutboundClick = (destination: string, context: string) => {
+  const payload = {
+    destination,
+    context,
+  };
+  sendEvent("outbound_click", payload);
+  sendEvent("click", {
+    link_url: destination,
+    outbound: true,
+    link_context: context,
+  });
+};
+
+export const trackServiceBookNow = (service: string) => {
+  sendEvent("service_book_now", {
+    service,
+  });
+  sendEvent("select_promotion", {
+    creative_name: service,
+    creative_slot: "services_page",
+  });
 };

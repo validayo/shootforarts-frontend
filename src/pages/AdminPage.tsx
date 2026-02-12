@@ -6,7 +6,7 @@ import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 
 import { motion } from "framer-motion";
-import { Upload, Users, Calendar as CalendarIcon, LogOut, Menu, X } from "lucide-react";
+import { Upload, Users, Calendar as CalendarIcon, Image, LogOut, Menu, X } from "lucide-react";
 
 import { supabase, supabaseAnonKey } from "../lib/supabase";
 import { BASE, getContactSubmissions } from "../lib/services";
@@ -301,6 +301,14 @@ const AdminPage: React.FC = () => {
               <Upload className="w-5 h-5 mr-2" />
               Upload
             </button>
+            <a
+              href="/admin/gallery-manager"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100"
+            >
+              <Image className="w-5 h-5 mr-2" />
+              Gallery Manager
+            </a>
             <button
               onClick={() => {
                 handleLogout();

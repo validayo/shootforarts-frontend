@@ -10,10 +10,11 @@ interface Tier {
 interface AccordionProps {
   category: string;
   tiers: Tier[];
+  defaultOpenIndex?: number | null;
 }
 
-const Accordion: React.FC<AccordionProps> = ({ category, tiers }) => {
-  const [openTier, setOpenTier] = useState<number | null>(null);
+const Accordion: React.FC<AccordionProps> = ({ category, tiers, defaultOpenIndex = null }) => {
+  const [openTier, setOpenTier] = useState<number | null>(defaultOpenIndex);
 
   return (
     <div className="w-full">
