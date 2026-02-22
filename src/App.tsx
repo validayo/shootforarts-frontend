@@ -2,18 +2,18 @@ import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import RouteChangeTracker from "./components/RouteChangeTracker";
-import ScrollToTop from "./components/ScrollToTop";
-import ProtectedRoute from "./components/ProtectedRoute";
+import RouteChangeTracker from "./components/routing/RouteChangeTracker";
+import ScrollToTop from "./components/routing/ScrollToTop";
+import ProtectedRoute from "./components/routing/ProtectedRoute";
 
-const Layout = lazy(() => import("./components/Layout"));
-const HomePage = lazy(() => import("./pages/HomePage"));
-const AboutPage = lazy(() => import("./pages/AboutPage"));
-const ServicesPage = lazy(() => import("./pages/ServicesPage"));
-const ContactPage = lazy(() => import("./pages/ContactPage"));
-const AdminLogin = lazy(() => import("./pages/AdminLoginPage"));
-const AdminPage = lazy(() => import("./pages/AdminPage"));
-const AdminGalleryManager = lazy(() => import("./components/AdminGalleryManager"));
+const Layout = lazy(() => import("./components/layout/Layout"));
+const HomePage = lazy(() => import("./pages/public/HomePage"));
+const AboutPage = lazy(() => import("./pages/public/AboutPage"));
+const ServicesPage = lazy(() => import("./pages/public/ServicesPage"));
+const ContactPage = lazy(() => import("./pages/public/ContactPage"));
+const AdminLogin = lazy(() => import("./pages/admin/AdminLoginPage"));
+const AdminPage = lazy(() => import("./pages/admin/AdminPage"));
+const AdminGalleryManager = lazy(() => import("./components/admin/AdminGalleryManager"));
 
 // Redirect component for /admin based on auth state
 const AdminIndexRedirect = () => {

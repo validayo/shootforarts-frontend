@@ -7,6 +7,12 @@ const backendUrl = "https://shootforarts-backend.onrender.com";
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: "127.0.0.1",
+    strictPort: true,
+    cors: {
+      origin: /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/,
+    },
+    allowedHosts: ["localhost", "127.0.0.1"],
     proxy: {
       "/contact-form": backendUrl,
       "/newsletter": backendUrl,

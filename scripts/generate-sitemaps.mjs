@@ -41,10 +41,10 @@ function getLastModFromFiles(files) {
 
 function generateSitemap() {
   const pages = [
-    { loc: `${BASE_URL}/`, files: ['src/pages/HomePage.tsx', 'index.html'], changefreq: 'weekly', priority: '1.0' },
-    { loc: `${BASE_URL}/about`, files: ['src/pages/AboutPage.tsx', 'public/about/index.html', 'src/components/About.tsx'], changefreq: 'monthly', priority: '0.8' },
-    { loc: `${BASE_URL}/services`, files: ['src/pages/ServicesPage.tsx', 'public/services/index.html'], changefreq: 'weekly', priority: '0.9' },
-    { loc: `${BASE_URL}/contact`, files: ['src/pages/ContactPage.tsx', 'public/contact/index.html', 'src/components/ContactForm.tsx'], changefreq: 'weekly', priority: '0.9' },
+    { loc: `${BASE_URL}/`, files: ['src/pages/public/HomePage.tsx', 'index.html'], changefreq: 'weekly', priority: '1.0' },
+    { loc: `${BASE_URL}/about`, files: ['src/pages/public/AboutPage.tsx', 'public/about/index.html', 'src/components/about/About.tsx'], changefreq: 'monthly', priority: '0.8' },
+    { loc: `${BASE_URL}/services`, files: ['src/pages/public/ServicesPage.tsx', 'public/services/index.html'], changefreq: 'weekly', priority: '0.9' },
+    { loc: `${BASE_URL}/contact`, files: ['src/pages/public/ContactPage.tsx', 'public/contact/index.html', 'src/components/contact/ContactForm.tsx'], changefreq: 'weekly', priority: '0.9' },
   ];
 
   const urls = pages.map(p => ({ ...p, lastmod: getLastModFromFiles(p.files) }));
@@ -89,7 +89,7 @@ function extractHomeOgTitleDesc() {
 }
 
 function extractAboutImage() {
-  const aboutComp = path.resolve(root, 'src', 'components', 'About.tsx');
+  const aboutComp = path.resolve(root, 'src', 'components', 'about', 'About.tsx');
   if (!exists(aboutComp)) return null;
   const src = fs.readFileSync(aboutComp, 'utf8');
   const m = src.match(/src=\"([^\"]*AYO\.(?:jpg|jpeg|png))\"/i);
@@ -97,7 +97,7 @@ function extractAboutImage() {
 }
 
 function extractServiceImages() {
-  const svcPath = path.resolve(root, 'src', 'pages', 'ServicesPage.tsx');
+  const svcPath = path.resolve(root, 'src', 'pages', 'public', 'ServicesPage.tsx');
   if (!exists(svcPath)) return [];
   const txt = fs.readFileSync(svcPath, 'utf8');
   const start = txt.indexOf('const categoryImages');

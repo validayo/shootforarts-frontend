@@ -3,6 +3,10 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY: string;
   readonly VITE_SUPABASE_URL: string;
   readonly VITE_UPLOAD_BASE?: string;
+  readonly VITE_GA_MEASUREMENT_ID?: string;
+  readonly VITE_SENTRY_DSN?: string;
+  readonly VITE_SENTRY_ENVIRONMENT?: string;
+  readonly VITE_SENTRY_ENABLE_DEV?: string;
   // add more as needed
 }
 

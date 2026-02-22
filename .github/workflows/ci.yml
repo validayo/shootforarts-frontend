@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_ANON_KEY: public-anon-key
+      VITE_GA_MEASUREMENT_ID: G-TEST12345
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit and component tests
+        run: npm run test
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: quality
+    env:
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_ANON_KEY: public-anon-key
+      VITE_GA_MEASUREMENT_ID: G-TEST12345
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
+
+  preview-deploy-check:
+    runs-on: ubuntu-latest
+    needs: quality
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check Vercel secrets
+        id: vercel_secrets
+        run: |
+          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Vercel preview check skipped: missing one or more Vercel secrets."
+          fi
+
+      - name: Install Vercel CLI
+        if: steps.vercel_secrets.outputs.enabled == 'true'
+        run: npm i -g vercel
+
+      - name: Pull preview environment
+        if: steps.vercel_secrets.outputs.enabled == 'true'
+        run: vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+
+      - name: Build preview deployment
+        if: steps.vercel_secrets.outputs.enabled == 'true'
+        run: vercel build --token=$VERCEL_TOKEN

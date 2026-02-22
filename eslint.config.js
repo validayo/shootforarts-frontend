@@ -6,17 +6,34 @@ import parser from "@typescript-eslint/parser";
 import plugin from "@typescript-eslint/eslint-plugin";
 
 const browserGlobals = Object.fromEntries(Object.entries(globals.browser).map(([key, value]) => [key.trim(), value]));
+const nodeGlobals = Object.fromEntries(Object.entries(globals.node).map(([key, value]) => [key.trim(), value]));
 export default [
-  { ignores: ["dist"] },
+  { ignores: ["dist", "coverage", "playwright-report"] },
   {
     files: ["**/*.{ts,tsx}"],
-    languageOptions: { ecmaVersion: 2020, parser, parserOptions: { sourceType: "module", ecmaVersion: "latest" }, globals: browserGlobals },
+    languageOptions: {
+      ecmaVersion: 2020,
+      parser,
+      parserOptions: { sourceType: "module", ecmaVersion: "latest" },
+      globals: {
+        ...browserGlobals,
+        ...nodeGlobals,
+      },
+    },
     plugins: { "@typescript-eslint": plugin, "react-hooks": reactHooks, "react-refresh": reactRefresh },
     rules: {
       ...js.configs.recommended.rules,
       ...plugin.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+    },
+  },
+  {
+    files: ["**/*.test.{ts,tsx}", "tests/**/*.ts"],
+    languageOptions: {
+      globals: {
+        ...globals.vitest,
+      },
     },
   },
 ];
