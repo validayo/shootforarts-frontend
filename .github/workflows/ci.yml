@@ -8,10 +8,6 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    env:
-      VITE_SUPABASE_URL: https://example.supabase.co
-      VITE_SUPABASE_ANON_KEY: public-anon-key
-      VITE_GA_MEASUREMENT_ID: G-TEST12345
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,6 +20,26 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Configure frontend env (CI)
+        env:
+          SECRET_VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SECRET_VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SECRET_VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VAR_VITE_UPLOAD_BASE: ${{ vars.VITE_UPLOAD_BASE }}
+          VAR_VITE_ENABLE_EDGE_SYNC: ${{ vars.VITE_ENABLE_EDGE_SYNC }}
+          VAR_VITE_GA_MEASUREMENT_ID: ${{ vars.VITE_GA_MEASUREMENT_ID }}
+          VAR_VITE_SENTRY_ENVIRONMENT: ${{ vars.VITE_SENTRY_ENVIRONMENT }}
+          VAR_VITE_SENTRY_ENABLE_DEV: ${{ vars.VITE_SENTRY_ENABLE_DEV }}
+        run: |
+          echo "VITE_SUPABASE_URL=${SECRET_VITE_SUPABASE_URL:-https://example.supabase.co}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_ANON_KEY=${SECRET_VITE_SUPABASE_ANON_KEY:-public-anon-key}" >> "$GITHUB_ENV"
+          echo "VITE_UPLOAD_BASE=${VAR_VITE_UPLOAD_BASE:-https://shootforarts-backend.onrender.com}" >> "$GITHUB_ENV"
+          echo "VITE_ENABLE_EDGE_SYNC=${VAR_VITE_ENABLE_EDGE_SYNC:-false}" >> "$GITHUB_ENV"
+          echo "VITE_GA_MEASUREMENT_ID=${VAR_VITE_GA_MEASUREMENT_ID:-G-TEST12345}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_DSN=${SECRET_VITE_SENTRY_DSN}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_ENVIRONMENT=${VAR_VITE_SENTRY_ENVIRONMENT:-production}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_ENABLE_DEV=${VAR_VITE_SENTRY_ENABLE_DEV:-false}" >> "$GITHUB_ENV"
 
       - name: Lint
         run: npm run lint
@@ -40,10 +56,6 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     needs: quality
-    env:
-      VITE_SUPABASE_URL: https://example.supabase.co
-      VITE_SUPABASE_ANON_KEY: public-anon-key
-      VITE_GA_MEASUREMENT_ID: G-TEST12345
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,6 +68,26 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Configure frontend env (CI)
+        env:
+          SECRET_VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SECRET_VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SECRET_VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VAR_VITE_UPLOAD_BASE: ${{ vars.VITE_UPLOAD_BASE }}
+          VAR_VITE_ENABLE_EDGE_SYNC: ${{ vars.VITE_ENABLE_EDGE_SYNC }}
+          VAR_VITE_GA_MEASUREMENT_ID: ${{ vars.VITE_GA_MEASUREMENT_ID }}
+          VAR_VITE_SENTRY_ENVIRONMENT: ${{ vars.VITE_SENTRY_ENVIRONMENT }}
+          VAR_VITE_SENTRY_ENABLE_DEV: ${{ vars.VITE_SENTRY_ENABLE_DEV }}
+        run: |
+          echo "VITE_SUPABASE_URL=${SECRET_VITE_SUPABASE_URL:-https://example.supabase.co}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_ANON_KEY=${SECRET_VITE_SUPABASE_ANON_KEY:-public-anon-key}" >> "$GITHUB_ENV"
+          echo "VITE_UPLOAD_BASE=${VAR_VITE_UPLOAD_BASE:-https://shootforarts-backend.onrender.com}" >> "$GITHUB_ENV"
+          echo "VITE_ENABLE_EDGE_SYNC=${VAR_VITE_ENABLE_EDGE_SYNC:-false}" >> "$GITHUB_ENV"
+          echo "VITE_GA_MEASUREMENT_ID=${VAR_VITE_GA_MEASUREMENT_ID:-G-TEST12345}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_DSN=${SECRET_VITE_SENTRY_DSN}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_ENVIRONMENT=${VAR_VITE_SENTRY_ENVIRONMENT:-production}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_ENABLE_DEV=${VAR_VITE_SENTRY_ENABLE_DEV:-false}" >> "$GITHUB_ENV"
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
