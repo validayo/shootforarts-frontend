@@ -21,6 +21,7 @@ No permission is granted to use, copy, modify, or distribute this code.
 
 - [Demo](#demo)
 - [Architecture Diagram](#architecture-diagram)
+- [Backend Overview (Private Repo Summary)](#backend-overview-private-repo-summary)
 - [Key Engineering Decisions + Tradeoffs](#key-engineering-decisions--tradeoffs)
 - [Threat Model Summary](#threat-model-summary)
 - [Runtime Architecture](#2-runtime-architecture)
@@ -50,6 +51,52 @@ flowchart LR
   SPA --> SEN[Sentry]
   SB --> RLS[RLS Policies]
 ```
+
+## Backend Overview (Private Repo Summary)
+
+This frontend integrates with a separately maintained backend repository.  
+The summary below is intentionally high-level and documents ownership and boundaries without exposing operational blueprint details.
+
+### High-level architecture
+
+```mermaid
+flowchart LR
+  U[Visitor/Admin Browser] --> FE[Frontend SPA]
+  FE --> EF[Supabase Edge Functions]
+  FE --> UP[Upload Service]
+  EF --> DB[(Supabase Database)]
+  EF --> ST[(Supabase Storage)]
+  UP --> DB
+  UP --> ST
+  EF --> DISC[Discord Notifications]
+  UP --> DISC
+  DB --> AUDIT[(audit.event_log)]
+  AUDIT --> DISC
+```
+
+### Backend responsibilities
+
+- Contact: validates and persists inquiry submissions, then emits operational notifications.
+- Newsletter: handles subscriptions and protected subscriber access paths for admin workflows.
+- Gallery: serves ordered photo datasets for public rendering (including prioritized selections).
+- Uploads: processes admin-uploaded images, stores optimized assets, and records photo metadata.
+
+### Asset optimization
+
+Uploaded images are normalized and optimized server-side to ensure consistent formats and efficient delivery across the site.
+
+### Security model
+
+- Admin operations require authenticated JWT context.
+- Database and storage RLS policies are the primary enforcement boundary.
+- Frontend route guards improve UX flow only; they are not the data-security boundary.
+- Sensitive actions are enforced server-side and at the database policy layer.
+
+### Observability
+
+- Discord is used for operational notifications and error signaling across backend surfaces.
+- Database mutation auditing is recorded in an audit table (`audit.event_log`).
+- Audit events are forwarded to Discord for near-real-time visibility.
 
 ## Key Engineering Decisions + Tradeoffs
 
