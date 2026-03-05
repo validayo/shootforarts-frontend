@@ -76,7 +76,7 @@ const ServicesPage: React.FC = () => {
 
   const eventPhotography = [
     { title: "Tier 1", price: "$125/hr", details: ["2-hour minimum", "Unlimited photos", "All color-corrected", "Online gallery delivery"] },
-    { title: "Tier 2", price: "$125/hr", details: ["Includes highlight reel", "Two-camera coverage", "Social clip (30–45 seconds)"] },
+    { title: "Tier 2", price: "$150/hr", details: ["2-hour minimum","Includes highlight reel", "Two-camera coverage", "Social clip (30–45 seconds)"] },
   ];
 
   const weddingPhotography = [

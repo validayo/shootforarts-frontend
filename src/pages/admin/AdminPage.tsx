@@ -464,7 +464,7 @@ const AdminPage: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative overflow-y-auto max-h-[90vh]"
+                  className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative overflow-y-auto overflow-x-hidden max-h-[90vh]"
                   role="dialog"
                   aria-modal="true"
                   aria-labelledby="selected-contact-title"
@@ -511,7 +511,7 @@ const AdminPage: React.FC = () => {
                       )}
                       <div>
                         <p className="text-sm font-medium text-gray-500">Occasion</p>
-                        <p className="text-gray-900">{selectedContact.occasion}</p>
+                        <p className="text-gray-900 [overflow-wrap:anywhere] break-words whitespace-pre-wrap">{selectedContact.occasion}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-500">Date</p>
@@ -526,19 +526,19 @@ const AdminPage: React.FC = () => {
                       {selectedContact.location && (
                         <div className="sm:col-span-2">
                           <p className="text-sm font-medium text-gray-500">Location</p>
-                          <p className="text-gray-900">{selectedContact.location}</p>
+                          <p className="text-gray-900 [overflow-wrap:anywhere] break-words whitespace-pre-wrap">{selectedContact.location}</p>
                         </div>
                       )}
                       {selectedContact.instagram && (
                         <div>
                           <p className="text-sm font-medium text-gray-500">Instagram</p>
-                          <p className="text-gray-900">{selectedContact.instagram}</p>
+                          <p className="text-gray-900 [overflow-wrap:anywhere] break-words">{selectedContact.instagram}</p>
                         </div>
                       )}
                       {selectedContact.referralSource && (
                         <div>
                           <p className="text-sm font-medium text-gray-500">Referral Source</p>
-                          <p className="text-gray-900">{selectedContact.referralSource}</p>
+                          <p className="text-gray-900 [overflow-wrap:anywhere] break-words">{selectedContact.referralSource}</p>
                         </div>
                       )}
                     </div>
@@ -565,7 +565,7 @@ const AdminPage: React.FC = () => {
                     {selectedContact.extra_questions && Object.keys(selectedContact.extra_questions).length > 0 && (
                       <div className="sm:col-span-2">
                         <p className="text-sm font-medium text-gray-500">Extra Details</p>
-                        <ul className="mt-1 list-disc ml-5 text-gray-900">
+                        <ul className="mt-1 list-disc ml-5 text-gray-900 space-y-1 [overflow-wrap:anywhere] break-words">
                           {Object.entries(selectedContact.extra_questions).map(([key, value]) => (
                             <li key={key}>
                               {key
@@ -581,7 +581,9 @@ const AdminPage: React.FC = () => {
                     {selectedContact.questions && (
                       <div>
                         <p className="text-sm font-medium text-gray-500 mb-2">Comments</p>
-                        <p className="text-gray-900 bg-gray-50 p-4 rounded-lg">{selectedContact.questions}</p>
+                        <p className="text-gray-900 bg-gray-50 p-4 rounded-lg [overflow-wrap:anywhere] break-words whitespace-pre-wrap">
+                          {selectedContact.questions}
+                        </p>
                       </div>
                     )}
                   </div>

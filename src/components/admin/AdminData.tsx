@@ -277,10 +277,10 @@ const AdminData: React.FC = () => {
         </motion.div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg ring-1 ring-gray-200/70 overflow-hidden">
         <div className="border-b border-gray-200">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 p-4 sm:p-6">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   activeTab === "contacts" ? "bg-blue-600 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"
@@ -311,14 +311,14 @@ const AdminData: React.FC = () => {
 
           <div className="px-4 sm:px-6 pb-4 space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 relative">
+              <div className="flex-1 relative min-w-[220px]">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -327,7 +327,7 @@ const AdminData: React.FC = () => {
                   <select
                     value={selectedService}
                     onChange={(e) => setSelectedService(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="border border-gray-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="All">All Services</option>
                     {Object.keys(serviceOptions).map((service) => (
@@ -342,7 +342,7 @@ const AdminData: React.FC = () => {
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value as DateFilterOption)}
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="border border-gray-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Time</option>
                 <option value="7days">Last 7 Days</option>
@@ -373,69 +373,75 @@ const AdminData: React.FC = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredContacts.map((c) => (
                     <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-4 sm:px-6 text-sm text-gray-900">{formatDate(c.created_at)}</td>
-                      <td className="py-4 px-4 sm:px-6 text-sm font-medium text-gray-900">{`${c.firstName} ${c.lastName}`}</td>
-                      <td className="py-4 px-4 sm:px-6 text-sm hidden sm:table-cell">
+                      <td className="py-4 px-4 sm:px-6 text-sm text-gray-900 align-top">{formatDate(c.created_at)}</td>
+                      <td className="py-4 px-4 sm:px-6 text-sm font-medium text-gray-900 align-top">{`${c.firstName} ${c.lastName}`}</td>
+                      <td className="py-4 px-4 sm:px-6 text-sm hidden sm:table-cell align-top">
                         <a href={`mailto:${c.email}`} className="text-blue-600 hover:underline">
                           {c.email}
                         </a>
                       </td>
-                      <td className="py-4 px-4 sm:px-6 text-sm">
+                      <td className="py-4 px-4 sm:px-6 text-sm align-top">
                         <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">{c.service}</span>
                       </td>
-                      <td className="py-4 px-4 sm:px-6 text-sm hidden lg:table-cell">
-                        <details className="cursor-pointer">
-                          <summary className="text-blue-600 hover:text-blue-800">View Details</summary>
-                          <div className="mt-2 space-y-1 text-xs bg-gray-50 p-3 rounded-lg">
+                      <td className="py-4 px-4 sm:px-6 text-sm hidden lg:table-cell align-top">
+                        <details className="group cursor-pointer max-w-[44rem]">
+                          <summary className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 list-none [&::-webkit-details-marker]:hidden">
+                            <span className="transition-transform duration-200 group-open:rotate-90">▶</span>
+                            <span>View Details</span>
+                          </summary>
+                          <div className="mt-3 space-y-2 text-sm leading-6 text-gray-800 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm [overflow-wrap:anywhere] break-words">
                             {c.service_tier && (
-                              <p>
-                                <strong>Tier:</strong> {c.service_tier}
+                              <p className="[overflow-wrap:anywhere] break-words">
+                                <strong className="text-gray-900">Tier:</strong> {c.service_tier}
                               </p>
                             )}
                             {c.location && (
-                              <p>
-                                <strong>Location:</strong> {c.location}
+                              <p className="[overflow-wrap:anywhere] break-words">
+                                <strong className="text-gray-900">Location:</strong> {c.location}
                               </p>
                             )}
                             {c.occasion && (
-                              <p>
-                                <strong>Occasion:</strong> {c.occasion}
+                              <p className="[overflow-wrap:anywhere] break-words whitespace-pre-wrap">
+                                <strong className="text-gray-900">Occasion:</strong> {c.occasion}
                               </p>
                             )}
                             {c.date && (
-                              <p>
-                                <strong>Date:</strong> {c.date}
+                              <p className="[overflow-wrap:anywhere] break-words">
+                                <strong className="text-gray-900">Date:</strong> {c.date}
                               </p>
                             )}
                             {c.time && (
-                              <p>
-                                <strong>Time:</strong> {c.time}
+                              <p className="[overflow-wrap:anywhere] break-words">
+                                <strong className="text-gray-900">Time:</strong> {c.time}
                               </p>
                             )}
                             {c.instagram && (
-                              <p>
-                                <strong>Instagram:</strong> {c.instagram}
+                              <p className="[overflow-wrap:anywhere] break-words">
+                                <strong className="text-gray-900">Instagram:</strong> {c.instagram}
                               </p>
                             )}
                             {c.referralSource && (
-                              <p>
-                                <strong>Referral Source:</strong> {c.referralSource}
+                              <p className="[overflow-wrap:anywhere] break-words">
+                                <strong className="text-gray-900">Referral Source:</strong> {c.referralSource}
                               </p>
                             )}
                             {c.pinterestInspo && (
-                              <p>
-                                <strong>Pinterest:</strong> <a className="text-blue-600 hover:underline" href={c.pinterestInspo} target="_blank" rel="noopener noreferrer">View board</a>
+                              <p className="[overflow-wrap:anywhere] break-words">
+                                <strong className="text-gray-900">Pinterest:</strong>{" "}
+                                <a className="text-blue-600 hover:underline" href={c.pinterestInspo} target="_blank" rel="noopener noreferrer">
+                                  View board
+                                </a>
                               </p>
                             )}
                             {c.add_ons?.length ? (
-                              <div>
-                                <strong>Add-ons:</strong> {c.add_ons.join(", ")}
+                              <div className="[overflow-wrap:anywhere] break-words">
+                                <strong className="text-gray-900">Add-ons:</strong> {c.add_ons.join(", ")}
                               </div>
                             ) : null}
                             {c.extra_questions && Object.keys(c.extra_questions).length > 0 && (
-                              <div>
-                                <strong>Extra Details:</strong>
-                                <ul className="list-disc ml-5 mt-1">
+                              <div className="[overflow-wrap:anywhere] break-words">
+                                <strong className="text-gray-900">Extra Details:</strong>
+                                <ul className="list-disc ml-5 mt-1 space-y-1">
                                   {Object.entries(c.extra_questions).map(([k, v]) => (
                                     <li key={k}>
                                       {labelize(k)}: {String(v)}
@@ -445,8 +451,8 @@ const AdminData: React.FC = () => {
                               </div>
                             )}
                             {c.questions && (
-                              <p>
-                                <strong>Questions:</strong> {c.questions}
+                              <p className="[overflow-wrap:anywhere] break-words whitespace-pre-wrap">
+                                <strong className="text-gray-900">Questions:</strong> {c.questions}
                               </p>
                             )}
                           </div>

@@ -11,10 +11,9 @@ Stack: React + TypeScript + Vite + Tailwind + Supabase + Vercel.
 
 ## Why This Project
 
-- Public marketing site plus authenticated admin surface.
-- Gallery delivery optimized for fast first paint and high-quality lightbox viewing.
-- Contact/newsletter lead capture with anti-abuse controls.
-- Production observability and analytics (Sentry + GA).
+I turned my photography passion into a real business and needed a website that matched the brand I had in mind. I also have a strong passion for software engineering, so instead of using WordPress templates or buying a prebuilt site, I chose to build the platform myself and combine both sides of who I am.
+
+That decision let me design a custom experience and implement the exact workflows I needed: public portfolio pages, admin management tools, SEO structure, analytics, testing, and deployment controls. This project represents both my creative direction and my engineering mindset, and it proves I can build, operate, and improve the full product without platform limitations.
 
 ## Tech Stack
 
