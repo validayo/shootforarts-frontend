@@ -1,0 +1,7 @@
+title = "Shoot For Arts gitleaks config"
+
+[allowlist]
+description = "Public identifiers intentionally present in docs/frontend config."
+regexes = [
+  '''e1aedece-66b6-42ee-a9da-9e447d849c68''',
+]

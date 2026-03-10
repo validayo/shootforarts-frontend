@@ -94,6 +94,8 @@ npm run test
 npm run build
 ```
 
+- Security tooling: pre-commit secret scanning with gitleaks (`npm run hooks:install`).
+
 ## Environment Variables
 
 Use `VITE_*` only for values safe to expose to the client bundle.
