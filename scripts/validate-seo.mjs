@@ -58,7 +58,11 @@ if (!fs.existsSync(robotsPath)) {
   hasErrors = true;
 } else {
   const robots = fs.readFileSync(robotsPath, "utf8");
-  const requiredRobotsLines = ["Sitemap: https://shootforarts.com/sitemap.xml", "Sitemap: https://shootforarts.com/sitemap-images.xml", "Disallow: /admin"];
+  const requiredRobotsLines = [
+    "Sitemap: https://shootforarts.com/sitemap.xml",
+    "Sitemap: https://shootforarts.com/sitemap-images.xml",
+    "Disallow: /sfaadmin",
+  ];
   for (const line of requiredRobotsLines) {
     if (!robots.includes(line)) {
       console.error(`[seo] public/robots.txt missing "${line}"`);

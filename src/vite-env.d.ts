@@ -7,6 +7,9 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string;
   readonly VITE_SENTRY_ENVIRONMENT?: string;
   readonly VITE_SENTRY_ENABLE_DEV?: string;
+  readonly VITE_HCAPTCHA_SITE_KEY?: string;
+  readonly VITE_ADMIN_HCAPTCHA_VERIFY_URL?: string;
+  readonly VITE_ADMIN_HCAPTCHA_ENFORCE_SERVER_VERIFY?: string;
   // add more as needed
 }
 

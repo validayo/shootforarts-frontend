@@ -30,6 +30,8 @@ No permission is granted to use, copy, modify, or distribute this code.
 - [Deployment and Hosting](#13-deployment-and-hosting)
 - [Security and Abuse Controls](#14-security-and-abuse-controls)
 - [Quick "Where Do I Change X?" Guide](#17-quick-where-do-i-change-x-guide)
+- [Ops Runbook](./ops-runbook.md)
+- [Admin Login Security](./admin-login-security.md)
 
 ## Demo
 
@@ -137,7 +139,7 @@ The site has two major surfaces:
 - Public marketing/portfolio pages:
   `/, /about, /services, /contact`
 - Admin surface:
-  `/admin/login, /admin/dashboard, /admin/gallery-manager`
+  `/sfaadmin/login, /sfaadmin/dashboard, /sfaadmin/calendar, /sfaadmin/upload, /sfaadmin/gallery-manager`
 
 Core capabilities:
 - Portfolio gallery with category filtering and lightbox.
@@ -230,17 +232,17 @@ Top-level:
   Renders contact intro copy + [`src/components/contact/ContactForm.tsx`](../src/components/contact/ContactForm.tsx).
 
 ### Admin routes
-- `/admin/login` -> [`src/pages/admin/AdminLoginPage.tsx`](../src/pages/admin/AdminLoginPage.tsx)
+- `/sfaadmin/login` -> [`src/pages/admin/AdminLoginPage.tsx`](../src/pages/admin/AdminLoginPage.tsx)
   Supabase email/password login.
-- `/admin/dashboard` -> [`src/pages/admin/AdminPage.tsx`](../src/pages/admin/AdminPage.tsx) (protected)
-  Tabs for [`AdminData`](../src/components/admin/AdminData.tsx), calendar of inquiries, and uploader.
-- `/admin/gallery-manager` -> [`src/components/admin/AdminGalleryManager.tsx`](../src/components/admin/AdminGalleryManager.tsx) (protected)
+- `/sfaadmin/dashboard`, `/sfaadmin/calendar`, `/sfaadmin/upload` -> [`src/pages/admin/AdminPage.tsx`](../src/pages/admin/AdminPage.tsx) (protected)
+  Path-based panels for [`AdminData`](../src/components/admin/AdminData.tsx), calendar of inquiries, and uploader.
+- `/sfaadmin/gallery-manager` -> [`src/pages/admin/AdminGalleryManagerPage.tsx`](../src/pages/admin/AdminGalleryManagerPage.tsx) (protected)
   Top picks, seasonal picks, category browser, delete/toggle/reorder management.
 
 Routing details:
 - Auth provider wraps app in [`src/App.tsx`](../src/App.tsx).
-- [`src/components/routing/ProtectedRoute.tsx`](../src/components/routing/ProtectedRoute.tsx) redirects unauthenticated users to `/admin/login`.
-- `/admin` auto-redirects to login or dashboard based on current auth session.
+- [`src/components/routing/ProtectedRoute.tsx`](../src/components/routing/ProtectedRoute.tsx) redirects unauthenticated users to `/sfaadmin/login`.
+- `/sfaadmin` auto-redirects to login or dashboard based on current auth session.
 - `*` fallback redirects unknown paths to `/`.
 
 ## 5) Key Feature Modules
@@ -330,17 +332,19 @@ Important:
 ## 8) Development Notes
 
 - Keep changes scoped and update tests when behavior changes.
-- Before pushing: `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`.
+- Before pushing: `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`, `npm run seo:validate`, `npm run test:e2e:smoke`.
 - CI must pass.
 - `postbuild` automatically regenerates [`public/sitemap.xml`](../public/sitemap.xml) and [`public/sitemap-images.xml`](../public/sitemap-images.xml).
 - Vite dev proxy is configured in [`vite.config.ts`](../vite.config.ts) for `/contact-form`, `/newsletter`, `/upload-photos`, `/images`.
-- Playwright uses [`playwright.config.ts`](../playwright.config.ts) and auto-starts a local server for `npm run test:e2e`.
+- Playwright uses [`playwright.config.ts`](../playwright.config.ts) and auto-starts a local server for E2E scripts.
 
 ### Testing
 
 - Unit + component tests: Vitest (`npm run test`)
-- End-to-end tests: Playwright (`npm run test:e2e`)
-- Current e2e coverage includes contact submission happy path plus honeypot spam rejection.
+- End-to-end smoke tests: Playwright (`npm run test:e2e:smoke`)
+- End-to-end full suite: Playwright (`npm run test:e2e:full`)
+- Current e2e coverage includes public CTA routing, contact submission protections, and admin route protection behavior.
+- Lighthouse quality budgets run in CI via [`.lighthouserc.json`](../.lighthouserc.json).
 
 ## 9) SEO Strategy
 
@@ -421,7 +425,7 @@ Primary deployment target:
 
 [`vercel.json`](../vercel.json) behavior:
 - redirects `/home` -> `/`
-- rewrites `/admin` and `/admin/*` to `/index.html` (SPA handling)
+- rewrites `/sfaadmin` and `/sfaadmin/*` to `/index.html` (SPA handling)
 - route-specific cache headers for public pages
 - global security headers, including a baseline Content Security Policy (CSP)
 
@@ -443,7 +447,7 @@ Current client-side protections:
 
 Auth controls:
 - admin routes gated by Supabase session state.
-- route robots meta set to `noindex,nofollow` on `/admin*`.
+- route robots meta set to `noindex,nofollow` on `/sfaadmin*`.
 - `ProtectedRoute` is a UX guard only; it is not the primary data-protection boundary.
 
 RLS and policies:

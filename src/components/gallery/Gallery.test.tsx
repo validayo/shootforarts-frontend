@@ -7,6 +7,7 @@ import Gallery from "./Gallery";
 const mocks = vi.hoisted(() => ({
   getGallery: vi.fn(),
   trackGalleryView: vi.fn(),
+  trackGalleryLightboxOpen: vi.fn(),
 }));
 
 vi.mock("../../lib/api/services", () => ({
@@ -15,6 +16,7 @@ vi.mock("../../lib/api/services", () => ({
 
 vi.mock("../../lib/analytics/events", () => ({
   trackGalleryView: mocks.trackGalleryView,
+  trackGalleryLightboxOpen: mocks.trackGalleryLightboxOpen,
 }));
 
 vi.mock("react-masonry-css", () => ({

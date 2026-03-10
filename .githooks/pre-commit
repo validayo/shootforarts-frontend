@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+set -eu
+
+if [ "${SFA_SKIP_GITLEAKS:-}" = "1" ]; then
+  echo "[pre-commit] SFA_SKIP_GITLEAKS=1 set, skipping gitleaks scan."
+  exit 0
+fi
+
+if git diff --cached --quiet --exit-code; then
+  exit 0
+fi
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "[pre-commit] gitleaks is not installed."
+  echo "[pre-commit] Install: https://github.com/gitleaks/gitleaks#installing"
+  echo "[pre-commit] Temporary bypass: SFA_SKIP_GITLEAKS=1 git commit -m \"...\""
+  exit 1
+fi
+
+echo "[pre-commit] Running gitleaks on staged changes..."
+
+if gitleaks protect --help >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --config .gitleaks.toml
+else
+  gitleaks git --staged --redact --config .gitleaks.toml
+fi

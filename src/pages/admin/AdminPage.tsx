@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
-import { format, parse, startOfWeek, getDay } from "date-fns";
+import { endOfMonth, endOfWeek, format, parse, startOfMonth, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
+import { useLocation } from "react-router-dom";
 
 import { motion } from "framer-motion";
-import { Upload, Users, Calendar as CalendarIcon, Image, LogOut, Menu, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { supabase, supabaseAnonKey } from "../../lib/supabase";
 import { BASE, getContactSubmissions } from "../../lib/api/services";
@@ -14,21 +15,29 @@ import { useAuth } from "../../contexts/AuthContext";
 import AdminLogin from "../../components/admin/AdminLogin";
 import AdminUpload from "../../components/admin/AdminUpload";
 import AdminData from "../../components/admin/AdminData";
-import { Contact, CalendarEvent, Tab } from "../../utils";
+import AdminShellLayout from "../../components/admin/AdminShellLayout";
+import { Contact, CalendarEvent, Tab, parseInspirationLinks } from "../../utils";
 import { serviceOptions } from "../../utils";
 import { dedupeByIdentity, isLocalEnvironment, toContactList } from "../../utils/admin/helpers";
 import type { Session } from "@supabase/supabase-js";
 import { logAdminAction, logAdminError, logAdminWarning } from "../../lib/observability/logger";
+import { ROUTES } from "../../config/routes";
 
 
 const locales = { "en-US": enUS };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
 const edgeSyncEnabled = (import.meta.env.VITE_ENABLE_EDGE_SYNC ?? "false") === "true";
+const normalizeTabFromPath = (pathname: string): Tab => {
+  if (pathname === ROUTES.admin.calendar || pathname === ROUTES.admin.calendarAlias) return "calendar";
+  if (pathname === ROUTES.admin.upload) return "upload";
+  return "dashboard";
+};
 
 const AdminPage: React.FC = () => {
   const { currentUser, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
+  const location = useLocation();
+  const activeTab = normalizeTabFromPath(location.pathname);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedService, setSelectedService] = useState<string>("All");
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({
@@ -37,7 +46,6 @@ const AdminPage: React.FC = () => {
   });
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const selectedContactCloseRef = useRef<HTMLButtonElement | null>(null);
   const selectedContactFocusReturnRef = useRef<HTMLElement | null>(null);
@@ -236,7 +244,7 @@ const AdminPage: React.FC = () => {
     try {
       await supabase.auth.signOut();
       logAdminAction("auth.logout");
-      window.location.href = "/admin/login";
+      window.location.href = ROUTES.admin.login;
     } catch (error) {
       console.error("Error logging out:", error);
       logAdminError("auth.logout_failed", { message: String(error) });
@@ -265,6 +273,35 @@ const AdminPage: React.FC = () => {
     return serviceMatch && dateMatch && nameMatch;
   });
 
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+
+  const upcomingEvents = [...filteredEvents]
+    .filter((event) => event.end >= now)
+    .sort((a, b) => a.start.getTime() - b.start.getTime())
+    .slice(0, 8);
+
+  const eventsThisWeek = filteredEvents.filter((event) => event.start >= weekStart && event.start <= weekEnd).length;
+  const eventsThisMonth = filteredEvents.filter((event) => event.start >= monthStart && event.start <= monthEnd).length;
+
+  const panelCopy: Record<Tab, { title: string; subtitle: string }> = {
+    dashboard: {
+      title: "Dashboard",
+      subtitle: "Track inquiries, service demand, and subscriber growth.",
+    },
+    calendar: {
+      title: "Booking Calendar",
+      subtitle: "Review sessions by date and open client details quickly.",
+    },
+    upload: {
+      title: "Content Uploads",
+      subtitle: "Manage images and update portfolio assets.",
+    },
+  };
+
   if (loading)
     return (
       <div className="flex justify-center items-center h-screen">
@@ -275,148 +312,93 @@ const AdminPage: React.FC = () => {
   if (!currentUser) return <AdminLogin />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Dashboard</h2>
+    <AdminShellLayout
+      title={panelCopy[activeTab].title}
+      subtitle={panelCopy[activeTab].subtitle}
+      activeNav={activeTab}
+      onLogout={handleLogout}
+    >
+      {activeTab === "dashboard" && <AdminData />}
 
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="sm:hidden fixed top-4 right-4 z-50 bg-white p-2 rounded-lg shadow-lg">
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-
-          <div
-            className={`${
-              mobileMenuOpen ? "flex" : "hidden"
-            } sm:flex flex-col sm:flex-row gap-2 sm:gap-3 fixed sm:relative top-16 sm:top-0 left-0 right-0 bg-white sm:bg-transparent p-4 sm:p-0 shadow-lg sm:shadow-none z-40`}
-          >
-            <a
-              href="/"
-              className="flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100"
-            >
-              Back to Site
-            </a>
-            <button
-              onClick={() => {
-                setActiveTab("dashboard");
-                setMobileMenuOpen(false);
-              }}
-              className={`flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg transition-all duration-200 ${
-                activeTab === "dashboard" ? "bg-blue-600 text-white shadow-lg" : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <Users className="w-5 h-5 mr-2" />
-              Dashboard
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("calendar");
-                setMobileMenuOpen(false);
-              }}
-              className={`flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg transition-all duration-200 ${
-                activeTab === "calendar" ? "bg-blue-600 text-white shadow-lg" : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <CalendarIcon className="w-5 h-5 mr-2" />
-              Calendar
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("upload");
-                setMobileMenuOpen(false);
-              }}
-              className={`flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg transition-all duration-200 ${
-                activeTab === "upload" ? "bg-blue-600 text-white shadow-lg" : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <Upload className="w-5 h-5 mr-2" />
-              Upload
-            </button>
-            <a
-              href="/admin/gallery-manager"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100"
-            >
-              <Image className="w-5 h-5 mr-2" />
-              Gallery Manager
-            </a>
-            <button
-              onClick={() => {
-                handleLogout();
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center justify-center sm:justify-start px-4 py-2.5 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-200"
-            >
-              <LogOut className="w-5 h-5 mr-2" />
-              Logout
-            </button>
+      {activeTab === "calendar" && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="rounded-2xl bg-white p-4 shadow-lg sm:p-6"
+        >
+          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-gray-500">Visible Bookings</p>
+              <p className="mt-1 text-2xl font-semibold text-gray-900">{filteredEvents.length}</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-gray-500">This Week</p>
+              <p className="mt-1 text-2xl font-semibold text-gray-900">{eventsThisWeek}</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-gray-500">This Month</p>
+              <p className="mt-1 text-2xl font-semibold text-gray-900">{eventsThisMonth}</p>
+            </div>
           </div>
-        </div>
 
-        {activeTab === "dashboard" && <AdminData />}
-
-        {activeTab === "calendar" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
-          >
-            <div className="mb-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Service</label>
-                  <select
-                    value={selectedService}
-                    onChange={(e) => setSelectedService(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="All">All Services</option>
-                    {Object.keys(serviceOptions).map((service) => (
-                      <option key={service} value={service}>
-                        {service}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                  <input
-                    type="date"
-                    onChange={(e) =>
-                      setDateRange((prev) => ({
-                        ...prev,
-                        start: e.target.value ? new Date(e.target.value) : null,
-                      }))
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                  <input
-                    type="date"
-                    onChange={(e) =>
-                      setDateRange((prev) => ({
-                        ...prev,
-                        end: e.target.value ? new Date(e.target.value) : null,
-                      }))
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Search Name</label>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="e.g. Jane Doe"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+          <div className="mb-6 space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Service</label>
+                <select
+                  value={selectedService}
+                  onChange={(e) => setSelectedService(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="All">All Services</option>
+                  {Object.keys(serviceOptions).map((service) => (
+                    <option key={service} value={service}>
+                      {service}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Start Date</label>
+                <input
+                  type="date"
+                  onChange={(e) =>
+                    setDateRange((prev) => ({
+                      ...prev,
+                      start: e.target.value ? new Date(e.target.value) : null,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">End Date</label>
+                <input
+                  type="date"
+                  onChange={(e) =>
+                    setDateRange((prev) => ({
+                      ...prev,
+                      end: e.target.value ? new Date(e.target.value) : null,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Search Name</label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="e.g. Jane Doe"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                />
               </div>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2.2fr)_minmax(280px,1fr)]">
             <div className="h-[500px] sm:h-[600px] lg:h-[700px]">
               <BigCalendar
                 localizer={localizer}
@@ -459,143 +441,202 @@ const AdminPage: React.FC = () => {
               />
             </div>
 
-            {selectedContact && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative overflow-y-auto overflow-x-hidden max-h-[90vh]"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="selected-contact-title"
-                >
-                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-start">
+            <aside className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-gray-700">Upcoming</h3>
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-600">
+                  {upcomingEvents.length}
+                </span>
+              </div>
+              {upcomingEvents.length === 0 ? (
+                <p className="text-sm text-gray-500">No upcoming bookings in the current filter.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {upcomingEvents.map((event) => {
+                    const contact = event.resource;
+                    return (
+                      <li key={`${contact.id}-${event.start.toISOString()}`}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedContact(contact)}
+                          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-left transition-colors hover:bg-gray-100"
+                        >
+                          <p className="text-sm font-medium text-gray-900">
+                            {contact.firstName} {contact.lastName}
+                          </p>
+                          <p className="text-xs text-gray-600">{contact.service}</p>
+                          <p className="mt-1 text-xs text-gray-500">{format(event.start, "EEE, MMM d • h:mm a")}</p>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </aside>
+          </div>
+
+          {selectedContact && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="relative max-h-[90vh] w-full max-w-2xl overflow-x-hidden overflow-y-auto rounded-2xl bg-white shadow-2xl"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="selected-contact-title"
+              >
+                <div className="sticky top-0 flex items-start justify-between border-b border-gray-200 bg-white p-4 sm:p-6">
+                  <div>
+                    <h3 id="selected-contact-title" className="text-xl font-bold text-gray-900 sm:text-2xl">
+                      {selectedContact.service}
+                    </h3>
+                    <p className="mt-1 text-gray-600">
+                      {selectedContact.firstName} {selectedContact.lastName}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={selectedContact ? buildGoogleCalUrl(selectedContact) : "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
+                    >
+                      Add to Google Calendar
+                    </a>
+                    <button
+                      ref={selectedContactCloseRef}
+                      onClick={() => setSelectedContact(null)}
+                      aria-label="Close selected contact details"
+                      className="rounded text-gray-400 transition-colors hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-4 p-4 sm:p-6">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <h3 id="selected-contact-title" className="text-xl sm:text-2xl font-bold text-gray-900">{selectedContact.service}</h3>
-                      <p className="text-gray-600 mt-1">
-                        {selectedContact.firstName} {selectedContact.lastName}
+                      <p className="text-sm font-medium text-gray-500">Email</p>
+                      <a href={`mailto:${selectedContact.email}`} className="text-blue-600 hover:underline">
+                        {selectedContact.email}
+                      </a>
+                    </div>
+                    {selectedContact.phone && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Phone</p>
+                        <a href={`tel:${selectedContact.phone}`} className="text-blue-600 hover:underline">
+                          {selectedContact.phone}
+                        </a>
+                      </div>
+                    )}
+                    {selectedContact.service_tier && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Service Tier</p>
+                        <p className="text-gray-900">{selectedContact.service_tier}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Occasion</p>
+                      <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-gray-900">{selectedContact.occasion}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Date</p>
+                      <p className="text-gray-900">{selectedContact.date}</p>
+                    </div>
+                    {selectedContact.time && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Time</p>
+                        <p className="text-gray-900">{selectedContact.time}</p>
+                      </div>
+                    )}
+                    {selectedContact.location && (
+                      <div className="sm:col-span-2">
+                        <p className="text-sm font-medium text-gray-500">Location</p>
+                        <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-gray-900">{selectedContact.location}</p>
+                      </div>
+                    )}
+                    {selectedContact.instagram && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Instagram</p>
+                        <p className="break-words [overflow-wrap:anywhere] text-gray-900">{selectedContact.instagram}</p>
+                      </div>
+                    )}
+                    {selectedContact.referralSource && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Referral Source</p>
+                        <p className="break-words [overflow-wrap:anywhere] text-gray-900">{selectedContact.referralSource}</p>
+                      </div>
+                    )}
+                  </div>
+                  {selectedContact.add_ons && selectedContact.add_ons.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-gray-500">Add-ons</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedContact.add_ons.map((addon: string, i: number) => (
+                          <span key={i} className="rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700">
+                            {addon}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selectedContact.pinterestInspo &&
+                    (() => {
+                      const links = parseInspirationLinks(selectedContact.pinterestInspo).validUrls;
+                      return (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Inspiration Links</p>
+                          {links.length > 0 ? (
+                            <ul className="ml-5 mt-1 list-disc space-y-1">
+                              {links.map((link) => (
+                                <li key={link}>
+                                  <a href={link} target="_blank" rel="noopener noreferrer" className="break-all text-blue-600 hover:underline">
+                                    {link}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-gray-900">
+                              {selectedContact.pinterestInspo}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  {selectedContact.extra_questions && Object.keys(selectedContact.extra_questions).length > 0 && (
+                    <div className="sm:col-span-2">
+                      <p className="text-sm font-medium text-gray-500">Extra Details</p>
+                      <ul className="ml-5 mt-1 list-disc space-y-1 break-words [overflow-wrap:anywhere] text-gray-900">
+                        {Object.entries(selectedContact.extra_questions).map(([key, value]) => (
+                          <li key={key}>
+                            {key
+                              .replace(/([a-z])([A-Z])/g, "$1 $2")
+                              .replace(/_/g, " ")
+                              .replace(/^\w/, (c) => c.toUpperCase())}
+                            : {String(value)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {selectedContact.questions && (
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-gray-500">Comments</p>
+                      <p className="rounded-lg bg-gray-50 p-4 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-gray-900">
+                        {selectedContact.questions}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <a
-                        href={selectedContact ? buildGoogleCalUrl(selectedContact) : "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-3 py-1.5 text-sm rounded bg-green-600 text-white hover:bg-green-700"
-                      >
-                        Add to Google Calendar
-                      </a>
-                      <button
-                        ref={selectedContactCloseRef}
-                        onClick={() => setSelectedContact(null)}
-                        aria-label="Close selected contact details"
-                        className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-                      >
-                        <X className="w-6 h-6" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="p-4 sm:p-6 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Email</p>
-                        <a href={`mailto:${selectedContact.email}`} className="text-blue-600 hover:underline">
-                          {selectedContact.email}
-                        </a>
-                      </div>
-                      {selectedContact.service_tier && (
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Service Tier</p>
-                          <p className="text-gray-900">{selectedContact.service_tier}</p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Occasion</p>
-                        <p className="text-gray-900 [overflow-wrap:anywhere] break-words whitespace-pre-wrap">{selectedContact.occasion}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Date</p>
-                        <p className="text-gray-900">{selectedContact.date}</p>
-                      </div>
-                      {selectedContact.time && (
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Time</p>
-                          <p className="text-gray-900">{selectedContact.time}</p>
-                        </div>
-                      )}
-                      {selectedContact.location && (
-                        <div className="sm:col-span-2">
-                          <p className="text-sm font-medium text-gray-500">Location</p>
-                          <p className="text-gray-900 [overflow-wrap:anywhere] break-words whitespace-pre-wrap">{selectedContact.location}</p>
-                        </div>
-                      )}
-                      {selectedContact.instagram && (
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Instagram</p>
-                          <p className="text-gray-900 [overflow-wrap:anywhere] break-words">{selectedContact.instagram}</p>
-                        </div>
-                      )}
-                      {selectedContact.referralSource && (
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Referral Source</p>
-                          <p className="text-gray-900 [overflow-wrap:anywhere] break-words">{selectedContact.referralSource}</p>
-                        </div>
-                      )}
-                    </div>
-                    {selectedContact.add_ons && selectedContact.add_ons.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 mb-2">Add-ons</p>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedContact.add_ons.map((addon: string, i: number) => (
-                            <span key={i} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-                              {addon}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {selectedContact.pinterestInspo && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Pinterest Board</p>
-                        <a href={selectedContact.pinterestInspo} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          View Inspiration Board
-                        </a>
-                      </div>
-                    )}
-                    {selectedContact.extra_questions && Object.keys(selectedContact.extra_questions).length > 0 && (
-                      <div className="sm:col-span-2">
-                        <p className="text-sm font-medium text-gray-500">Extra Details</p>
-                        <ul className="mt-1 list-disc ml-5 text-gray-900 space-y-1 [overflow-wrap:anywhere] break-words">
-                          {Object.entries(selectedContact.extra_questions).map(([key, value]) => (
-                            <li key={key}>
-                              {key
-                                .replace(/([a-z])([A-Z])/g, "$1 $2")
-                                .replace(/_/g, " ")
-                                .replace(/^\w/, (c) => c.toUpperCase())}
-                              : {String(value)}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {selectedContact.questions && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 mb-2">Comments</p>
-                        <p className="text-gray-900 bg-gray-50 p-4 rounded-lg [overflow-wrap:anywhere] break-words whitespace-pre-wrap">
-                          {selectedContact.questions}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              </div>
-            )}
-          </motion.div>
-        )}
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </motion.div>
+      )}
 
-        {activeTab === "upload" && <AdminUpload />}
-      </div>
-    </div>
+      {activeTab === "upload" && <AdminUpload />}
+    </AdminShellLayout>
   );
 };
 

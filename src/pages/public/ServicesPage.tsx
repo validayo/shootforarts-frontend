@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import SEO from "../../components/seo/SEO";
 import Accordion from "../../components/services/Accordion";
 import { addOnOptions } from "../../utils";
-import { trackServiceBookNow } from "../../lib/analytics/events";
+import { trackServiceBookNow, trackServicesBottomCtaClick } from "../../lib/analytics/events";
 
 const servicesFaqItems = [
   {
@@ -218,7 +218,11 @@ const ServicesPage: React.FC = () => {
       <motion.div className="mt-20 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}>
         <h3 className="text-2xl font-serif mb-4">Custom Packages Available</h3>
         <p className="text-accent-dark mb-6">Need something specific? Let's create a custom package that perfectly fits your needs.</p>
-        <Link to="/contact" className="inline-block border border-primary px-8 py-3 text-primary hover:bg-primary hover:text-white transition-all duration-300">
+        <Link
+          to="/contact"
+          onClick={() => trackServicesBottomCtaClick("/contact")}
+          className="inline-block border border-primary px-8 py-3 text-primary hover:bg-primary hover:text-white transition-all duration-300"
+        >
           Get in Touch
         </Link>
       </motion.div>

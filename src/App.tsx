@@ -5,20 +5,22 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import RouteChangeTracker from "./components/routing/RouteChangeTracker";
 import ScrollToTop from "./components/routing/ScrollToTop";
 import ProtectedRoute from "./components/routing/ProtectedRoute";
+import AppErrorBoundary from "./components/routing/AppErrorBoundary";
+import { ROUTES } from "./config/routes";
 
 const Layout = lazy(() => import("./components/layout/Layout"));
 const HomePage = lazy(() => import("./pages/public/HomePage"));
 const AboutPage = lazy(() => import("./pages/public/AboutPage"));
 const ServicesPage = lazy(() => import("./pages/public/ServicesPage"));
 const ContactPage = lazy(() => import("./pages/public/ContactPage"));
+const NotFoundPage = lazy(() => import("./pages/public/NotFoundPage"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLoginPage"));
 const AdminPage = lazy(() => import("./pages/admin/AdminPage"));
-const AdminGalleryManager = lazy(() => import("./components/admin/AdminGalleryManager"));
+const AdminGalleryManager = lazy(() => import("./pages/admin/AdminGalleryManagerPage"));
 
-// Redirect component for /admin based on auth state
 const AdminIndexRedirect = () => {
   const { currentUser } = useAuth();
-  return <Navigate to={currentUser ? "/admin/dashboard" : "/admin/login"} replace />;
+  return <Navigate to={currentUser ? ROUTES.admin.dashboard : ROUTES.admin.login} replace />;
 };
 
 const PageLoader = () => (
@@ -31,46 +33,61 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <RouteChangeTracker />
-        <ScrollToTop />
-        <AnimatePresence mode="wait">
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Layout />}>
-                <Route index element={<HomePage />} />
-                <Route path="about" element={<AboutPage />} />
-                <Route path="services" element={<ServicesPage />} />
-                <Route path="contact" element={<ContactPage />} />
-              </Route>
+        <AppErrorBoundary>
+          <RouteChangeTracker />
+          <ScrollToTop />
+          <AnimatePresence mode="wait">
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Layout />}>
+                  <Route index element={<HomePage />} />
+                  <Route path="about" element={<AboutPage />} />
+                  <Route path="services" element={<ServicesPage />} />
+                  <Route path="contact" element={<ContactPage />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Route>
 
-              {/* Admin Routes */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <AdminPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/gallery-manager"
-                element={
-                  <ProtectedRoute>
-                    <AdminGalleryManager />
-                  </ProtectedRoute>
-                }
-              />
+                <Route path={ROUTES.admin.login} element={<AdminLogin />} />
+                <Route
+                  path={ROUTES.admin.dashboard}
+                  element={
+                    <ProtectedRoute>
+                      <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path={ROUTES.admin.calendar}
+                  element={
+                    <ProtectedRoute>
+                      <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path={ROUTES.admin.calendarAlias} element={<Navigate to={ROUTES.admin.calendar} replace />} />
+                <Route
+                  path={ROUTES.admin.upload}
+                  element={
+                    <ProtectedRoute>
+                      <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path={ROUTES.admin.galleryManager}
+                  element={
+                    <ProtectedRoute>
+                      <AdminGalleryManager />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path={ROUTES.admin.base} element={<AdminIndexRedirect />} />
 
-              {/* Redirect /admin -> /admin/login */}
-              <Route path="/admin" element={<AdminIndexRedirect />} />
-
-              {/* Fallback for unknown routes */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </AnimatePresence>
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </AnimatePresence>
+        </AppErrorBoundary>
       </BrowserRouter>
     </AuthProvider>
   );

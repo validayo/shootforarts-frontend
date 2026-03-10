@@ -13,6 +13,17 @@ const photoSelectCols = "id, url, category, uploaded_at, is_top, top_rank, seaso
 
 export type SeasonTag = "winter" | "spring" | "summer" | "fall";
 
+export type BookingWorkflowStatus = "new" | "in_review" | "follow_up" | "booked" | "completed" | "archived";
+
+export interface BookingWorkflowRecord {
+  contact_id: string;
+  status: BookingWorkflowStatus;
+  assigned_to: string | null;
+  note: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 function normalizeCategoryFilter(category?: string) {
   if (!category) return null;
   const trimmed = category.trim();
@@ -223,4 +234,40 @@ export async function getNewsletterSubscribers(): Promise<AdminSubscriber[]> {
   const { data, error } = await supabase.from("newsletter_subscribers").select("*").order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+export async function getBookingWorkflows(contactIds?: string[]): Promise<BookingWorkflowRecord[]> {
+  let query = supabase
+    .from("admin_booking_workflow")
+    .select("contact_id, status, assigned_to, note, created_at, updated_at");
+
+  if (contactIds?.length) {
+    query = query.in("contact_id", contactIds);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    // Table may not exist yet in local/dev environments before migration is applied.
+    const code = (error as { code?: string }).code;
+    if (code === "42P01" || code === "PGRST205") return [];
+    throw error;
+  }
+  return data ?? [];
+}
+
+export async function upsertBookingWorkflow(input: BookingWorkflowRecord): Promise<void> {
+  const payload = {
+    contact_id: input.contact_id,
+    status: input.status,
+    assigned_to: input.assigned_to ?? null,
+    note: input.note ?? null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase.from("admin_booking_workflow").upsert(payload, { onConflict: "contact_id" });
+  if (error) {
+    const code = (error as { code?: string }).code;
+    if (code === "42P01" || code === "PGRST205") return;
+    throw error;
+  }
 }

@@ -9,8 +9,14 @@ const Layout: React.FC = () => {
   const [funEnabled, setFunEnabled] = useState(false);
   return (
     <div className="min-h-screen flex flex-col">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-secondary"
+      >
+        Skip to main content
+      </a>
       <Navbar funEnabled={funEnabled} onToggleFun={() => setFunEnabled((v) => !v)} />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <Outlet />
       </main>
       <Newsletter />

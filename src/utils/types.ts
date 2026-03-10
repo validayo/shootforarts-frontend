@@ -15,6 +15,7 @@ export interface ContactFormData {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string;
   service: string;
   service_tier?: string;
   occasion: string;
@@ -36,6 +37,7 @@ export interface Contact {
   firstName: string;
   lastName: string;
   email: string;
+  phone?: string;
   service: string;
   service_tier?: string;
   occasion?: string;

@@ -8,6 +8,11 @@
     scroll-behavior: smooth;
   }
 
+  /* Force consistent rounded selects across browsers */
+  select {
+    border-radius: 0.75rem !important;
+  }
+
   body {
     @apply font-sans antialiased;
   }
@@ -70,7 +75,7 @@
   }
 
   .input-field {
-    @apply w-full border border-accent p-2 focus:outline-none focus:ring-1 focus:ring-primary;
+    @apply w-full rounded-2xl border border-accent p-2 focus:outline-none focus:ring-1 focus:ring-primary;
   }
 
   .category-btn {
