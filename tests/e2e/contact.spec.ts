@@ -4,6 +4,7 @@ async function fillRequiredContactFields(page: import("@playwright/test").Page) 
   await page.locator("input[name='firstName']").fill("Ayo");
   await page.locator("input[name='lastName']").fill("Client");
   await page.locator("input[name='email']").fill("client@example.com");
+  await page.locator("input[name='phone']").fill("6471234567");
   await page.locator("select[name='service']").selectOption("Base Photoshoot");
   await page.locator("select[name='service_tier']").selectOption("Tier 1 (Solo Shoot)");
   await page.locator("textarea[name='occasion']").fill("Looking for a portrait session.");
