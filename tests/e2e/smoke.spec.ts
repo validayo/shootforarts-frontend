@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("smoke checks", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem("newsletterPopupClosed", "true");
+      localStorage.setItem("newsletterPopupSuppressUntil", "2099-01-01T00:00:00.000Z");
+    });
+  });
+
   test("@smoke home CTA routes to contact page", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("link", { name: "Start Your Inquiry" }).click();
