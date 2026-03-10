@@ -97,7 +97,7 @@ jobs:
           echo "VITE_SUPABASE_ANON_KEY=${SECRET_VITE_SUPABASE_ANON_KEY:-public-anon-key}" >> "$GITHUB_ENV"
           echo "VITE_UPLOAD_BASE=${VAR_VITE_UPLOAD_BASE:-https://shootforarts-backend.onrender.com}" >> "$GITHUB_ENV"
           echo "VITE_ENABLE_EDGE_SYNC=${VAR_VITE_ENABLE_EDGE_SYNC:-false}" >> "$GITHUB_ENV"
-          echo "VITE_GA_MEASUREMENT_ID=${VAR_VITE_GA_MEASUREMENT_ID:-G-TEST12345}" >> "$GITHUB_ENV"
+          echo "VITE_GA_MEASUREMENT_ID=${VAR_VITE_GA_MEASUREMENT_ID:-}" >> "$GITHUB_ENV"
           echo "VITE_SENTRY_DSN=${SECRET_VITE_SENTRY_DSN}" >> "$GITHUB_ENV"
           echo "VITE_SENTRY_ENVIRONMENT=${VAR_VITE_SENTRY_ENVIRONMENT:-production}" >> "$GITHUB_ENV"
           echo "VITE_SENTRY_ENABLE_DEV=${VAR_VITE_SENTRY_ENABLE_DEV:-false}" >> "$GITHUB_ENV"

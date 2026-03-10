@@ -490,7 +490,12 @@ const AdminData: React.FC = () => {
     })
     .slice(0, 6);
 
-  const escapeCsvCell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+  const escapeCsvCell = (value: unknown) => {
+    const raw = String(value ?? "");
+    const formulaLike = /^[\t\r\n ]*[=+\-@]/.test(raw);
+    const safe = `${formulaLike ? "'" : ""}${raw}`;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
 
   const exportToCsv = (rows: Array<Record<string, string>>, filename: string) => {
     if (!rows.length) return;

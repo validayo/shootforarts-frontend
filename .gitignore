@@ -50,3 +50,6 @@ supabase/config.toml
 
 # Intentionally not tracked
 supabase/migrations/
+playwright-report/
+test-results/
+
