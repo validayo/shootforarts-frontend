@@ -29,6 +29,14 @@ export default [
     },
   },
   {
+    files: ["supabase/functions/**/*.ts"],
+    languageOptions: {
+      globals: {
+        Deno: "readonly",
+      },
+    },
+  },
+  {
     files: ["**/*.test.{ts,tsx}", "tests/**/*.ts"],
     languageOptions: {
       globals: {
