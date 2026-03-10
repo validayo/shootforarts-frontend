@@ -8,6 +8,8 @@ declare global {
 type AnalyticsParams = Record<string, string | number | boolean | null | undefined>;
 type PopupName = "newsletter" | "fun_jokes";
 type NewsletterSource = "footer" | "popup";
+type HomeCtaSource = "featured_sessions" | "booking_cta";
+type CaptchaIssueType = "expired" | "error";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -30,6 +32,14 @@ export const trackPageView = (url: string, title?: string) => {
 export const trackGalleryView = (category: string) => {
   sendEvent("gallery_view", {
     category,
+  });
+};
+
+export const trackGalleryLightboxOpen = (details: { category: string; index: number; photoId?: string }) => {
+  sendEvent("gallery_lightbox_open", {
+    category: details.category,
+    image_index: details.index,
+    photo_id: details.photoId,
   });
 };
 
@@ -119,5 +129,52 @@ export const trackServiceBookNow = (service: string) => {
   sendEvent("select_promotion", {
     creative_name: service,
     creative_slot: "services_page",
+  });
+};
+
+export const trackHomeCtaClick = (
+  source: HomeCtaSource,
+  details?: { label?: string; destination?: string; service?: string }
+) => {
+  const payload = {
+    source,
+    label: details?.label,
+    destination: details?.destination,
+    service: details?.service,
+  };
+
+  sendEvent("home_cta_click", payload);
+  sendEvent("click", {
+    link_context: source,
+    link_text: details?.label,
+    link_url: details?.destination,
+  });
+};
+
+export const trackServicesBottomCtaClick = (destination: string) => {
+  sendEvent("services_cta_click", {
+    placement: "bottom_cta",
+    label: "Get in Touch",
+    destination,
+  });
+
+  sendEvent("click", {
+    link_context: "services_bottom_cta",
+    link_text: "Get in Touch",
+    link_url: destination,
+  });
+};
+
+export const trackPageNotFound = (path: string) => {
+  sendEvent("page_not_found", {
+    page_path: path,
+  });
+};
+
+export const trackAdminCaptchaFriction = (issueType: CaptchaIssueType, message?: string) => {
+  sendEvent("admin_captcha_friction", {
+    issue_type: issueType,
+    context: "admin_login",
+    message: message?.slice(0, 120),
   });
 };

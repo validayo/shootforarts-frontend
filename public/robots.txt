@@ -1,7 +1,7 @@
 User-agent: *
 Disallow: /src/
-Disallow: /admin
-Disallow: /admin/
+Disallow: /sfaadmin
+Disallow: /sfaadmin/
 Allow: /
 
 Sitemap: https://shootforarts.com/sitemap.xml

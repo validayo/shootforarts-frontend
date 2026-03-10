@@ -178,7 +178,7 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
   };
 
   return (
-    <motion.div className="container-custom py-16 mt-20" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+    <motion.div className="container-custom py-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
       <div className="max-w-xl mx-auto">
         <h2 className="text-3xl font-serif mb-8">Upload Photos</h2>
 
@@ -243,7 +243,13 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
             <label htmlFor="category" className="block text-primary mb-2">
               Category*
             </label>
-            <select id="category" value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border border-accent p-2" required>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-xl border border-accent p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+              required
+            >
               <option value="" disabled>
                 Select category
               </option>

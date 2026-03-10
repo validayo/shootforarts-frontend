@@ -19,6 +19,7 @@ const buildPayload = () => ({
   firstName: "Ayo",
   lastName: "Client",
   email: "client@example.com",
+  phone: "6471234567",
   service: "Base Photoshoot",
   service_tier: "Tier 1 (Solo Shoot)",
   occasion: "Portraits",

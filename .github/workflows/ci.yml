@@ -5,9 +5,17 @@ on:
     branches: ["main", "master"]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,7 +27,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Configure frontend env (CI)
         env:
@@ -50,12 +58,17 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Validate static SEO contracts
+        run: npm run seo:validate
+
       - name: Unit and component tests
         run: npm run test
 
-  e2e:
+  lighthouse-budgets:
     runs-on: ubuntu-latest
     needs: quality
+    timeout-minutes: 25
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,7 +80,54 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Configure frontend env (CI)
+        env:
+          SECRET_VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SECRET_VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SECRET_VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VAR_VITE_UPLOAD_BASE: ${{ vars.VITE_UPLOAD_BASE }}
+          VAR_VITE_ENABLE_EDGE_SYNC: ${{ vars.VITE_ENABLE_EDGE_SYNC }}
+          VAR_VITE_GA_MEASUREMENT_ID: ${{ vars.VITE_GA_MEASUREMENT_ID }}
+          VAR_VITE_SENTRY_ENVIRONMENT: ${{ vars.VITE_SENTRY_ENVIRONMENT }}
+          VAR_VITE_SENTRY_ENABLE_DEV: ${{ vars.VITE_SENTRY_ENABLE_DEV }}
+        run: |
+          echo "VITE_SUPABASE_URL=${SECRET_VITE_SUPABASE_URL:-https://example.supabase.co}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_ANON_KEY=${SECRET_VITE_SUPABASE_ANON_KEY:-public-anon-key}" >> "$GITHUB_ENV"
+          echo "VITE_UPLOAD_BASE=${VAR_VITE_UPLOAD_BASE:-https://shootforarts-backend.onrender.com}" >> "$GITHUB_ENV"
+          echo "VITE_ENABLE_EDGE_SYNC=${VAR_VITE_ENABLE_EDGE_SYNC:-false}" >> "$GITHUB_ENV"
+          echo "VITE_GA_MEASUREMENT_ID=${VAR_VITE_GA_MEASUREMENT_ID:-G-TEST12345}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_DSN=${SECRET_VITE_SENTRY_DSN}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_ENVIRONMENT=${VAR_VITE_SENTRY_ENVIRONMENT:-production}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_ENABLE_DEV=${VAR_VITE_SENTRY_ENABLE_DEV:-false}" >> "$GITHUB_ENV"
+
+      - name: Build app
+        run: npm run build
+
+      - name: Run Lighthouse quality budgets
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: "./.lighthouserc.json"
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Configure frontend env (CI)
         env:
@@ -92,8 +152,68 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright tests
-        run: npm run test:e2e
+      - name: Run smoke Playwright tests
+        run: npm run test:e2e:smoke
+
+      - name: Upload Playwright report (smoke)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-smoke
+          path: playwright-report
+          retention-days: 7
+
+  e2e-full:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    needs: e2e-smoke
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure frontend env (CI)
+        env:
+          SECRET_VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SECRET_VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SECRET_VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VAR_VITE_UPLOAD_BASE: ${{ vars.VITE_UPLOAD_BASE }}
+          VAR_VITE_ENABLE_EDGE_SYNC: ${{ vars.VITE_ENABLE_EDGE_SYNC }}
+          VAR_VITE_GA_MEASUREMENT_ID: ${{ vars.VITE_GA_MEASUREMENT_ID }}
+          VAR_VITE_SENTRY_ENVIRONMENT: ${{ vars.VITE_SENTRY_ENVIRONMENT }}
+          VAR_VITE_SENTRY_ENABLE_DEV: ${{ vars.VITE_SENTRY_ENABLE_DEV }}
+        run: |
+          echo "VITE_SUPABASE_URL=${SECRET_VITE_SUPABASE_URL:-https://example.supabase.co}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_ANON_KEY=${SECRET_VITE_SUPABASE_ANON_KEY:-public-anon-key}" >> "$GITHUB_ENV"
+          echo "VITE_UPLOAD_BASE=${VAR_VITE_UPLOAD_BASE:-https://shootforarts-backend.onrender.com}" >> "$GITHUB_ENV"
+          echo "VITE_ENABLE_EDGE_SYNC=${VAR_VITE_ENABLE_EDGE_SYNC:-false}" >> "$GITHUB_ENV"
+          echo "VITE_GA_MEASUREMENT_ID=${VAR_VITE_GA_MEASUREMENT_ID:-G-TEST12345}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_DSN=${SECRET_VITE_SENTRY_DSN}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_ENVIRONMENT=${VAR_VITE_SENTRY_ENVIRONMENT:-production}" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_ENABLE_DEV=${VAR_VITE_SENTRY_ENABLE_DEV:-false}" >> "$GITHUB_ENV"
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full Playwright tests
+        run: npm run test:e2e:full
+
+      - name: Upload Playwright report (full)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-full
+          path: playwright-report
+          retention-days: 7
 
   preview-deploy-check:
     runs-on: ubuntu-latest
@@ -113,7 +233,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Check Vercel secrets
         id: vercel_secrets

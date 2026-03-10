@@ -43,7 +43,7 @@ Backend services are maintained separately; this repository is the frontend appl
 ## Product Surfaces
 
 - Public routes: `/`, `/about`, `/services`, `/contact`
-- Admin routes: `/admin/login`, `/admin/dashboard`, `/admin/gallery-manager`
+- Admin routes: `/sfaadmin/login`, `/sfaadmin/dashboard`, `/sfaadmin/calendar`, `/sfaadmin/upload`, `/sfaadmin/gallery-manager`
 
 ## Main Data Flows
 
@@ -71,9 +71,12 @@ Backend services are maintained separately; this repository is the frontend appl
 
 - CI workflow: `.github/workflows/ci.yml`
 - Unit/component tests: `npm run test`
-- E2E tests: `npm run test:e2e`
+- E2E smoke tests: `npm run test:e2e:smoke`
+- E2E full suite: `npm run test:e2e:full`
 - Type checks: `npm run typecheck`
 - Lint: `npm run lint`
+- SEO contract checks: `npm run seo:validate`
+- Lighthouse quality budgets: `.lighthouserc.json` via CI job `lighthouse-budgets`
 
 ## Local Development
 
@@ -103,6 +106,9 @@ Use `VITE_*` only for values safe to expose to the client bundle.
 - `VITE_SENTRY_DSN` (optional): Sentry DSN
 - `VITE_SENTRY_ENVIRONMENT` (optional): Sentry environment label
 - `VITE_SENTRY_ENABLE_DEV` (optional): enable Sentry in local/dev
+- `VITE_HCAPTCHA_SITE_KEY` (optional): hCaptcha site key for admin login challenge
+- `VITE_ADMIN_HCAPTCHA_VERIFY_URL` (optional): server endpoint that verifies hCaptcha tokens
+- `VITE_ADMIN_HCAPTCHA_ENFORCE_SERVER_VERIFY` (optional): require server verification before login (`true`/`false`)
 
 ## Project Map
 
@@ -129,7 +135,8 @@ Use `VITE_*` only for values safe to expose to the client bundle.
 - Contact form: `src/components/contact/ContactForm.tsx`
 - Newsletter flows: `src/components/newsletter/`
 - Admin dashboard: `src/pages/admin/AdminPage.tsx`
-- Admin gallery manager: `src/components/admin/AdminGalleryManager.tsx`
+- Admin gallery manager route shell: `src/pages/admin/AdminGalleryManagerPage.tsx`
+- Admin gallery manager module: `src/components/admin/AdminGalleryManager.tsx`
 - API service layer: `src/lib/api/services.ts`
 - Auth/session helpers: `src/lib/auth/session.ts`, `src/contexts/AuthContext.tsx`
 - SEO component: `src/components/seo/SEO.tsx`
@@ -140,6 +147,9 @@ Use `VITE_*` only for values safe to expose to the client bundle.
 - Frontend technical deep dive: `docs/frontend-deep-dive.md`
 - SEO checklist: `docs/seo-validation-checklist.md`
 - Analytics checklist: `docs/analytics-conversions-checklist.md`
+- Ops runbook: `docs/ops-runbook.md`
+- Admin login hardening: `docs/admin-login-security.md`
+- Changelog: `docs/changes.md`
 
 Copyright (c) 2026 Shoot For Arts. All rights reserved.
 No permission is granted to use, copy, modify, or distribute this code.

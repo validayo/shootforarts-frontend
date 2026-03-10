@@ -13,6 +13,7 @@ Optional custom conversions:
 
 - `contact_submit`
 - `newsletter_subscribe_success`
+- `services_cta_click`
 
 ## 2) Register custom dimensions
 
@@ -26,6 +27,10 @@ In GA4 → **Admin** → **Custom definitions** → **Create custom dimension**:
 - `context` (event scope)
 - `link_context` (event scope)
 - `destination` (event scope)
+- `placement` (event scope)
+- `issue_type` (event scope)
+- `page_path` (event scope)
+- `image_index` (event scope)
 
 ## 3) Verify in DebugView
 
@@ -33,3 +38,6 @@ In GA4 → **Admin** → **Custom definitions** → **Create custom dimension**:
 - Subscribe newsletter (footer and popup) → expect `newsletter_subscribe_success` + `sign_up`
 - Click IG/email links → expect `outbound_click` + `click`
 - Click Services “Book Now” → expect `service_book_now` + `select_promotion`
+- Click Services bottom “Get in Touch” CTA → expect `services_cta_click` + `click`
+- Open any gallery image/lightbox → expect `gallery_lightbox_open`
+- Visit a missing URL (404) → expect `page_not_found`

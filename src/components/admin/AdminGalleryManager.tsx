@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Loader2, Save, Trash2 } from "lucide-react";
@@ -301,23 +300,7 @@ const AdminGalleryManager: React.FC = () => {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Gallery Manager</h1>
-              <p className="mt-1 text-sm text-gray-600">Manage Top picks, {seasonLabel(currentSeason)} picks, and all photo flags.</p>
-            </div>
-            <div className="flex gap-2">
-              <Link to="/admin/dashboard" className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                Back to Dashboard
-              </Link>
-              <a href="/" className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                Back to Site
-              </a>
-            </div>
-          </div>
-
+      <div className="mx-auto max-w-7xl space-y-6">
           {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
           {message && <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{message}</div>}
 
@@ -417,7 +400,7 @@ const AdminGalleryManager: React.FC = () => {
                   id="browser-category"
                   value={browserCategory}
                   onChange={(event) => setBrowserCategory(event.target.value)}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {CATEGORY_OPTIONS.map((category) => (
                     <option key={category} value={category}>
@@ -457,7 +440,7 @@ const AdminGalleryManager: React.FC = () => {
                           value={photo.season_tag ?? ""}
                           onChange={(event) => handleSeasonChange(photo, event.target.value)}
                           disabled={isBusy}
-                          className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs disabled:opacity-50"
+                          className="w-full rounded-xl border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         >
                           <option value="">No Season</option>
                           {SEASON_OPTIONS.map((season) => (
@@ -482,7 +465,6 @@ const AdminGalleryManager: React.FC = () => {
               </div>
             )}
           </section>
-        </div>
       </div>
     </DndProvider>
   );

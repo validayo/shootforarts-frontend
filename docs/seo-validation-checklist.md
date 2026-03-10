@@ -10,7 +10,7 @@ This validates:
 - Open Graph + Twitter tags are present
 - Canonical URL matches each route
 - GA bootstrap script is present (`/ga-init.js`)
-- `public/robots.txt` includes sitemap lines and admin disallow
+- `public/robots.txt` includes sitemap lines and admin disallow entry (`/sfaadmin`)
 
 Manual checks before deploy:
 

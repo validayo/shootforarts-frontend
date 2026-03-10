@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { trackPageView } from "../../lib/analytics/events";
+import { isAdminRoutePath } from "../../config/routes";
 
 const RouteChangeTracker = () => {
   const location = useLocation();
@@ -12,7 +13,7 @@ const RouteChangeTracker = () => {
   }, [location.pathname, location.search]);
 
   useEffect(() => {
-    const isAdminRoute = location.pathname.startsWith("/admin");
+    const isAdminRoute = isAdminRoutePath(location.pathname);
     let robotsTag = document.querySelector<HTMLMetaElement>("meta[name='robots']");
     if (!robotsTag) {
       robotsTag = document.createElement("meta");

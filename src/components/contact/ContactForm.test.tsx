@@ -38,6 +38,7 @@ async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByPlaceholderText("First Name"), "Ayo");
   await user.type(screen.getByPlaceholderText("Last Name"), "Client");
   await user.type(screen.getByPlaceholderText("example@example.com"), "client@example.com");
+  await user.type(screen.getByPlaceholderText("(647) 123-4567"), "6471234567");
   const serviceSelect = document.querySelector("select[name='service']") as HTMLSelectElement;
   await user.selectOptions(serviceSelect, "Base Photoshoot");
   await waitFor(() => {

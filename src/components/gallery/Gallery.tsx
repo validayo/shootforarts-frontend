@@ -5,7 +5,7 @@ import { ArrowUp } from "lucide-react";
 import { Photo } from "../../utils";
 import { getGallery } from "../../lib/api/services";
 import CategoryFilter from "./CategoryFilter";
-import { trackGalleryView } from "../../lib/analytics/events";
+import { trackGalleryLightboxOpen, trackGalleryView } from "../../lib/analytics/events";
 
 const Masonry = lazy(() => import("react-masonry-css"));
 const Lightbox = lazy(() => import("yet-another-react-lightbox"));
@@ -195,6 +195,12 @@ const Gallery: React.FC = () => {
   }, []);
 
   const handleImageClick = (index: number) => {
+    const selectedPhoto = photos[index];
+    trackGalleryLightboxOpen({
+      category: activeCategoryRef.current,
+      index,
+      photoId: selectedPhoto?.id,
+    });
     ensureFullResolution();
     setCurrentImageIndex(index);
     setLightboxPreparing(true);

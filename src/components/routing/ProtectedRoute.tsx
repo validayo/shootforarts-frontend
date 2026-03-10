@@ -1,6 +1,7 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { ROUTES } from "../../config/routes";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,6 +9,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { currentUser, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -19,7 +21,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (!currentUser) {
     // send unauthenticated users to the real login route, and save where they came from
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    return <Navigate to={ROUTES.admin.login} state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
