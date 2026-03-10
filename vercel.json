@@ -5,8 +5,12 @@
     { "source": "/src/:path*", "destination": "/", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/about", "destination": "/about/index.html" },
+    { "source": "/services", "destination": "/services/index.html" },
+    { "source": "/contact", "destination": "/contact/index.html" },
     { "source": "/sfaadmin", "destination": "/index.html" },
-    { "source": "/sfaadmin/(.*)", "destination": "/index.html" }
+    { "source": "/sfaadmin/(.*)", "destination": "/index.html" },
+    { "source": "/:path((?!.*\\..*).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
