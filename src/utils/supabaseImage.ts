@@ -7,6 +7,33 @@ type SupabaseTransformOptions = {
 const SUPABASE_PUBLIC_PATH = "/storage/v1/object/public/";
 const SUPABASE_RENDER_PATH = "/storage/v1/render/image/public/";
 
+export const toSupabasePublicObjectUrl = (sourceUrl: string): string => {
+  if (!sourceUrl) return sourceUrl;
+
+  try {
+    const parsed = new URL(sourceUrl);
+    const pathname = parsed.pathname;
+
+    if (pathname.includes(SUPABASE_PUBLIC_PATH)) return sourceUrl;
+    if (!pathname.includes(SUPABASE_RENDER_PATH)) return sourceUrl;
+
+    const objectPath = pathname.split(SUPABASE_RENDER_PATH)[1] ?? "";
+    if (!objectPath) return sourceUrl;
+
+    const normalized = new URL(`${parsed.origin}${SUPABASE_PUBLIC_PATH}${objectPath}`);
+    const params = new URLSearchParams(parsed.search);
+    params.delete("width");
+    params.delete("height");
+    params.delete("quality");
+    params.delete("format");
+    params.delete("resize");
+    normalized.search = params.toString();
+    return normalized.toString();
+  } catch {
+    return sourceUrl;
+  }
+};
+
 export const toSupabaseRenderImageUrl = (sourceUrl: string, options: SupabaseTransformOptions = {}): string => {
   if (!sourceUrl) return sourceUrl;
 

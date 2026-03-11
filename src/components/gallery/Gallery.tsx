@@ -6,7 +6,7 @@ import { Photo } from "../../utils";
 import { getGallery } from "../../lib/api/services";
 import CategoryFilter from "./CategoryFilter";
 import { trackGalleryLightboxOpen, trackGalleryView } from "../../lib/analytics/events";
-import { toSupabaseRenderImageUrl } from "../../utils/supabaseImage";
+import { toSupabasePublicObjectUrl } from "../../utils/supabaseImage";
 
 const Masonry = lazy(() => import("react-masonry-css"));
 const Lightbox = lazy(() => import("yet-another-react-lightbox"));
@@ -31,9 +31,9 @@ const normalizePhotos = (photos: Photo[]): GalleryPhoto[] => {
   return Array.from(unique.values())
     .map((photo) => ({
       ...photo,
-      // Prefer canonical storage URL for consistent render transforms across environments.
       thumbnailFallbackUrl: photo.url,
-      thumbnailUrl: toSupabaseRenderImageUrl(photo.url, THUMB_TRANSFORM),
+      // Normalize away render endpoint URLs if backend returns them (preview can get 403 on render/image).
+      thumbnailUrl: toSupabasePublicObjectUrl(photo.transformed_url ?? photo.url),
     }));
 };
 
