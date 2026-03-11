@@ -31,8 +31,9 @@ const normalizePhotos = (photos: Photo[]): GalleryPhoto[] => {
   return Array.from(unique.values())
     .map((photo) => ({
       ...photo,
-      thumbnailFallbackUrl: photo.transformed_url ?? photo.url,
-      thumbnailUrl: toSupabaseRenderImageUrl(photo.transformed_url ?? photo.url, THUMB_TRANSFORM),
+      // Prefer canonical storage URL for consistent render transforms across environments.
+      thumbnailFallbackUrl: photo.url,
+      thumbnailUrl: toSupabaseRenderImageUrl(photo.url, THUMB_TRANSFORM),
     }));
 };
 
