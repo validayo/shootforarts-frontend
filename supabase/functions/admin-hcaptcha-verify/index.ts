@@ -1,10 +1,39 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Max-Age": "86400",
+const ALLOWED_ORIGINS = new Set([
+  "https://shootforarts.com",
+  "https://www.shootforarts.com",
+  "http://localhost:5173",
+  "http://localhost:4173",
+]);
+
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https:\/\/shootforarts-frontend(?:-git-[a-z0-9-]+)?-ayos-projects-9c5c5522\.vercel\.app$/i,
+];
+
+const isAllowedOrigin = (origin: string | null): origin is string => {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
+};
+
+const createCorsHeaders = (origin: string | null): Record<string, string> => {
+  if (!isAllowedOrigin(origin)) {
+    return {
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+      "Access-Control-Max-Age": "86400",
+      Vary: "Origin",
+    };
+  }
+
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
 };
 
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -89,8 +118,21 @@ const isRateLimited = (ip: string): boolean => {
 };
 
 serve(async (request) => {
+  const origin = request.headers.get("origin");
+  const corsHeaders = createCorsHeaders(origin);
+
   if (request.method === "OPTIONS") {
+    if (origin && !isAllowedOrigin(origin)) {
+      return new Response("Origin not allowed", { status: 403, headers: corsHeaders });
+    }
     return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  if (origin && !isAllowedOrigin(origin)) {
+    return new Response(JSON.stringify({ success: false, error: "Origin not allowed" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   if (request.method !== "POST") {
