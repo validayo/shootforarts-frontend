@@ -6,16 +6,19 @@ import { Photo } from "../../utils";
 import { getGallery } from "../../lib/api/services";
 import CategoryFilter from "./CategoryFilter";
 import { trackGalleryLightboxOpen, trackGalleryView } from "../../lib/analytics/events";
+import { toSupabasePublicObjectUrl } from "../../utils/supabaseImage";
 
 const Masonry = lazy(() => import("react-masonry-css"));
 const Lightbox = lazy(() => import("yet-another-react-lightbox"));
 
 type MotionModule = typeof import("framer-motion");
 type ZoomPlugin = typeof import("yet-another-react-lightbox/plugins/zoom")["default"];
-type GalleryPhoto = Photo & { thumbnailUrl: string; fullSizeUrl?: string };
+type GalleryPhoto = Photo & { thumbnailUrl: string; thumbnailFallbackUrl: string; fullSizeUrl?: string };
 
 const THUMB_TRANSFORM = { width: 480, quality: 70, format: "webp" } as const;
 const FULL_TRANSFORM = { width: 1200, quality: 85, format: "webp" } as const;
+const THUMB_RENDER_WIDTH = THUMB_TRANSFORM.width ?? 480;
+const THUMB_RENDER_HEIGHT = Math.round((THUMB_RENDER_WIDTH * 4) / 3);
 
 const normalizePhotos = (photos: Photo[]): GalleryPhoto[] => {
   const unique = new Map<string, Photo>();
@@ -28,7 +31,9 @@ const normalizePhotos = (photos: Photo[]): GalleryPhoto[] => {
   return Array.from(unique.values())
     .map((photo) => ({
       ...photo,
-      thumbnailUrl: photo.transformed_url ?? photo.url,
+      thumbnailFallbackUrl: photo.url,
+      // Normalize away render endpoint URLs if backend returns them (preview can get 403 on render/image).
+      thumbnailUrl: toSupabasePublicObjectUrl(photo.transformed_url ?? photo.url),
     }));
 };
 
@@ -273,7 +278,10 @@ const Gallery: React.FC = () => {
                       <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse rounded" id={`skeleton-${photo.id}`} />
                       <img
                         src={photo.thumbnailUrl}
-                        loading="lazy"
+                        loading={index === 0 ? "eager" : "lazy"}
+                        width={THUMB_RENDER_WIDTH}
+                        height={THUMB_RENDER_HEIGHT}
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                         decoding="async"
                         className="w-full object-cover rounded shadow transition-opacity duration-300 opacity-0"
                         alt={`Shoot For Arts photography #${index + 1}`}
@@ -281,6 +289,14 @@ const Gallery: React.FC = () => {
                           e.currentTarget.classList.add("opacity-100");
                           const skeleton = document.getElementById(`skeleton-${photo.id}`);
                           if (skeleton) skeleton.style.display = "none";
+                        }}
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (target.dataset.fallbackApplied === "1") return;
+                          if (photo.thumbnailFallbackUrl && target.src !== photo.thumbnailFallbackUrl) {
+                            target.dataset.fallbackApplied = "1";
+                            target.src = photo.thumbnailFallbackUrl;
+                          }
                         }}
                       />
                     </div>
@@ -326,7 +342,10 @@ const Gallery: React.FC = () => {
                       <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse rounded" id={`skeleton-${photo.id}`} />
                       <img
                         src={photo.thumbnailUrl}
-                        loading="lazy"
+                        loading={index === 0 ? "eager" : "lazy"}
+                        width={THUMB_RENDER_WIDTH}
+                        height={THUMB_RENDER_HEIGHT}
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                         decoding="async"
                         className="w-full object-cover rounded shadow transition-opacity duration-300 opacity-0"
                         alt={`Shoot For Arts photography #${index + 1}`}
@@ -334,6 +353,14 @@ const Gallery: React.FC = () => {
                           e.currentTarget.classList.add("opacity-100");
                           const skeleton = document.getElementById(`skeleton-${photo.id}`);
                           if (skeleton) skeleton.style.display = "none";
+                        }}
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (target.dataset.fallbackApplied === "1") return;
+                          if (photo.thumbnailFallbackUrl && target.src !== photo.thumbnailFallbackUrl) {
+                            target.dataset.fallbackApplied = "1";
+                            target.src = photo.thumbnailFallbackUrl;
+                          }
                         }}
                       />
                     </div>

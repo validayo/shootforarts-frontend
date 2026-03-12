@@ -15,6 +15,7 @@ import {
   type SeasonTag,
 } from "../../lib/api/services";
 import { logAdminAction, logAdminError } from "../../lib/observability/logger";
+import { toSupabasePublicObjectUrl } from "../../utils/supabaseImage";
 
 const TOP_LIMIT = 12;
 const CATEGORY_OPTIONS = ["ALL", "Portraits", "Events", "Weddings", "Extras"] as const;
@@ -50,7 +51,7 @@ const moveArrayItem = <T,>(list: T[], fromIndex: number, toIndex: number): T[] =
   return next;
 };
 
-const photoSrc = (photo: Photo) => photo.transformed_url ?? photo.url;
+const photoSrc = (photo: Photo) => toSupabasePublicObjectUrl(photo.transformed_url ?? photo.url);
 
 const seasonLabel = (season: string) => season.charAt(0).toUpperCase() + season.slice(1);
 

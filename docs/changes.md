@@ -55,3 +55,10 @@ This file tracks meaningful frontend updates so I can quickly see what changed, 
 
 - Added tracking for Services bottom CTA clicks, 404 views, admin captcha friction, and gallery lightbox opens.
 - Why: clearer funnel visibility and better diagnostics for conversion blockers.
+
+### Homepage performance stability pass
+
+- Added Supabase image URL normalization so gallery thumbnails/full-size assets use render-image transforms consistently.
+- Prioritized the first visible gallery image (`loading="eager"`, high fetch priority) and added explicit dimensions/sizes hints.
+- Added `preconnect` and `dns-prefetch` hints for the Supabase image origin in route HTML shells.
+- Why: reduce LCP/CLS volatility and improve real-world loading consistency without changing core site behavior.

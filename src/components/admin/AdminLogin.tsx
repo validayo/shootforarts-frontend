@@ -44,32 +44,72 @@ const normalizeVerifyUrl = (rawValue?: string): string => {
   }
 };
 
-const HCAPTCHA_VERIFY_URL = normalizeVerifyUrl(RAW_VERIFY_URL);
+const getDerivedVerifyUrl = (): string => {
+  const projectRef = getSupabaseProjectRef();
+  if (!projectRef) return "";
+  return `https://${projectRef}.functions.supabase.co/admin-hcaptcha-verify`;
+};
+
+const ENV_HCAPTCHA_VERIFY_URL = normalizeVerifyUrl(RAW_VERIFY_URL);
+const DERIVED_HCAPTCHA_VERIFY_URL = normalizeVerifyUrl(getDerivedVerifyUrl());
+const HCAPTCHA_VERIFY_URL_CANDIDATES = Array.from(
+  new Set([ENV_HCAPTCHA_VERIFY_URL, DERIVED_HCAPTCHA_VERIFY_URL].filter(Boolean))
+);
+
 const ENFORCE_SERVER_VERIFY =
   (import.meta.env.VITE_ADMIN_HCAPTCHA_ENFORCE_SERVER_VERIFY ?? "false") === "true";
-const HAS_PLACEHOLDER_VERIFY_URL = RAW_VERIFY_URL.includes("<project-ref>");
-const SHOULD_USE_CUSTOM_VERIFY = ENFORCE_SERVER_VERIFY && Boolean(HCAPTCHA_VERIFY_URL) && !HAS_PLACEHOLDER_VERIFY_URL;
+const SHOULD_USE_CUSTOM_VERIFY = ENFORCE_SERVER_VERIFY;
 
 const verifyCaptchaToken = async (token: string): Promise<void> => {
   if (!SHOULD_USE_CUSTOM_VERIFY) return;
+  if (HCAPTCHA_VERIFY_URL_CANDIDATES.length === 0) {
+    throw new Error("Captcha verification is enabled, but no valid verification URL is configured.");
+  }
 
-  const response = await fetch(HCAPTCHA_VERIFY_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, action: "admin_login" }),
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error("Captcha verification endpoint is not deployed (404).");
+  for (const verifyUrl of HCAPTCHA_VERIFY_URL_CANDIDATES) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 10_000);
+
+    try {
+      const response = await fetch(verifyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, action: "admin_login" }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          lastError = new Error(`Captcha verification endpoint not found (${verifyUrl}).`);
+          continue;
+        }
+        lastError = new Error(`Captcha verification failed (${response.status}).`);
+        continue;
+      }
+
+      const payload = (await response.json()) as { success?: boolean };
+      if (!payload.success) {
+        throw new Error("Captcha challenge verification was not successful.");
+      }
+
+      return;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        lastError = new Error("Captcha verification timed out. Please try again.");
+      } else if (error instanceof Error) {
+        lastError = error;
+      } else {
+        lastError = new Error("Captcha verification request failed.");
+      }
+    } finally {
+      window.clearTimeout(timeoutId);
     }
-    throw new Error(`Captcha verification failed (${response.status}).`);
   }
 
-  const payload = (await response.json()) as { success?: boolean };
-  if (!payload.success) {
-    throw new Error("Captcha challenge verification was not successful.");
-  }
+  if (lastError) throw lastError;
+  throw new Error("Captcha verification request failed.");
 };
 
 const AdminLogin: React.FC = () => {
