@@ -149,13 +149,22 @@ const AdminLogin: React.FC = () => {
     try {
       await verifyCaptchaToken(captchaToken);
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const signInPayload: {
+        email: string;
+        password: string;
+        options?: { captchaToken: string };
+      } = {
         email: credentials.email,
         password: credentials.password,
-        options: {
-          captchaToken,
-        },
-      });
+      };
+
+      // hCaptcha tokens are single-use. If custom server verification is enabled,
+      // avoid sending the same token again to Supabase Auth.
+      if (!SHOULD_USE_CUSTOM_VERIFY) {
+        signInPayload.options = { captchaToken };
+      }
+
+      const { error } = await supabase.auth.signInWithPassword(signInPayload);
 
       if (error) throw error;
 
