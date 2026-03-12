@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import type { SignInWithPasswordCredentials } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import { useLocation, useNavigate } from "react-router-dom";
 import { logAdminAction, logAdminError } from "../../lib/observability/logger";
@@ -149,13 +150,18 @@ const AdminLogin: React.FC = () => {
     try {
       await verifyCaptchaToken(captchaToken);
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const signInPayload: SignInWithPasswordCredentials = {
         email: credentials.email,
         password: credentials.password,
-        options: {
-          captchaToken,
-        },
-      });
+      };
+
+      // hCaptcha tokens are single-use. If custom server verification is enabled,
+      // avoid sending the same token again to Supabase Auth.
+      if (!SHOULD_USE_CUSTOM_VERIFY) {
+        signInPayload.options = { captchaToken };
+      }
+
+      const { error } = await supabase.auth.signInWithPassword(signInPayload);
 
       if (error) throw error;
 
