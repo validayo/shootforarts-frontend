@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import type { SignInWithPasswordCredentials } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import { useLocation, useNavigate } from "react-router-dom";
 import { logAdminAction, logAdminError } from "../../lib/observability/logger";
@@ -149,11 +150,7 @@ const AdminLogin: React.FC = () => {
     try {
       await verifyCaptchaToken(captchaToken);
 
-      const signInPayload: {
-        email: string;
-        password: string;
-        options?: { captchaToken: string };
-      } = {
+      const signInPayload: SignInWithPasswordCredentials = {
         email: credentials.email,
         password: credentials.password,
       };
