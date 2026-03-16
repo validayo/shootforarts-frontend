@@ -8,6 +8,7 @@
     { "source": "/about", "destination": "/about/index.html" },
     { "source": "/services", "destination": "/services/index.html" },
     { "source": "/contact", "destination": "/contact/index.html" },
+    { "source": "/contact/thank-you", "destination": "/contact/thank-you/index.html" },
     { "source": "/sfaadmin", "destination": "/index.html" },
     { "source": "/sfaadmin/(.*)", "destination": "/index.html" },
     { "source": "/:path((?!.*\\..*).*)", "destination": "/index.html" }
@@ -45,6 +46,12 @@
     },
     {
       "source": "/contact",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/contact/thank-you",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }
       ]

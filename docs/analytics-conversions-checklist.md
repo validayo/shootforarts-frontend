@@ -12,6 +12,7 @@ In GA4 → **Admin** → **Events**, mark these as conversions:
 Optional custom conversions:
 
 - `contact_submit`
+- `page_view` where `page_path` equals `/contact/thank-you`
 - `newsletter_subscribe_success`
 - `services_cta_click`
 
@@ -34,7 +35,7 @@ In GA4 → **Admin** → **Custom definitions** → **Create custom dimension**:
 
 ## 3) Verify in DebugView
 
-- Submit contact form once → expect `contact_submit` + `generate_lead`
+- Submit contact form once → expect `contact_submit` + `generate_lead` and a `page_view` for `/contact/thank-you`
 - Subscribe newsletter (footer and popup) → expect `newsletter_subscribe_success` + `sign_up`
 - Click IG/email links → expect `outbound_click` + `click`
 - Click Services “Book Now” → expect `service_book_now` + `select_promotion`

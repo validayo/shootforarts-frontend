@@ -11,7 +11,7 @@ import {
 } from "../../utils";
 import { trackContactFormError, trackContactFormStarted, trackContactSubmit } from "../../lib/analytics/events";
 import { submitContact } from "../../lib/api/services";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   cooldownSeconds,
   getCooldownRemainingMs,
@@ -19,35 +19,39 @@ import {
   isMinFillTimeReached,
   markSubmissionNow,
 } from "../../lib/security/formProtection";
+import { ROUTES } from "../../config/routes";
+import ContactSuccessMessage from "./ContactSuccessMessage";
 
 const CONTACT_MIN_FILL_MS = 2500;
 const CONTACT_COOLDOWN_MS = 45000;
 const CONTACT_COOLDOWN_KEY = "sfa_contact_last_submit";
+const CONTACT_THANK_YOU_ACCESS_KEY = "sfa_contact_thank_you_access";
 const TIER_NOT_SURE_OPTION = "Not sure - help me choose";
 
 const contactMethodOptions = ["Email", "Text message", "Instagram DM"];
 const bestContactTimeOptions = ["Morning", "Afternoon", "Evening", "Flexible"];
 const dateFlexibilityOptions = ["Exact date only", "Flexible +/- 3 days", "Flexible within 2 weeks", "Flexible this month", "No set date yet"];
+const createInitialFormData = (): ContactFormData => ({
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  service: "",
+  service_tier: "",
+  occasion: "",
+  pinterestInspo: "",
+  add_ons: [],
+  date: "",
+  time: "",
+  instagram: "",
+  location: "",
+  referralSource: "",
+  questions: "",
+  extra_questions: {},
+});
 
 const ContactForm: React.FC = () => {
-  const [formData, setFormData] = useState<ContactFormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    service: "",
-    service_tier: "",
-    occasion: "",
-    pinterestInspo: "",
-    add_ons: [],
-    date: "",
-    time: "",
-    instagram: "",
-    location: "",
-    referralSource: "",
-    questions: "",
-    extra_questions: {},
-  });
+  const [formData, setFormData] = useState<ContactFormData>(createInitialFormData);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -56,6 +60,7 @@ const ContactForm: React.FC = () => {
   const [website, setWebsite] = useState("");
   const formStartedAtRef = useRef<number>(Date.now());
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -94,6 +99,13 @@ const ContactForm: React.FC = () => {
       : undefined;
   const extraAnswers = formData.extra_questions ?? {};
   const parsedInspiration = useMemo(() => parseInspirationLinks(formData.pinterestInspo || ""), [formData.pinterestInspo]);
+
+  const resetForm = () => {
+    setHasTrackedStart(false);
+    setWebsite("");
+    formStartedAtRef.current = Date.now();
+    setFormData(createInitialFormData());
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -155,71 +167,28 @@ const ContactForm: React.FC = () => {
         service: formData.service || undefined,
         serviceTier: formData.service_tier || undefined,
       });
-      setShowSuccess(true);
-      setHasTrackedStart(false);
-      setWebsite("");
-      formStartedAtRef.current = Date.now();
-
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        service: "",
-        service_tier: "",
-        occasion: "",
-        pinterestInspo: "",
-        add_ons: [],
-        date: "",
-        time: "",
-        instagram: "",
-        location: "",
-        referralSource: "",
-        questions: "",
-        extra_questions: {},
-      });
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(CONTACT_THANK_YOU_ACCESS_KEY, String(Date.now()));
+      }
+      resetForm();
+      navigate(ROUTES.public.contactThankYou, { replace: true });
     } catch (submitError) {
       console.error("Form submission error:", submitError);
       const message = submitError instanceof Error ? submitError.message : "Unknown form error";
       trackContactFormError(message);
       setError("Something went wrong. Please try again later.");
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   if (showSuccess) {
     return (
-      <motion.div className="max-w-3xl mx-auto p-6 bg-secondary text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} role="status" aria-live="polite">
-        <h3 className="text-2xl font-serif mb-4">Thank you!</h3>
-        <p className="mb-3">Your message has been sent successfully.</p>
-        <p className="text-accent-dark mb-6">Expected response time: within 24 hours (Monday-Friday).</p>
-
-        <div className="rounded-lg border border-primary/25 bg-white/70 p-4 text-left max-w-xl mx-auto">
-          <p className="font-medium mb-2">What happens next:</p>
-          <ol className="list-decimal list-inside space-y-1 text-sm text-accent-dark">
-            <li>I review your request details and preferred date.</li>
-            <li>I follow up by email (or Instagram if provided).</li>
-            <li>We confirm your package, then secure your date with deposit + agreement.</li>
-          </ol>
-        </div>
-
-        <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              formStartedAtRef.current = Date.now();
-              setShowSuccess(false);
-            }}
-            className="border border-primary px-6 py-2 text-primary hover:bg-primary hover:text-white transition-all"
-          >
-            Send Another Inquiry
-          </button>
-          <Link to="/services" className="border border-primary px-6 py-2 text-primary hover:bg-primary hover:text-white transition-all">
-            Back to Services
-          </Link>
-        </div>
-      </motion.div>
+      <ContactSuccessMessage
+        onSendAnotherInquiry={() => {
+          formStartedAtRef.current = Date.now();
+          setShowSuccess(false);
+        }}
+      />
     );
   }
 
