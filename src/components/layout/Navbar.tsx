@@ -12,6 +12,7 @@ const Navbar: React.FC<NavbarProps> = ({ funEnabled = false, onToggleFun }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const isBookingRoute = location.pathname === "/contact" || location.pathname === "/contact/thank-you";
   
   useEffect(() => {
     const handleScroll = () => {
@@ -65,8 +66,8 @@ const Navbar: React.FC<NavbarProps> = ({ funEnabled = false, onToggleFun }) => {
           </h1>
         </Link>
         
-        {/* Use desktop nav from 1024px and up to prevent collisions */}
-        <nav className="hidden lg:block">
+        {/* Use desktop nav only once there is enough horizontal room for the centered wordmark */}
+        <nav className="hidden min-[1180px]:block">
           <ul className="flex space-x-8">
             <li>
               <Link 
@@ -95,17 +96,17 @@ const Navbar: React.FC<NavbarProps> = ({ funEnabled = false, onToggleFun }) => {
             <li>
               <Link 
                 to="/contact" 
-                className={`nav-link ${location.pathname === '/contact' ? 'nav-link-active' : ''}`}
+                className={`nav-link ${isBookingRoute ? 'nav-link-active' : ''}`}
               >
-                contact
+                book a shoot
               </Link>
             </li>
           </ul>
         </nav>
         
-        {/* Mobile menu trigger below 1024px */}
+        {/* Mobile menu trigger until the wider desktop-nav breakpoint */}
         <button 
-          className="block lg:hidden text-primary p-2"
+          className="block min-[1180px]:hidden text-primary p-2"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >
@@ -158,7 +159,7 @@ const Navbar: React.FC<NavbarProps> = ({ funEnabled = false, onToggleFun }) => {
             className="text-2xl font-serif"
             onClick={() => setMobileMenuOpen(false)}
           >
-            contact
+            book a shoot
           </Link>
         </div>
       </div>

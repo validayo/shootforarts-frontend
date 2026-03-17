@@ -92,3 +92,10 @@ This file tracks meaningful frontend updates so I can quickly see what changed, 
 - Removed dev-only `/src/main.tsx` fallback assumptions from static route shells and replaced them with safer load-failure fallbacks.
 - Restored explicit submit-state cleanup around contact submissions.
 - Why: avoid broken production fallback behavior and keep the contact submit flow resilient if route behavior changes later.
+
+### Navbar CTA + breakpoint polish
+
+- Renamed the main public booking nav item from `contact` to `book a shoot` while keeping the route at `/contact`.
+- Updated the booking nav item to stay active on `/contact/thank-you`.
+- Raised the desktop-nav breakpoint so tighter tablet/small-laptop widths fall back to the mobile menu before the centered wordmark and nav can overlap.
+- Why: make the primary booking action more obvious and keep the header layout stable across mid-width screens.
