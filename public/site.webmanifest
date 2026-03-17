@@ -1,0 +1,24 @@
+{
+  "name": "Shoot For Arts",
+  "short_name": "Shoot For Arts",
+  "description": "Shoot For Arts by Ayo",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f2eb",
+  "theme_color": "#7c5c41",
+  "icons": [
+    {
+      "src": "/icons/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/app-icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

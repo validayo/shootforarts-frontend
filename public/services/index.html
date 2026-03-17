@@ -3,11 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#7c5c41" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Shoot For Arts" />
     <link rel="preconnect" href="https://obhiuvlfopgtbgjuznok.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="//obhiuvlfopgtbgjuznok.supabase.co" />
     <title>Services - Shoot For Arts</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="/SFA.png?v=1" />
-    <link rel="shortcut icon" type="image/png" href="/SFA.png?v=1" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/app-icon-512.png?v=1" />
+    <link rel="shortcut icon" type="image/png" href="/icons/app-icon-512.png?v=1" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/app-icon-512.png?v=1" />
+    <link rel="manifest" href="/site.webmanifest" />
 
     <!-- Primary Meta (Services uses Contact preview per spec) -->
     <meta name="description" content="Let’s make something together. Reach out to Ayo for portraits, events, or creative shoots — wherever your story takes you." />
@@ -33,7 +39,7 @@
     <link rel="canonical" href="https://shootforarts.com/services" />
 
     <!-- GA4 -->
-    <script src="/ga-init.js"></script>
+    <script src="/scripts/ga-init.js"></script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -69,17 +75,30 @@
           l.href = href;
           document.head.appendChild(l);
         }
+        function showFallbackMessage() {
+          var root = document.getElementById('root');
+          if (!root) return;
+          root.innerHTML =
+            '<div style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Arial,sans-serif;text-align:center;color:#1f2937;">' +
+            '<div><h1 style="font-family:\'Cormorant Garamond\',serif;font-size:2rem;margin-bottom:0.75rem;">Shoot For Arts</h1>' +
+            "<p style=\"margin:0 0 1rem;\">The page is having trouble loading right now.</p>" +
+            '<p style="margin:0;"><a href="/" style="color:#7c5c41;text-decoration:underline;">Go to home</a></p></div></div>';
+        }
         fetch('/index.html', { cache: 'no-store' })
-          .then(function(r){ return r.text(); })
+          .then(function(r){
+            if (!r.ok) throw new Error('Failed to load app shell');
+            return r.text();
+          })
           .then(function(html){
             var styleRe = /<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["'][^>]*>/ig, sm;
             while ((sm = styleRe.exec(html)) !== null) {
               injectStyle(sm[1]);
             }
             var m = html.match(/<script[^>]+type=\"module\"[^>]+src=\"([^\"]+)\"/i);
-            injectScript(m ? m[1] : '/src/main.tsx');
+            if (!m) throw new Error('Missing app entry script');
+            injectScript(m[1]);
           })
-          .catch(function(){ injectScript('/src/main.tsx'); });
+          .catch(function(){ showFallbackMessage(); });
       })();
     </script>
   </body>

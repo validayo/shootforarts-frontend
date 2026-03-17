@@ -1,12 +1,16 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { trackPageView } from "../../lib/analytics/events";
-import { shouldNoIndexRoutePath } from "../../config/routes";
+import { ROUTES, shouldNoIndexRoutePath } from "../../config/routes";
+import { hasValidContactThankYouAccess } from "../contact/thankYouAccess";
 
 const RouteChangeTracker = () => {
   const location = useLocation();
 
   useEffect(() => {
+    if (location.pathname === ROUTES.public.contactThankYou && !hasValidContactThankYouAccess()) {
+      return;
+    }
     const path = location.pathname + location.search;
     const title = document.title;
     trackPageView(path, title);
