@@ -1,4 +1,4 @@
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -69,8 +69,11 @@ describe("ContactForm", () => {
     mocks.submitContact.mockReturnValueOnce(submitPromise);
 
     render(
-      <MemoryRouter>
-        <ContactForm />
+      <MemoryRouter initialEntries={["/contact"]}>
+        <Routes>
+          <Route path="/contact" element={<ContactForm />} />
+          <Route path="/contact/thank-you" element={<h1>Thank you!</h1>} />
+        </Routes>
       </MemoryRouter>
     );
 
@@ -93,8 +96,10 @@ describe("ContactForm", () => {
     mocks.getCooldownRemainingMs.mockReturnValueOnce(3200);
 
     render(
-      <MemoryRouter>
-        <ContactForm />
+      <MemoryRouter initialEntries={["/contact"]}>
+        <Routes>
+          <Route path="/contact" element={<ContactForm />} />
+        </Routes>
       </MemoryRouter>
     );
 

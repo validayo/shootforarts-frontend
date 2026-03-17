@@ -13,6 +13,7 @@ const HomePage = lazy(() => import("./pages/public/HomePage"));
 const AboutPage = lazy(() => import("./pages/public/AboutPage"));
 const ServicesPage = lazy(() => import("./pages/public/ServicesPage"));
 const ContactPage = lazy(() => import("./pages/public/ContactPage"));
+const ContactThankYouPage = lazy(() => import("./pages/public/ContactThankYouPage"));
 const NotFoundPage = lazy(() => import("./pages/public/NotFoundPage"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLoginPage"));
 const AdminPage = lazy(() => import("./pages/admin/AdminPage"));
@@ -44,6 +45,7 @@ function App() {
                   <Route path="about" element={<AboutPage />} />
                   <Route path="services" element={<ServicesPage />} />
                   <Route path="contact" element={<ContactPage />} />
+                  <Route path="contact/thank-you" element={<ContactThankYouPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
 

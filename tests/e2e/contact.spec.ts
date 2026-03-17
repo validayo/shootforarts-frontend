@@ -11,7 +11,7 @@ async function fillRequiredContactFields(page: import("@playwright/test").Page) 
 }
 
 test.describe("contact submissions", () => {
-  test("happy path posts contact form and shows success state", async ({ page }) => {
+  test("happy path posts contact form and redirects to thank-you page", async ({ page }) => {
     let requestCount = 0;
     await page.route("**/contact-form", async (route) => {
       requestCount += 1;
@@ -27,6 +27,7 @@ test.describe("contact submissions", () => {
     await page.waitForTimeout(2600);
     await page.getByRole("button", { name: "Send" }).click();
 
+    await expect(page).toHaveURL(/\/contact\/thank-you$/);
     await expect(page.getByRole("heading", { name: "Thank you!" })).toBeVisible();
     expect(requestCount).toBe(1);
   });

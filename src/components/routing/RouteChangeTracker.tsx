@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { trackPageView } from "../../lib/analytics/events";
-import { isAdminRoutePath } from "../../config/routes";
+import { shouldNoIndexRoutePath } from "../../config/routes";
 
 const RouteChangeTracker = () => {
   const location = useLocation();
@@ -13,14 +13,14 @@ const RouteChangeTracker = () => {
   }, [location.pathname, location.search]);
 
   useEffect(() => {
-    const isAdminRoute = isAdminRoutePath(location.pathname);
+    const noIndexRoute = shouldNoIndexRoutePath(location.pathname);
     let robotsTag = document.querySelector<HTMLMetaElement>("meta[name='robots']");
     if (!robotsTag) {
       robotsTag = document.createElement("meta");
       robotsTag.setAttribute("name", "robots");
       document.head.appendChild(robotsTag);
     }
-    robotsTag.setAttribute("content", isAdminRoute ? "noindex,nofollow" : "index,follow");
+    robotsTag.setAttribute("content", noIndexRoute ? "noindex,nofollow" : "index,follow");
   }, [location.pathname]);
 
   return null;

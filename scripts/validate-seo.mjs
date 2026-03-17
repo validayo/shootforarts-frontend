@@ -11,6 +11,7 @@ const pages = [
   { path: "public/about/index.html", canonical: "https://shootforarts.com/about" },
   { path: "public/services/index.html", canonical: "https://shootforarts.com/services" },
   { path: "public/contact/index.html", canonical: "https://shootforarts.com/contact" },
+  { path: "public/contact/thank-you/index.html", canonical: "https://shootforarts.com/contact/thank-you" },
 ];
 
 const metaWithAttrAndContent = (attr, value) => new RegExp(`<meta(?=[^>]*${attr}=["']${value}["'])(?=[^>]*content=["'][^"']+["'])[^>]*>`, "i");

@@ -5,55 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://obhiuvlfopgtbgjuznok.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="//obhiuvlfopgtbgjuznok.supabase.co" />
-    <title>About - Shoot For Arts</title>
+    <title>Thank You - Shoot For Arts</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/SFA.png?v=1" />
     <link rel="shortcut icon" type="image/png" href="/SFA.png?v=1" />
 
-    <!-- Primary Meta -->
-    <meta name="description" content="Meet Ayo, a photographer and software engineer who tells stories through color, creativity, and authentic photography." />
-    <meta name="keywords" content="Ayo, photographer, creative photography, Shoot For Arts, storytelling photos, photo artist, software engineer" />
-
-    <!-- Open Graph -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://shootforarts.com/about" />
-    <meta property="og:title" content="About - Shoot For Arts" />
     <meta
-      property="og:description"
-      content="Ayo is the creative behind Shoot For Arts, using photography to tell stories full of color, emotion, and meaning."
+      name="description"
+      content="Your inquiry has been received. Shoot For Arts will follow up shortly to confirm the next steps for your session."
     />
+    <meta name="keywords" content="contact confirmation, photoshoot inquiry received, Shoot For Arts thank you" />
+    <meta name="robots" content="noindex,nofollow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shootforarts.com/contact/thank-you" />
+    <meta property="og:title" content="Thank You - Shoot For Arts" />
+    <meta property="og:description" content="Your inquiry has been received. Expect a follow-up shortly to confirm the next steps for your session." />
     <meta property="og:image" content="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="About - Shoot For Arts" />
-    <meta
-      name="twitter:description"
-      content="Ayo is the creative behind Shoot For Arts, using photography to tell stories full of color, emotion, and meaning."
-    />
+    <meta name="twitter:title" content="Thank You - Shoot For Arts" />
+    <meta name="twitter:description" content="Your inquiry has been received. Expect a follow-up shortly to confirm the next steps for your session." />
     <meta name="twitter:image" content="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png" />
     <meta name="sfa-ga-measurement-id" content="" />
 
-    <!-- Canonical -->
-    <link rel="canonical" href="https://shootforarts.com/about" />
+    <link rel="canonical" href="https://shootforarts.com/contact/thank-you" />
 
-    <!-- GA4 -->
     <script src="/ga-init.js"></script>
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
 
-    <!-- JSON-LD Breadcrumbs: Home > About -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://shootforarts.com/" },
-          { "@type": "ListItem", "position": 2, "name": "About", "item": "https://shootforarts.com/about" }
+          { "@type": "ListItem", "position": 2, "name": "Contact", "item": "https://shootforarts.com/contact" },
+          { "@type": "ListItem", "position": 3, "name": "Thank You", "item": "https://shootforarts.com/contact/thank-you" }
         ]
       }
     </script>
@@ -80,9 +72,9 @@
           if (!root) return;
           root.innerHTML =
             '<div style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Arial,sans-serif;text-align:center;color:#1f2937;">' +
-            '<div><h1 style="font-family:\'Cormorant Garamond\',serif;font-size:2rem;margin-bottom:0.75rem;">Shoot For Arts</h1>' +
-            "<p style=\"margin:0 0 1rem;\">The page is having trouble loading right now.</p>" +
-            '<p style="margin:0;"><a href="/" style="color:#7c5c41;text-decoration:underline;">Go to home</a></p></div></div>';
+            '<div><h1 style="font-family:\'Cormorant Garamond\',serif;font-size:2rem;margin-bottom:0.75rem;">Thank you</h1>' +
+            "<p style=\"margin:0 0 1rem;\">Your page is having trouble loading right now.</p>" +
+            '<p style="margin:0;"><a href="/contact" style="color:#7c5c41;text-decoration:underline;">Return to contact</a></p></div></div>';
         }
         fetch("/index.html", { cache: "no-store" })
           .then(function (r) {
@@ -90,13 +82,11 @@
             return r.text();
           })
           .then(function (html) {
-            // Inject all stylesheet links from root index.html
             var styleRe = /<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["'][^>]*>/gi,
               sm;
             while ((sm = styleRe.exec(html)) !== null) {
               injectStyle(sm[1]);
             }
-            // Inject the main module script
             var m = html.match(/<script[^>]+type=\"module\"[^>]+src=\"([^\"]+)\"/i);
             if (!m) throw new Error("Missing app entry script");
             injectScript(m[1]);
