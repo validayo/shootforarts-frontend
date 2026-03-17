@@ -9,7 +9,7 @@ This validates:
 - Title/meta description present on `index.html` and route entry pages under `public/`
 - Open Graph + Twitter tags are present
 - Canonical URL matches each route
-- GA bootstrap script is present (`/ga-init.js`)
+- GA bootstrap script is present (`/scripts/ga-init.js`)
 - `public/robots.txt` includes sitemap lines and admin disallow entry (`/sfaadmin`)
 
 Manual checks before deploy:

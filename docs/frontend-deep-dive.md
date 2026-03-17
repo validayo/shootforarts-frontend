@@ -371,7 +371,7 @@ See also:
 ## 10) Analytics Strategy
 
 GA bootstrapping:
-- [`public/ga-init.js`](../public/ga-init.js) (reads `VITE_GA_MEASUREMENT_ID` from root [`index.html`](../index.html) meta tag and reuses it across static route shells).
+- [`public/scripts/ga-init.js`](../public/scripts/ga-init.js) (reads `VITE_GA_MEASUREMENT_ID` from root [`index.html`](../index.html) meta tag and reuses it across static route shells).
 
 Event wrappers:
 - [`src/lib/analytics/events.ts`](../src/lib/analytics/events.ts)

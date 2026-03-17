@@ -21,11 +21,11 @@ import {
 } from "../../lib/security/formProtection";
 import { ROUTES } from "../../config/routes";
 import ContactSuccessMessage from "./ContactSuccessMessage";
+import { grantContactThankYouAccess } from "./thankYouAccess";
 
 const CONTACT_MIN_FILL_MS = 2500;
 const CONTACT_COOLDOWN_MS = 45000;
 const CONTACT_COOLDOWN_KEY = "sfa_contact_last_submit";
-const CONTACT_THANK_YOU_ACCESS_KEY = "sfa_contact_thank_you_access";
 const TIER_NOT_SURE_OPTION = "Not sure - help me choose";
 
 const contactMethodOptions = ["Email", "Text message", "Instagram DM"];
@@ -167,9 +167,7 @@ const ContactForm: React.FC = () => {
         service: formData.service || undefined,
         serviceTier: formData.service_tier || undefined,
       });
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem(CONTACT_THANK_YOU_ACCESS_KEY, String(Date.now()));
-      }
+      grantContactThankYouAccess();
       resetForm();
       navigate(ROUTES.public.contactThankYou, { replace: true });
     } catch (submitError) {

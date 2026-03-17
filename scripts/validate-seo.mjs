@@ -25,7 +25,9 @@ const requiredPatterns = [
   { label: "twitter:card", regex: metaWithAttrAndContent("name", "twitter:card") },
   { label: "twitter:title", regex: metaWithAttrAndContent("name", "twitter:title") },
   { label: "twitter:description", regex: metaWithAttrAndContent("name", "twitter:description") },
-  { label: "GA init script", regex: /<script\s+src=["']\/ga-init\.js["']><\/script>/i },
+  { label: "theme-color", regex: metaWithAttrAndContent("name", "theme-color") },
+  { label: "manifest link", regex: /<link\s+rel=["']manifest["']\s+href=["']\/site\.webmanifest["']/i },
+  { label: "GA init script", regex: /<script\s+src=["']\/scripts\/ga-init\.js["']><\/script>/i },
 ];
 
 let hasErrors = false;

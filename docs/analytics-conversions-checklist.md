@@ -1,6 +1,6 @@
 # GA4 Conversion Setup Checklist
 
-Measurement ID in code: `G-2WZ8G4PZ88` (see `public/ga-init.js`).
+Measurement ID in code: `G-2WZ8G4PZ88` (see `public/scripts/ga-init.js`).
 
 ## 1) Mark conversion events
 

@@ -62,3 +62,33 @@ This file tracks meaningful frontend updates so I can quickly see what changed, 
 - Prioritized the first visible gallery image (`loading="eager"`, high fetch priority) and added explicit dimensions/sizes hints.
 - Added `preconnect` and `dns-prefetch` hints for the Supabase image origin in route HTML shells.
 - Why: reduce LCP/CLS volatility and improve real-world loading consistency without changing core site behavior.
+
+## 2026-03-17
+
+### Contact conversion flow
+
+- Added a dedicated `/contact/thank-you` route and static route shell for successful contact submissions.
+- Reused a shared success-state component and updated the real submit path to redirect there after a successful `contact-form` POST.
+- Added a session-based thank-you access guard, kept the route `noindex,nofollow`, and left honeypot spam on the inline fake-success path.
+- Added an Instagram follow CTA to the thank-you message.
+- Why: create a cleaner post-submit lead experience and a safer secondary conversion destination without weakening spam handling.
+
+### Analytics + Ads support
+
+- Updated analytics notes to treat `generate_lead` as the primary contact conversion and `/contact/thank-you` page views as an optional secondary signal.
+- Added route/SEO support for the thank-you page and tightened related robots handling.
+- Why: make Google Ads/GA4 conversion setup clearer and reduce confusion around legacy contact conversion actions.
+
+### PWA icon + public asset organization
+
+- Added a web app manifest, Apple touch icon metadata, and dedicated app install icons under `public/icons/`.
+- Repointed install/favicon metadata to the new `SA` icon assets.
+- Organized loose public assets by moving GA bootstrap into `public/scripts/` and legacy logo files into `public/branding/`.
+- Updated static route shells, docs, and SEO validation to match the new asset paths.
+- Why: improve add-to-home-screen branding and keep the `public/` directory easier to maintain.
+
+### Static route shell hardening
+
+- Removed dev-only `/src/main.tsx` fallback assumptions from static route shells and replaced them with safer load-failure fallbacks.
+- Restored explicit submit-state cleanup around contact submissions.
+- Why: avoid broken production fallback behavior and keep the contact submit flow resilient if route behavior changes later.
