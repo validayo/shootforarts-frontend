@@ -177,6 +177,7 @@ const ContactForm: React.FC = () => {
       const message = submitError instanceof Error ? submitError.message : "Unknown form error";
       trackContactFormError(message);
       setError("Something went wrong. Please try again later.");
+    } finally {
       setIsSubmitting(false);
     }
   };

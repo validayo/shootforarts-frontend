@@ -67,8 +67,18 @@
           l.href = href;
           document.head.appendChild(l);
         }
+        function showFallbackMessage() {
+          var root = document.getElementById("root");
+          if (!root) return;
+          root.innerHTML =
+            '<div style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Arial,sans-serif;text-align:center;color:#1f2937;">' +
+            '<div><h1 style="font-family:\'Cormorant Garamond\',serif;font-size:2rem;margin-bottom:0.75rem;">Thank you</h1>' +
+            "<p style=\"margin:0 0 1rem;\">Your page is having trouble loading right now.</p>" +
+            '<p style="margin:0;"><a href="/contact" style="color:#7c5c41;text-decoration:underline;">Return to contact</a></p></div></div>';
+        }
         fetch("/index.html", { cache: "no-store" })
           .then(function (r) {
+            if (!r.ok) throw new Error("Failed to load app shell");
             return r.text();
           })
           .then(function (html) {
@@ -78,10 +88,11 @@
               injectStyle(sm[1]);
             }
             var m = html.match(/<script[^>]+type=\"module\"[^>]+src=\"([^\"]+)\"/i);
-            injectScript(m ? m[1] : "/src/main.tsx");
+            if (!m) throw new Error("Missing app entry script");
+            injectScript(m[1]);
           })
           .catch(function () {
-            injectScript("/src/main.tsx");
+            showFallbackMessage();
           });
       })();
     </script>
