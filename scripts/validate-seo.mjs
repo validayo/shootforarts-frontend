@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, "..");
 
 const pages = [
   { path: "index.html", canonical: "https://shootforarts.com/" },
+  { path: "public/book/index.html", canonical: "https://shootforarts.com/book" },
   { path: "public/about/index.html", canonical: "https://shootforarts.com/about" },
   { path: "public/services/index.html", canonical: "https://shootforarts.com/services" },
   { path: "public/contact/index.html", canonical: "https://shootforarts.com/contact" },

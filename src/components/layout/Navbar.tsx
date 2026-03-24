@@ -60,10 +60,10 @@ const Navbar: React.FC<NavbarProps> = ({ funEnabled = false, onToggleFun }) => {
           </button>
         </div>
         
-        <Link to="/" className="absolute left-1/2 transform -translate-x-1/2">
-          <h1 className="text-2xl lg:text-3xl tracking-widest font-serif uppercase text-primary whitespace-nowrap">
+        <Link to="/" className="absolute left-1/2 transform -translate-x-1/2" aria-label="Shoot For Arts home">
+          <span className="text-2xl lg:text-3xl tracking-widest font-serif uppercase text-primary whitespace-nowrap">
             Shoot For Arts
-          </h1>
+          </span>
         </Link>
         
         {/* Use desktop nav only once there is enough horizontal room for the centered wordmark */}

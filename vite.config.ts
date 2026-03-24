@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// ✅ replace this with your actual Render backend URL:
 const backendUrl = "https://shootforarts-backend.onrender.com";
 
 export default defineConfig({

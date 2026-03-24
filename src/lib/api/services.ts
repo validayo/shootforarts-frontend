@@ -107,7 +107,6 @@ export async function getGallery(
   const r = await fetch(`${BASE}/gallery?${params.toString()}`);
   if (!r.ok) throw new Error(await r.text());
   const data = await r.json();
-  // Expecting { success, count, photos }
   return Array.isArray(data?.photos) ? data.photos : [];
 }
 

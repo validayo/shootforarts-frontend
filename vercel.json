@@ -5,6 +5,7 @@
     { "source": "/src/:path*", "destination": "/", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/book", "destination": "/book/index.html" },
     { "source": "/about", "destination": "/about/index.html" },
     { "source": "/services", "destination": "/services/index.html" },
     { "source": "/contact", "destination": "/contact/index.html" },
@@ -28,6 +29,12 @@
     },
     {
       "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/book",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }
       ]

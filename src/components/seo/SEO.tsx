@@ -39,6 +39,7 @@ const SEO = ({ title, description, keywords, ogTitle, ogDescription, ogImage, ca
     // Open Graph
     setMeta("og:title", ogTitle || title, "property");
     setMeta("og:description", ogDescription || description, "property");
+    setMeta("og:site_name", "Shoot For Arts", "property");
     if (ogImage) setMeta("og:image", ogImage, "property");
     const url = `${window.location.origin}${canonicalPath || window.location.pathname}`;
     setMeta("og:url", url, "property");

@@ -10,6 +10,15 @@ async function fillRequiredContactFields(page: import("@playwright/test").Page) 
   await page.locator("textarea[name='occasion']").fill("Looking for a portrait session.");
 }
 
+async function fillRequiredBookFields(page: import("@playwright/test").Page) {
+  await page.locator("input[name='firstName']").fill("Ayo");
+  await page.locator("input[name='lastName']").fill("Client");
+  await page.locator("input[name='email']").fill("client@example.com");
+  await page.locator("input[name='phone']").fill("6471234567");
+  await page.locator("select[name='service']").selectOption("Base Photoshoot");
+  await page.locator("textarea[name='occasion']").fill("Looking to book a portrait session in Toronto.");
+}
+
 test.describe("contact submissions", () => {
   test("happy path posts contact form and redirects to thank-you page", async ({ page }) => {
     let requestCount = 0;
@@ -53,5 +62,26 @@ test.describe("contact submissions", () => {
 
     await expect(page.getByRole("heading", { name: "Thank you!" })).toBeVisible();
     expect(requestCount).toBe(0);
+  });
+
+  test("/book form posts contact lead and redirects to thank-you page", async ({ page }) => {
+    let requestCount = 0;
+    await page.route("**/contact-form", async (route) => {
+      requestCount += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true }),
+      });
+    });
+
+    await page.goto("/book");
+    await fillRequiredBookFields(page);
+    await page.waitForTimeout(2600);
+    await page.getByRole("button", { name: "Book Now" }).click();
+
+    await expect(page).toHaveURL(/\/contact\/thank-you$/);
+    await expect(page.getByRole("heading", { name: "Thank you!" })).toBeVisible();
+    expect(requestCount).toBe(1);
   });
 });

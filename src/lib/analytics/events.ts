@@ -10,6 +10,8 @@ type PopupName = "newsletter" | "fun_jokes";
 type NewsletterSource = "footer" | "popup";
 type HomeCtaSource = "featured_sessions" | "booking_cta";
 type CaptchaIssueType = "expired" | "error";
+type BookLandingCtaPlacement = "hero" | "form_submit" | "portfolio" | "reviews" | "final";
+type BookFormBlockedReason = "min_fill_time" | "cooldown" | "validation_failed" | "required_field_missing";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -49,15 +51,16 @@ export const trackPhotoUpload = (title: string) => {
   });
 };
 
-export const trackContactSubmit = (details?: { service?: string; serviceTier?: string }) => {
+export const trackContactSubmit = (details?: { service?: string; serviceTier?: string; source?: string }) => {
   const payload = {
     service: details?.service,
     service_tier: details?.serviceTier,
+    source: details?.source,
   };
   sendEvent("contact_submit", payload);
   sendEvent("generate_lead", {
     ...payload,
-    lead_source: "contact_form",
+    lead_source: details?.source || "contact_form",
   });
 };
 
@@ -162,6 +165,28 @@ export const trackServicesBottomCtaClick = (destination: string) => {
     link_context: "services_bottom_cta",
     link_text: "Get in Touch",
     link_url: destination,
+  });
+};
+
+export const trackBookLandingCtaClick = (placement: BookLandingCtaPlacement, details?: { label?: string; destination?: string }) => {
+  const payload = {
+    placement,
+    label: details?.label,
+    destination: details?.destination,
+  };
+
+  sendEvent("book_landing_cta_click", payload);
+  sendEvent("click", {
+    link_context: `book_${placement}`,
+    link_text: details?.label,
+    link_url: details?.destination,
+  });
+};
+
+export const trackBookFormBlocked = (reason: BookFormBlockedReason, details?: { field?: string }) => {
+  sendEvent("book_form_blocked", {
+    reason,
+    field: details?.field,
   });
 };
 

@@ -9,6 +9,7 @@ import AppErrorBoundary from "./components/routing/AppErrorBoundary";
 import { ROUTES } from "./config/routes";
 
 const Layout = lazy(() => import("./components/layout/Layout"));
+const BookLandingPage = lazy(() => import("./pages/public/BookLandingPage"));
 const HomePage = lazy(() => import("./pages/public/HomePage"));
 const AboutPage = lazy(() => import("./pages/public/AboutPage"));
 const ServicesPage = lazy(() => import("./pages/public/ServicesPage"));
@@ -40,6 +41,8 @@ function App() {
           <AnimatePresence mode="wait">
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                <Route path={ROUTES.public.book} element={<BookLandingPage />} />
+
                 <Route path="/" element={<Layout />}>
                   <Route index element={<HomePage />} />
                   <Route path="about" element={<AboutPage />} />
