@@ -99,3 +99,30 @@ This file tracks meaningful frontend updates so I can quickly see what changed, 
 - Updated the booking nav item to stay active on `/contact/thank-you`.
 - Raised the desktop-nav breakpoint so tighter tablet/small-laptop widths fall back to the mobile menu before the centered wordmark and nav can overlap.
 - Why: make the primary booking action more obvious and keep the header layout stable across mid-width screens.
+
+## 2026-03-23
+
+### Ads landing page + booking flow
+
+- Added a dedicated `/book` route and static route shell for paid traffic while leaving the homepage focused on portfolio/brand browsing.
+- Built `/book` as a conversion-first landing page with a simplified hero, trust sections, curated top-ranked work, packages, reviews, and direct booking form.
+- Kept `/book` on the shared booking backend and the shared `/contact/thank-you` success flow instead of introducing a second lead pipeline.
+- Marked `/book` as `noindex,nofollow`.
+- Why: separate ad-click behavior from portfolio browsing without duplicating booking logic.
+
+### `/book` content sourcing + analytics
+
+- Updated the landing page work strip to use the existing `is_top` / `top_rank` metadata and show the top 6 ranked photos.
+- Added dedicated `/book` CTA tracking via `book_landing_cta_click`.
+- Kept successful landing-page submissions on the existing `generate_lead` + `contact_submit` path, segmented with `source=book_landing_form`.
+- Added `book_form_blocked` for minimum-fill-time, cooldown, validation, and required-field failures.
+- Why: keep conversion reporting clean while preserving one primary lead event for GA4/Ads.
+
+### SEO + crawler-first HTML consistency
+
+- Added semantic fallback body content to the homepage and core public route shells so first-hit HTML is no longer effectively empty before the SPA boots.
+- Strengthened the homepage title to a clearer brand + primary-service format.
+- Added a real homepage `h1` and changed the centered navbar brand mark from heading markup to plain text.
+- Added consistent `og:site_name` handling at the route SEO layer.
+- Updated homepage structured data to use the current app icon as the brand logo and added `ProfessionalService` schema for Toronto photography.
+- Why: improve crawlability, reduce title/site-name ambiguity, and strengthen local search signals.

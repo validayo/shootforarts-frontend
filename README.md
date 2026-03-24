@@ -43,6 +43,7 @@ Backend services are maintained separately; this repository is the frontend appl
 ## Product Surfaces
 
 - Public routes: `/`, `/about`, `/services`, `/contact`
+- Ads landing page: `/book` (conversion-focused, intentionally `noindex`)
 - Admin routes: `/sfaadmin/login`, `/sfaadmin/dashboard`, `/sfaadmin/calendar`, `/sfaadmin/upload`, `/sfaadmin/gallery-manager`
 
 ## Main Data Flows
@@ -66,6 +67,7 @@ Backend services are maintained separately; this repository is the frontend appl
 - High-res media and heavy UI dependencies are lazy-loaded.
 - Route-level code splitting in `src/App.tsx`.
 - Static route shells in `public/` improve crawler-first metadata and initial SEO response.
+- Core public route shells include fallback semantic body content so crawlers do not receive an effectively blank first HTML response.
 
 ## Quality and Testing
 

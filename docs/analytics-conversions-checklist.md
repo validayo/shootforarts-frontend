@@ -15,6 +15,7 @@ Optional custom conversions:
 - `page_view` where `page_path` equals `/contact/thank-you`
 - `newsletter_subscribe_success`
 - `services_cta_click`
+- `book_landing_cta_click`
 
 ## 2) Register custom dimensions
 
@@ -32,10 +33,15 @@ In GA4 → **Admin** → **Custom definitions** → **Create custom dimension**:
 - `issue_type` (event scope)
 - `page_path` (event scope)
 - `image_index` (event scope)
+- `field` (event scope)
 
 ## 3) Verify in DebugView
 
 - Submit contact form once → expect `contact_submit` + `generate_lead` and a `page_view` for `/contact/thank-you`
+- Visit `/book` → expect a `page_view` for `/book`
+- Click `/book` CTAs → expect `book_landing_cta_click`
+- Trigger a blocked `/book` submit state → expect `book_form_blocked` with `reason`
+- Submit `/book` form once → expect `contact_submit` + `generate_lead` with `source=book_landing_form` and a `page_view` for `/contact/thank-you`
 - Subscribe newsletter (footer and popup) → expect `newsletter_subscribe_success` + `sign_up`
 - Click IG/email links → expect `outbound_click` + `click`
 - Click Services “Book Now” → expect `service_book_now` + `select_promotion`
