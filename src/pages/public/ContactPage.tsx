@@ -7,11 +7,10 @@ const ContactPage: React.FC = () => {
   return (
     <div className="pt-20 pb-20">
       <SEO
-        title="Contact - Shoot For Arts"
-        description="Let’s make something together. Reach out to Ayo for portraits, events, or creative shoots — wherever your story takes you."
-        keywords={["book a photoshoot","contact photographer","portrait session","event shoot","creative photos","Shoot For Arts","Ayo"]}
-        ogTitle="Contact - Shoot For Arts"
-        ogDescription="Ready to create something special? Contact Ayo at Shoot For Arts to plan your next shoot or creative project."
+        title="Contact Shoot For Arts | Book a Toronto Photographer"
+        description="Contact Shoot For Arts to book portraits, headshots, branding sessions, grad photos, event coverage, weddings, or a custom Toronto photoshoot."
+        ogTitle="Contact Shoot For Arts | Book a Toronto Photographer"
+        ogDescription="Book portraits, headshots, branding sessions, grad photos, event coverage, weddings, or a custom Toronto shoot with Shoot For Arts."
         ogImage="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png"
         canonicalPath="/contact"
       />

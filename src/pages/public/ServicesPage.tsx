@@ -145,11 +145,10 @@ const ServicesPage: React.FC = () => {
   return (
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto">
       <SEO
-        title="Services - Shoot For Arts"
-        description="Let’s make something together. Reach out to Ayo for portraits, events, or creative shoots — wherever your story takes you."
-        keywords={["book a photoshoot", "contact photographer", "portrait session", "event shoot", "creative photos", "Shoot For Arts", "Ayo"]}
-        ogTitle="Services - Shoot For Arts"
-        ogDescription="Ready to create something special? Contact Ayo at Shoot For Arts to plan your next shoot or creative project."
+        title="Toronto Photography Services | Portraits, Headshots, Branding & Events | Shoot For Arts"
+        description="Explore Toronto photography services from Shoot For Arts, including portraits, headshots, branding sessions, grad photos, event coverage, weddings, and creative shoots."
+        ogTitle="Toronto Photography Services | Shoot For Arts"
+        ogDescription="View portraits, headshots, branding sessions, grad photos, event coverage, weddings, and creative photography packages from Shoot For Arts."
         ogImage="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png"
         canonicalPath="/services"
       />

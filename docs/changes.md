@@ -126,3 +126,30 @@ This file tracks meaningful frontend updates so I can quickly see what changed, 
 - Added consistent `og:site_name` handling at the route SEO layer.
 - Updated homepage structured data to use the current app icon as the brand logo and added `ProfessionalService` schema for Toronto photography.
 - Why: improve crawlability, reduce title/site-name ambiguity, and strengthen local search signals.
+
+## 2026-04-02
+
+### SEO-only metadata cleanup
+
+- Removed `meta keywords` usage from the shared React SEO component and from the public route shells.
+- Rewrote title/description/OG copy for `/`, `/about`, `/services`, `/contact`, and `/book` to better reflect the current target mix: portraits, headshots, branding, graduations, and events.
+- Tightened homepage structured data with clearer `Organization`, `WebSite`, and `ProfessionalService` signals plus stronger branded-name consistency for `Shoot For Arts`.
+- Why: improve modern search relevance and branded-query clarity without touching the public page layouts.
+
+### Route shell flash removal
+
+- Reworked the homepage and route-shell HTML so the shipped shell keeps SEO metadata but no longer paints visible preview content before React boots.
+- Kept the shell bootstrap/fallback behavior for load-failure safety while making the default first paint visually neutral.
+- Why: remove the brief HTML preview flash while preserving crawlable metadata for the main public routes.
+
+### Canonical + duplicate URL cleanup
+
+- Added permanent redirects for `/index.html` and each public route’s `/index.html` variant to its clean canonical path in `vercel.json`.
+- Kept the pretty route rewrites in place for `/about`, `/services`, `/contact`, `/book`, and `/contact/thank-you`.
+- Why: consolidate duplicate URL signals and reduce the chance of Google indexing `index.html` variants separately.
+
+### SEO tooling alignment
+
+- Added route-shell generation to `prebuild` and a dedicated `seo:generate` script.
+- Updated sitemap generation and SEO validation to read from the shared route-shell config instead of hardcoded page lists.
+- Why: keep route shell metadata, sitemap output, and validation rules in sync as SEO settings evolve.

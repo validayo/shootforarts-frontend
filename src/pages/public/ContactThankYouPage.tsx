@@ -17,7 +17,6 @@ const ContactThankYouPage: React.FC = () => {
       <SEO
         title="Thank You - Shoot For Arts"
         description="Your inquiry has been received. Shoot For Arts will follow up shortly to confirm the next steps for your session."
-        keywords={["contact confirmation", "photoshoot inquiry received", "Shoot For Arts thank you"]}
         ogTitle="Thank You - Shoot For Arts"
         ogDescription="Your inquiry has been received. Expect a follow-up shortly to confirm the next steps for your session."
         ogImage="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png"

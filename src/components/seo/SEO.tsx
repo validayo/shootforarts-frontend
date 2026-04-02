@@ -3,7 +3,6 @@ import { useEffect } from "react";
 type SEOProps = {
   title: string;
   description: string;
-  keywords?: string[];
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
@@ -30,11 +29,10 @@ const ensureLink = (rel: string, href: string) => {
   el.setAttribute("href", href);
 };
 
-const SEO = ({ title, description, keywords, ogTitle, ogDescription, ogImage, canonicalPath }: SEOProps) => {
+const SEO = ({ title, description, ogTitle, ogDescription, ogImage, canonicalPath }: SEOProps) => {
   useEffect(() => {
     document.title = title;
     setMeta("description", description);
-    if (keywords?.length) setMeta("keywords", keywords.join(", "));
 
     // Open Graph
     setMeta("og:title", ogTitle || title, "property");
@@ -52,7 +50,7 @@ const SEO = ({ title, description, keywords, ogTitle, ogDescription, ogImage, ca
 
     // Canonical link
     ensureLink("canonical", url);
-  }, [title, description, keywords, ogTitle, ogDescription, ogImage, canonicalPath]);
+  }, [title, description, ogTitle, ogDescription, ogImage, canonicalPath]);
 
   return null;
 };

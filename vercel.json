@@ -1,6 +1,12 @@
 {
   "trailingSlash": false,
   "redirects": [
+    { "source": "/index.html", "destination": "/", "permanent": true },
+    { "source": "/book/index.html", "destination": "/book", "permanent": true },
+    { "source": "/about/index.html", "destination": "/about", "permanent": true },
+    { "source": "/services/index.html", "destination": "/services", "permanent": true },
+    { "source": "/contact/index.html", "destination": "/contact", "permanent": true },
+    { "source": "/contact/thank-you/index.html", "destination": "/contact/thank-you", "permanent": true },
     { "source": "/home", "destination": "/", "permanent": true },
     { "source": "/src/:path*", "destination": "/", "permanent": true }
   ],

@@ -1,18 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { BASE_URL, ROUTE_SHELL_PAGES } from "./seo-pages.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, "..");
 
 const pages = [
-  { path: "index.html", canonical: "https://shootforarts.com/" },
-  { path: "public/book/index.html", canonical: "https://shootforarts.com/book" },
-  { path: "public/about/index.html", canonical: "https://shootforarts.com/about" },
-  { path: "public/services/index.html", canonical: "https://shootforarts.com/services" },
-  { path: "public/contact/index.html", canonical: "https://shootforarts.com/contact" },
-  { path: "public/contact/thank-you/index.html", canonical: "https://shootforarts.com/contact/thank-you" },
+  { path: "index.html", canonical: `${BASE_URL}/` },
+  ...ROUTE_SHELL_PAGES.map((page) => ({
+    path: page.outputPath,
+    canonical: `${BASE_URL}${page.route}`,
+  })),
 ];
 
 const metaWithAttrAndContent = (attr, value) => new RegExp(`<meta(?=[^>]*${attr}=["']${value}["'])(?=[^>]*content=["'][^"']+["'])[^>]*>`, "i");

@@ -2,12 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { BASE_URL, INDEXABLE_ROUTE_SHELL_PAGES } from './seo-pages.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, '..');
-
-const BASE_URL = 'https://shootforarts.com';
 
 const exists = (p) => {
   try { fs.accessSync(p, fs.constants.F_OK); return true; } catch { return false; }
@@ -42,9 +41,12 @@ function getLastModFromFiles(files) {
 function generateSitemap() {
   const pages = [
     { loc: `${BASE_URL}/`, files: ['src/pages/public/HomePage.tsx', 'index.html'], changefreq: 'weekly', priority: '1.0' },
-    { loc: `${BASE_URL}/about`, files: ['src/pages/public/AboutPage.tsx', 'public/about/index.html', 'src/components/about/About.tsx'], changefreq: 'monthly', priority: '0.8' },
-    { loc: `${BASE_URL}/services`, files: ['src/pages/public/ServicesPage.tsx', 'public/services/index.html'], changefreq: 'weekly', priority: '0.9' },
-    { loc: `${BASE_URL}/contact`, files: ['src/pages/public/ContactPage.tsx', 'public/contact/index.html', 'src/components/contact/ContactForm.tsx'], changefreq: 'weekly', priority: '0.9' },
+    ...INDEXABLE_ROUTE_SHELL_PAGES.map((page) => ({
+      loc: `${BASE_URL}${page.route}`,
+      files: [page.outputPath, ...page.sourceFiles],
+      changefreq: page.changefreq,
+      priority: page.priority,
+    })),
   ];
 
   const urls = pages.map(p => ({ ...p, lastmod: getLastModFromFiles(p.files) }));

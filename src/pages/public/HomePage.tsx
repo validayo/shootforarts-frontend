@@ -64,11 +64,10 @@ const HomePage: React.FC = () => {
   return (
     <div className="pt-10">
       <SEO
-        title="Shoot For Arts | Toronto Photographer for Portraits, Events & Creative Shoots"
-        description="Shoot For Arts is a Toronto photographer led by Ayo, offering portraits, event coverage, graduation sessions, and creative shoots with a storytelling focus."
-        keywords={["photography","portraits","event photography","creative shoots","storytelling photos","Shoot For Arts","Ayo"]}
-        ogTitle="Shoot For Arts | Toronto Photographer for Portraits, Events & Creative Shoots"
-        ogDescription="Explore portraits, event coverage, graduation sessions, and creative photography by Ayo at Shoot For Arts in Toronto."
+        title="Shoot For Arts | Toronto Photographer for Portraits, Headshots, Branding & Events"
+        description="Shoot For Arts is a Toronto photographer led by Ayo, creating portraits, headshots, branding sessions, graduation photos, and event coverage with a clean, story-driven style."
+        ogTitle="Shoot For Arts | Toronto Photographer for Portraits, Headshots, Branding & Events"
+        ogDescription="Explore portraits, headshots, branding sessions, graduation photos, and event coverage by Shoot For Arts in Toronto."
         ogImage="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png"
         canonicalPath="/"
       />

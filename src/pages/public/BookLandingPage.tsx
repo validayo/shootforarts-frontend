@@ -80,11 +80,10 @@ const BookLandingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f5efe6_0%,#f8f4ee_46%,#fffdf9_100%)] text-primary">
       <SEO
-        title="Toronto Photographer | Portraits, Graduations & Events | Shoot For Arts"
-        description="Book a Toronto photographer for portraits, grad shoots, and events. Starting at $125 with a direct booking form and curated top images."
-        keywords={["Toronto photographer", "portrait photographer Toronto", "grad photographer Toronto", "event photographer Toronto", "book photographer Toronto"]}
-        ogTitle="Toronto Photographer | Shoot For Arts"
-        ogDescription="Portraits, graduations, and events starting at $125. Book directly through the Shoot For Arts landing page."
+        title="Book a Toronto Photographer | Shoot For Arts"
+        description="Book portraits, grad shoots, and event photography in Toronto with Shoot For Arts. Clear pricing, quick inquiries, and direct contact."
+        ogTitle="Book a Toronto Photographer | Shoot For Arts"
+        ogDescription="Book portraits, graduations, and events directly with Shoot For Arts in Toronto."
         ogImage="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png"
         canonicalPath="/book"
       />
