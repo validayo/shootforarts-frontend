@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Instagram, Mail } from 'lucide-react';
+import { Instagram, Mail, Phone } from 'lucide-react';
 import { trackOutboundClick } from '../../lib/analytics/events';
+
+const publicPhoneNumber = "+1 647-250-2790";
+const publicPhoneHref = "tel:+16472502790";
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -34,6 +37,14 @@ const Footer: React.FC = () => {
               aria-label="Email"
             >
               <Mail size={18} />
+            </a>
+            <a
+              href={publicPhoneHref}
+              onClick={() => trackOutboundClick(publicPhoneHref, "footer")}
+              className="text-accent-dark hover:text-primary transition-colors duration-300"
+              aria-label="Call or text Shoot For Arts"
+            >
+              <Phone size={18} />
             </a>
             <Link 
               to="/about" 
@@ -71,6 +82,15 @@ const Footer: React.FC = () => {
               className="hover:text-primary transition-colors duration-300"
             >
               contact@shootforarts.com
+            </a>
+          </p>
+          <p className="mt-1">
+            <a
+              href={publicPhoneHref}
+              onClick={() => trackOutboundClick(publicPhoneHref, "footer")}
+              className="hover:text-primary transition-colors duration-300"
+            >
+              Call or text: {publicPhoneNumber}
             </a>
           </p>
         </div>

@@ -70,8 +70,8 @@ const ServicesPage: React.FC = () => {
   ];
 
   const gradPhotoshoots = [
-    { title: "Tier 1", price: "$100", details: ["30-min session", "15 edited photos", "Single graduate only"] },
-    { title: "Tier 2", price: "$200", details: ["1-hour session", "25 edited photos", "Includes family or friend group shots"] },
+    { title: "Tier 1", price: "$100", details: ["30-min session", "8 edited photos", "Single graduate only"] },
+    { title: "Tier 2", price: "$180", details: ["1-hour session", "15 edited photos", "Includes family or friend group shots"] },
   ];
 
   const eventPhotography = [

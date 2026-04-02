@@ -11,17 +11,17 @@ import type { Photo } from "../../utils/types";
 const packageHighlights = [
   {
     title: "Portraits",
-    price: "from $125",
+    price: "from $150",
     description: "Clean personal portraits, birthdays, creative looks, and short solo sessions around Toronto.",
   },
   {
     title: "Events",
-    price: "from $140/hr",
+    price: "from $125/hr",
     description: "Coverage for campus events, celebrations, brand activations, and community gatherings.",
   },
   {
     title: "Grad shoots",
-    price: "from $150",
+    price: "from $100",
     description: "Caps, gowns, campus landmarks, and polished grad portraits for individuals or small groups.",
   },
 ];
@@ -29,6 +29,8 @@ const packageHighlights = [
 const trustOrganizations = ["TTC", "TDSB", "Ontario Tech University", "Blackhurst Cultural Centre"];
 const googleReviewsUrl = "https://share.google/EhJPfBBpqj9hFRSDs";
 const urgencyLabel = "Now booking March & April 2026 sessions";
+const publicPhoneNumber = "+1 647-250-2790";
+const publicPhoneHref = "tel:+16472502790";
 
 const BookLandingPage: React.FC = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -106,15 +108,15 @@ const BookLandingPage: React.FC = () => {
                   Portraits, Graduations &amp; Events
                 </h1>
                 <p className="mt-4 text-2xl font-serif leading-tight text-primary sm:text-3xl">Book your photoshoot in minutes</p>
-                <p className="mt-5 text-lg font-medium uppercase tracking-[0.18em] text-primary/80">Starting at $125</p>
+                <p className="mt-5 text-lg font-medium uppercase tracking-[0.18em] text-primary/80">Starting at $100</p>
                 <p className="mt-6 max-w-xl text-base leading-relaxed text-accent-dark sm:text-lg">
                   Quick booking. Clear pricing. Fast turnaround. No back-and-forth. No confusion.
                 </p>
 
                 <div className="mt-7 flex flex-wrap gap-3 text-sm font-medium uppercase tracking-[0.15em] text-primary">
-                  <div className="rounded-full border border-primary/15 bg-white/80 px-4 py-3">Portrait sessions from $125</div>
-                  <div className="rounded-full border border-primary/15 bg-white/80 px-4 py-3">Event coverage from $140/hr</div>
-                  <div className="rounded-full border border-primary/15 bg-white/80 px-4 py-3">Grad shoots from $150</div>
+                  <div className="rounded-full border border-primary/15 bg-white/80 px-4 py-3">Portrait sessions from $150</div>
+                  <div className="rounded-full border border-primary/15 bg-white/80 px-4 py-3">Event coverage from $125/hr</div>
+                  <div className="rounded-full border border-primary/15 bg-white/80 px-4 py-3">Grad shoots from $100</div>
                 </div>
                 <p className="mt-3 text-sm font-medium text-primary">Deposit secures your date</p>
 
@@ -139,6 +141,16 @@ const BookLandingPage: React.FC = () => {
                 <div className="mt-3">
                   <p className="text-sm font-medium text-primary">{urgencyLabel}</p>
                   <p className="mt-1 text-sm font-medium text-primary">Limited spots available</p>
+                  <p className="mt-2 text-sm text-accent-dark">
+                    Call or text{' '}
+                    <a
+                      href={publicPhoneHref}
+                      onClick={() => trackOutboundClick(publicPhoneHref, "book_page")}
+                      className="font-medium text-primary underline underline-offset-4 transition-colors duration-300 hover:text-accent-dark"
+                    >
+                      {publicPhoneNumber}
+                    </a>
+                  </p>
                 </div>
               </div>
 
@@ -192,6 +204,17 @@ const BookLandingPage: React.FC = () => {
                 Tell me what you need and your preferred date. I&apos;ll get back to you within 24 hours.
               </p>
               <p className="mt-4 text-sm font-medium text-primary">{urgencyLabel}</p>
+              <p className="mt-3 text-sm text-accent-dark">
+                Want a faster answer? Call or text{' '}
+                <a
+                  href={publicPhoneHref}
+                  onClick={() => trackOutboundClick(publicPhoneHref, "book_page")}
+                  className="font-medium text-primary underline underline-offset-4 transition-colors duration-300 hover:text-accent-dark"
+                >
+                  {publicPhoneNumber}
+                </a>
+                .
+              </p>
             </div>
             <BookLeadForm />
           </div>

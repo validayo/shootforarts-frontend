@@ -3,6 +3,9 @@ import ContactForm from '../../components/contact/ContactForm';
 import SEO from '../../components/seo/SEO';
 import { trackOutboundClick } from '../../lib/analytics/events';
 
+const publicPhoneNumber = "+1 647-250-2790";
+const publicPhoneHref = "tel:+16472502790";
+
 const ContactPage: React.FC = () => {
   return (
     <div className="pt-20 pb-20">
@@ -39,6 +42,17 @@ const ContactPage: React.FC = () => {
           >
             contact@shootforarts.com
           </a>
+        </p>
+        <p className="text-base text-accent-dark">
+          Prefer a faster reply? Call or text{' '}
+          <a
+            href={publicPhoneHref}
+            onClick={() => trackOutboundClick(publicPhoneHref, "contact_page")}
+            className="text-primary hover:underline"
+          >
+            {publicPhoneNumber}
+          </a>
+          .
         </p>
       </div>
       <ContactForm />
