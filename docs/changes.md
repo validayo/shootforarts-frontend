@@ -173,3 +173,10 @@ This file tracks meaningful frontend updates so I can quickly see what changed, 
 - Added `Spots for April are almost full` above the booking form and aligned the form heading with the stronger lock-your-date CTA.
 - Surfaced the deposit requirement more prominently around both the hero and form, and made the direct phone/text option more visible inside the form.
 - Why: reduce decision friction, increase urgency, and answer the highest-conversion booking questions earlier on the page.
+
+### `/book` E2E tests debug
+
+- Updated the smoke test to assert the new `/book` hero headline and the current lock-your-date CTA instead of the retired `Portraits, Graduations & Events` / `Book Now` copy.
+- Narrowed the smoke CTA locator to the first matching hero link so Playwright strict mode no longer fails on the repeated final CTA.
+- Updated the `/book` contact submission test to click the renamed form submit button.
+- Why: keep CI aligned with the current `/book` funnel copy and prevent false-negative E2E failures after the conversion rewrite.

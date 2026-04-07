@@ -78,7 +78,7 @@ test.describe("contact submissions", () => {
     await page.goto("/book");
     await fillRequiredBookFields(page);
     await page.waitForTimeout(2600);
-    await page.getByRole("button", { name: "Book Now" }).click();
+    await page.getByRole("button", { name: "Check Availability & Lock Your Date" }).click();
 
     await expect(page).toHaveURL(/\/contact\/thank-you$/);
     await expect(page.getByRole("heading", { name: "Thank you!" })).toBeVisible();
