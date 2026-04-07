@@ -25,8 +25,8 @@ test.describe("smoke checks", () => {
   test("@smoke /book landing page renders focused booking CTA", async ({ page }) => {
     await page.goto("/book");
     await expect(page.getByText("Toronto Photographer")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Portraits, Graduations & Events" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Book Now" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Book a Toronto photoshoot starting at $100" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Check Availability & Lock Your Date" })).toBeVisible();
   });
 
   test("@smoke protected admin route redirects to /sfaadmin/login", async ({ page }) => {
