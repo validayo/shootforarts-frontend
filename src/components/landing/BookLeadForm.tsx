@@ -7,6 +7,7 @@ import {
   trackContactFormError,
   trackContactFormStarted,
   trackContactSubmit,
+  trackOutboundClick,
 } from "../../lib/analytics/events";
 import { submitContact } from "../../lib/api/services";
 import {
@@ -82,7 +83,7 @@ const BookLeadForm: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (isSubmitting) return;
-    trackBookLandingCtaClick("form_submit", { label: "Book Now" });
+    trackBookLandingCtaClick("form_submit", { label: "Check Availability & Lock Your Date" });
 
     const form = event.currentTarget as HTMLFormElement;
     if (!form.checkValidity()) {
@@ -161,11 +162,13 @@ const BookLeadForm: React.FC = () => {
       transition={{ duration: 0.45 }}
     >
       <div className="mb-5">
-        <p className="text-xs font-medium uppercase tracking-[0.22em] text-accent-dark">Book Now</p>
-        <h2 className="mt-2 text-2xl font-serif text-primary">Check availability &amp; get pricing</h2>
+        <p className="text-xs font-medium uppercase tracking-[0.22em] text-primary">Spots for April are almost full</p>
+        <p className="text-xs font-medium uppercase tracking-[0.22em] text-accent-dark">1-Minute Inquiry</p>
+        <h2 className="mt-2 text-2xl font-serif text-primary">Check Availability &amp; Lock Your Date</h2>
         <p className="mt-2 text-sm leading-relaxed text-accent-dark">
-          Share a few details and get a response within 24 hours.
+          Share a few details and get pricing clarity, availability, and next steps within 24 hours.
         </p>
+        <p className="mt-2 text-sm font-medium text-primary">Only a small deposit needed to secure your shoot.</p>
       </div>
 
       {error ? (
@@ -306,7 +309,15 @@ const BookLeadForm: React.FC = () => {
         </div>
 
         <div className="rounded-2xl bg-secondary px-4 py-3 text-sm text-accent-dark">
-          Toronto-based. Deposit secures your date. Portraits, grads, and events available.
+          Prefer a faster answer? Call or text{" "}
+          <a
+            href="tel:+16472502790"
+            onClick={() => trackOutboundClick("tel:+16472502790", "book_form")}
+            className="font-medium text-primary underline underline-offset-4"
+          >
+            +1 647-250-2790
+          </a>
+          .
         </div>
 
         <button
@@ -315,7 +326,7 @@ const BookLeadForm: React.FC = () => {
           aria-disabled={isSubmitting}
           className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-medium text-secondary transition-colors duration-300 hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? "Sending..." : "Book Now"}
+          {isSubmitting ? "Sending..." : "Check Availability & Lock Your Date"}
         </button>
       </form>
     </motion.div>

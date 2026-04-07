@@ -153,3 +153,23 @@ This file tracks meaningful frontend updates so I can quickly see what changed, 
 - Added route-shell generation to `prebuild` and a dedicated `seo:generate` script.
 - Updated sitemap generation and SEO validation to read from the shared route-shell config instead of hardcoded page lists.
 - Why: keep route shell metadata, sitemap output, and validation rules in sync as SEO settings evolve.
+
+## 2026-04-07
+
+### `/book` conversion copy tightening
+
+- Reworked the `/book` hero to lead with local search intent and pricing clarity: `Book a Toronto photoshoot starting at $100`.
+- Added a trust line under the main hero headline: `Trusted by 50+ clients across Toronto`.
+- Replaced the softer `/book` CTA language with `Check Availability & Lock Your Date` in the hero, form, and closing CTA.
+- Added friction-reduction and commitment-reduction copy directly under the main CTA:
+  `Only a small deposit needed to secure your shoot` and `Takes 1 minute. No commitment.`
+- Why: make paid and search traffic understand the offer faster and push more visitors toward immediate inquiry instead of passive browsing.
+
+### `/book` urgency + package clarity pass
+
+- Added a concrete pricing snapshot near the top of `/book` showing portrait, grad, and event package examples with actual deliverables and prices from the services content.
+- Replaced vague package summary cards with clearer deliverables so visitors can see what each tier actually includes before they reach the form.
+- Swapped the stale hardcoded booking message for dynamic current/next-month booking copy plus a stronger limited-availability signal.
+- Added `Spots for April are almost full` above the booking form and aligned the form heading with the stronger lock-your-date CTA.
+- Surfaced the deposit requirement more prominently around both the hero and form, and made the direct phone/text option more visible inside the form.
+- Why: reduce decision friction, increase urgency, and answer the highest-conversion booking questions earlier on the page.

@@ -39,9 +39,10 @@ In GA4 → **Admin** → **Custom definitions** → **Create custom dimension**:
 
 - Submit contact form once → expect `contact_submit` + `generate_lead` and a `page_view` for `/contact/thank-you`
 - Visit `/book` → expect a `page_view` for `/book`
-- Click `/book` CTAs → expect `book_landing_cta_click`
+- Click `/book` CTAs such as `Check Availability & Lock Your Date` → expect `book_landing_cta_click`
 - Trigger a blocked `/book` submit state → expect `book_form_blocked` with `reason`
 - Submit `/book` form once → expect `contact_submit` + `generate_lead` with `source=book_landing_form` and a `page_view` for `/contact/thank-you`
+- Click the phone/text shortcut inside the `/book` form → expect `outbound_click` + `click` with `context=book_form`
 - Subscribe newsletter (footer and popup) → expect `newsletter_subscribe_success` + `sign_up`
 - Click IG/email links → expect `outbound_click` + `click`
 - Click Services “Book Now” → expect `service_book_now` + `select_promotion`
