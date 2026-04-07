@@ -26,7 +26,7 @@ test.describe("smoke checks", () => {
     await page.goto("/book");
     await expect(page.getByText("Toronto Photographer")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Book a Toronto photoshoot starting at $100" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Check Availability & Lock Your Date" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Check Availability & Lock Your Date" }).first()).toBeVisible();
   });
 
   test("@smoke protected admin route redirects to /sfaadmin/login", async ({ page }) => {
