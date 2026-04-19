@@ -4,6 +4,9 @@ import {
   Contact,
   type AdminAIInboxResponse,
   type AdminAIInquiryDetailResponse,
+  type AdminAIApproveDraftResponse,
+  type AdminAISaveDraftEditResponse,
+  type AdminAISendDraftResponse,
 } from "../../utils";
 import type { AdminSubscriber } from "../../utils/admin/helpers";
 import { supabase, supabaseAnonKey } from "../supabase";
@@ -157,6 +160,48 @@ export async function markAdminAILastSeen(seenAt: string = new Date().toISOStrin
   });
   if (!r.ok) throw new Error(await r.text());
   return parseJsonOrText<{ ok?: boolean; reqId?: string }>(r);
+}
+
+export async function saveAdminAIDraftEdit(
+  contactSubmissionId: string,
+  draftId: string,
+  payload: { subjectLine?: string | null; bodyText: string }
+): Promise<AdminAISaveDraftEditResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-ai-save-draft-edit`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      contactSubmissionId,
+      draftId,
+      subjectLine: payload.subjectLine ?? null,
+      bodyText: payload.bodyText,
+    }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<AdminAISaveDraftEditResponse>(r);
+}
+
+export async function approveAdminAIDraft(draftId: string): Promise<AdminAIApproveDraftResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/ai-approve-draft`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ draftId }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<AdminAIApproveDraftResponse>(r);
+}
+
+export async function sendAdminAIApprovedDraft(draftId: string): Promise<AdminAISendDraftResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/ai-send-approved-draft`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ draftId }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<AdminAISendDraftResponse>(r);
 }
 
 // Upload photos (FormData with repeated files)

@@ -68,7 +68,18 @@ export type AdminAIAnalysisStatus = "pending" | "succeeded" | "failed";
 
 export type AdminAIReviewState = "pending_review" | "reviewed" | "approved" | "archived";
 
-export type AdminAIDraftStatus = "generated" | "approved" | "archived" | "sent" | "send_failed" | null;
+export type AdminAIDraftStatus = "generated" | "edited" | "approved" | "archived" | "sent" | "send_failed" | null;
+
+export type AdminAIReviewActionType =
+  | "opened"
+  | "copied"
+  | "edited"
+  | "reviewed"
+  | "approved"
+  | "archived"
+  | "send_requested"
+  | "send_succeeded"
+  | "send_failed";
 
 export interface AdminAIRecommendedCatalogItem {
   id: string;
@@ -130,7 +141,7 @@ export interface AdminAIDraftVersion {
   contact_submission_id: string;
   analysis_id: string | null;
   version_number: number;
-  source_type: "initial" | "rewrite" | "manual_seed";
+  source_type: "initial" | "rewrite" | "manual_seed" | "manual_edit";
   instruction_text: string | null;
   tone: string | null;
   subject_line: string | null;
@@ -143,6 +154,41 @@ export interface AdminAIDraftVersion {
   created_at: string;
 }
 
+export interface AdminAIReviewAction {
+  id: string;
+  contact_submission_id: string;
+  draft_id: string | null;
+  actor_user_id: string;
+  action_type: AdminAIReviewActionType;
+  notes: string | null;
+  metadata_json: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AdminAISaveDraftEditResponse {
+  ok: boolean;
+  draftId: string;
+  versionNumber: number;
+  status: Exclude<AdminAIDraftStatus, null>;
+  reqId?: string;
+}
+
+export interface AdminAIApproveDraftResponse {
+  ok: boolean;
+  draftId: string;
+  status: "approved";
+  reqId?: string;
+}
+
+export interface AdminAISendDraftResponse {
+  ok: boolean;
+  draftId: string;
+  status: "sent";
+  sentAt: string;
+  toEmail: string;
+  reqId?: string;
+}
+
 export interface AdminAIInquiryDetailResponse {
   ok: boolean;
   contactSubmissionId: string;
@@ -150,7 +196,7 @@ export interface AdminAIInquiryDetailResponse {
   activeAnalysis: AdminAIAnalysisDetail | null;
   draftVersions: AdminAIDraftVersion[];
   latestApprovedDraft: AdminAIDraftVersion | null;
-  reviewActions: Array<Record<string, unknown>>;
+  reviewActions: AdminAIReviewAction[];
   workflowStatus: string | null;
   reqId?: string;
 }
