@@ -153,6 +153,9 @@ describe("AdminAIInsightSection", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Edit Draft" }));
+    const bodyField = screen.getByLabelText("Body");
+    await user.clear(bodyField);
+    await user.type(bodyField, "Hi Jane,\n\nThis save should fail.");
     await user.click(screen.getByRole("button", { name: "Save Edited Draft" }));
 
     expect(onSaveEdit).toHaveBeenCalled();
