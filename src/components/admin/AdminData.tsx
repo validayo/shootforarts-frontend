@@ -1,20 +1,34 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Download, TrendingUp, Users, Calendar, Mail, Search, X } from "lucide-react";
 import { supabase, supabaseAnonKey } from "../../lib/supabase";
 import {
+  approveAdminAIDraft,
   BASE,
   getContactSubmissions,
   getNewsletterSubscribers,
   getBookingWorkflows,
   upsertBookingWorkflow,
+  getAdminAIInbox,
+  getAdminAIInquiry,
+  markAdminAILastSeen,
+  markAdminAIDraftSent,
+  saveAdminAIDraftEdit,
   type BookingWorkflowStatus,
 } from "../../lib/api/services";
-import { Contact, parseInspirationLinks } from "../../utils";
+import {
+  Contact,
+  parseInspirationLinks,
+  type AdminAIInboxItem,
+  type AdminAIInquiryDetailResponse,
+} from "../../utils";
 import { serviceOptions } from "../../utils";
 import { dedupeByIdentity, isLocalEnvironment, toContactList, toSubscriberList, type AdminSubscriber } from "../../utils/admin/helpers";
 import type { Session } from "@supabase/supabase-js";
-import { logAdminAction, logAdminWarning } from "../../lib/observability/logger";
+import { logAdminAction, logAdminError, logAdminWarning } from "../../lib/observability/logger";
+import AdminAISummaryCard from "./AdminAISummaryCard";
+import AdminAIInsightSection from "./AdminAIInsightSection";
+import { aiStatusClassByKey } from "./adminAIStyles";
 
 type DateFilterOption = "all" | "7days" | "30days" | "90days";
 type Subscriber = AdminSubscriber;
@@ -26,6 +40,14 @@ interface BookingWorkflowMeta {
   assignedTo: string;
   note: string;
   updatedAt: string | null;
+}
+
+interface AIDraftActionState {
+  saving: boolean;
+  approving: boolean;
+  sending: boolean;
+  error: string | null;
+  success: string | null;
 }
 
 const edgeSyncEnabled = (import.meta.env.VITE_ENABLE_EDGE_SYNC ?? "false") === "true";
@@ -45,6 +67,14 @@ const DEFAULT_WORKFLOW: BookingWorkflowMeta = {
   assignedTo: "",
   note: "",
   updatedAt: null,
+};
+
+const DEFAULT_AI_ACTION_STATE: AIDraftActionState = {
+  saving: false,
+  approving: false,
+  sending: false,
+  error: null,
+  success: null,
 };
 
 const workflowStatusClass: Record<BookingStatus, string> = {
@@ -68,6 +98,7 @@ const normalizeBookingStatus = (value?: string | null): BookingStatus =>
   value && value in STATUS_LABELS ? (value as BookingStatus) : DEFAULT_WORKFLOW.status;
 
 const AdminData: React.FC = () => {
+  const aiEnabled = (import.meta.env.VITE_ENABLE_AI_ADMIN ?? "false") === "true";
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [activeTab, setActiveTab] = useState<"contacts" | "subscribers">("contacts");
@@ -81,7 +112,18 @@ const AdminData: React.FC = () => {
   const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilter>("all");
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState<BookingStatus>("in_review");
+  const [aiInboxLoading, setAIInboxLoading] = useState(false);
+  const [aiInboxError, setAIInboxError] = useState<string | null>(null);
+  const [aiInboxItems, setAIInboxItems] = useState<AdminAIInboxItem[]>([]);
+  const [aiInboxById, setAIInboxById] = useState<Record<string, AdminAIInboxItem>>({});
+  const [aiDetailById, setAIDetailById] = useState<Record<string, AdminAIInquiryDetailResponse>>({});
+  const [aiDetailLoadingById, setAIDetailLoadingById] = useState<Record<string, boolean>>({});
+  const [aiDetailErrorById, setAIDetailErrorById] = useState<Record<string, string | null>>({});
+  const [aiActionStateById, setAIActionStateById] = useState<Record<string, AIDraftActionState>>({});
   const saveTimersRef = useRef<Record<string, number>>({});
+  const hasMarkedAILastSeenRef = useRef(false);
+  const aiFetchStatusRef = useRef<Record<string, boolean>>({});
+  const selectedContactScrollRef = useRef<HTMLDivElement | null>(null);
 
   const formatDate = (timestamp?: string) => {
     if (!timestamp) return "N/A";
@@ -188,6 +230,45 @@ const AdminData: React.FC = () => {
     };
   }, [session]);
 
+  const fetchAIInbox = useCallback(async () => {
+    if (!session || !aiEnabled) return;
+
+    setAIInboxLoading(true);
+    setAIInboxError(null);
+
+    try {
+      const response = await getAdminAIInbox();
+      const items = Array.isArray(response.items) ? response.items : [];
+      const byId = items.reduce<Record<string, AdminAIInboxItem>>((acc, item) => {
+        acc[item.contactSubmissionId] = item;
+        return acc;
+      }, {});
+
+      setAIInboxItems(items);
+      setAIInboxById(byId);
+
+      if (!hasMarkedAILastSeenRef.current) {
+        hasMarkedAILastSeenRef.current = true;
+        void markAdminAILastSeen().catch((fetchError) => {
+          logAdminWarning("admin_data.ai_last_seen_failed", { reason: String(fetchError) });
+        });
+      }
+    } catch (fetchError) {
+      setAIInboxItems([]);
+      setAIInboxById({});
+      setAIInboxError("AI insights are temporarily unavailable.");
+      logAdminWarning("admin_data.ai_inbox_failed", { reason: String(fetchError) });
+    } finally {
+      setAIInboxLoading(false);
+    }
+  }, [session, aiEnabled]);
+
+  useEffect(() => {
+    if (!session || !aiEnabled) return;
+
+    void fetchAIInbox();
+  }, [session, aiEnabled, fetchAIInbox]);
+
   useEffect(() => {
     if (!selectedContact) return;
 
@@ -202,6 +283,139 @@ const AdminData: React.FC = () => {
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [selectedContact]);
+
+  useEffect(() => {
+    if (!selectedContact) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    selectedContactScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedContact]);
+
+  const loadAIInquiryDetail = useCallback(async (contactId: string, opts: { force?: boolean } = {}) => {
+    if (!aiEnabled || !session) return;
+    if (!opts.force && aiFetchStatusRef.current[contactId]) return;
+
+    aiFetchStatusRef.current[contactId] = true;
+    setAIDetailLoadingById((prev) => ({ ...prev, [contactId]: true }));
+    setAIDetailErrorById((prev) => ({ ...prev, [contactId]: null }));
+
+    try {
+      const detail = await getAdminAIInquiry(contactId);
+      setAIDetailById((prev) => ({ ...prev, [contactId]: detail }));
+    } catch (error) {
+      const message = "AI insight could not be loaded.";
+      setAIDetailErrorById((prev) => ({ ...prev, [contactId]: message }));
+      logAdminError("admin_data.ai_inquiry_failed", { contactId, reason: String(error) });
+    } finally {
+      delete aiFetchStatusRef.current[contactId];
+      setAIDetailLoadingById((prev) => ({ ...prev, [contactId]: false }));
+    }
+  }, [aiEnabled, session]);
+
+  useEffect(() => {
+    if (!selectedContact || !aiEnabled || aiInboxError || !session) return;
+    void loadAIInquiryDetail(selectedContact.id);
+  }, [selectedContact, aiEnabled, aiInboxError, session, loadAIInquiryDetail]);
+
+  const setAIActionState = useCallback((contactId: string, patch: Partial<AIDraftActionState>) => {
+    setAIActionStateById((prev) => ({
+      ...prev,
+      [contactId]: {
+        ...(prev[contactId] ?? DEFAULT_AI_ACTION_STATE),
+        ...patch,
+      },
+    }));
+  }, []);
+
+  const refreshAIState = useCallback(async (contactId: string) => {
+    await Promise.all([
+      loadAIInquiryDetail(contactId, { force: true }),
+      fetchAIInbox(),
+    ]);
+  }, [fetchAIInbox, loadAIInquiryDetail]);
+
+  const handleSaveDraftEdit = useCallback(async (
+    contactId: string,
+    draftId: string,
+    payload: { subjectLine?: string | null; bodyText: string },
+  ) => {
+    setAIActionState(contactId, { saving: true, error: null, success: null });
+
+    try {
+      await saveAdminAIDraftEdit(contactId, draftId, payload);
+      await refreshAIState(contactId);
+      setAIActionState(contactId, { saving: false, error: null, success: "Edited draft saved." });
+      logAdminAction("admin_data.ai_draft_saved", { contactId, draftId });
+    } catch (actionError) {
+      const message = "Draft edit could not be saved.";
+      setAIActionState(contactId, { saving: false, error: message, success: null });
+      logAdminError("admin_data.ai_draft_save_failed", { contactId, draftId, reason: String(actionError) });
+      throw actionError;
+    }
+  }, [refreshAIState, setAIActionState]);
+
+  const handleApproveDraft = useCallback(async (contactId: string, draftId: string) => {
+    setAIActionState(contactId, { approving: true, error: null, success: null });
+
+    try {
+      await approveAdminAIDraft(draftId);
+      await refreshAIState(contactId);
+      setAIActionState(contactId, { approving: false, error: null, success: "Draft approved. Copy and send it manually." });
+      logAdminAction("admin_data.ai_draft_approved", { contactId, draftId });
+    } catch (actionError) {
+      const message = "Draft approval failed.";
+      setAIActionState(contactId, { approving: false, error: message, success: null });
+      logAdminError("admin_data.ai_draft_approve_failed", { contactId, draftId, reason: String(actionError) });
+    }
+  }, [refreshAIState, setAIActionState]);
+
+  const handleCopyDraft = useCallback(async (
+    contactId: string,
+    payload: { subjectLine?: string | null; bodyText: string },
+  ) => {
+    try {
+      const clipboardText = payload.subjectLine?.trim()
+        ? `${payload.subjectLine.trim()}\n\n${payload.bodyText}`
+        : payload.bodyText;
+      await navigator.clipboard.writeText(clipboardText);
+      setAIActionState(contactId, {
+        saving: false,
+        approving: false,
+        sending: false,
+        error: null,
+        success: "Draft copied. Send it manually, then mark it as sent later.",
+      });
+      logAdminAction("admin_data.ai_draft_copied", { contactId });
+    } catch (actionError) {
+      const message = "Draft copy failed. You can still copy it manually.";
+      setAIActionState(contactId, { error: message, success: null });
+      logAdminError("admin_data.ai_draft_copy_failed", { contactId, reason: String(actionError) });
+    }
+  }, [setAIActionState]);
+
+  const handleMarkDraftSent = useCallback(async (contactId: string, draftId: string) => {
+    setAIActionState(contactId, { sending: true, error: null, success: null });
+
+    try {
+      await markAdminAIDraftSent(draftId);
+      await refreshAIState(contactId);
+      setAIActionState(contactId, {
+        sending: false,
+        error: null,
+        success: "Draft marked as sent.",
+      });
+      logAdminAction("admin_data.ai_draft_marked_sent", { contactId, draftId });
+    } catch (actionError) {
+      const message = "Could not mark draft as sent.";
+      setAIActionState(contactId, { sending: false, error: message, success: null });
+      logAdminError("admin_data.ai_draft_mark_sent_failed", { contactId, draftId, reason: String(actionError) });
+    }
+  }, [refreshAIState, setAIActionState]);
 
   useEffect(() => {
     try {
@@ -459,6 +673,66 @@ const AdminData: React.FC = () => {
     return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
   };
 
+  const canRenderAIState = aiEnabled && !aiInboxError;
+
+  const hasMeaningfulAIState = (item: AdminAIInboxItem | undefined) => {
+    if (!item) return false;
+    if (item.analysisStatus === "succeeded") return true;
+    if (item.analysisStatus === "failed") return true;
+    return Boolean(item.draftStatus || item.reviewState || item.summary || item.recommendedCatalogItem || typeof item.confidenceScore === "number");
+  };
+
+  const getAIStatusLabel = (status: AdminAIInboxItem["analysisStatus"]) => {
+    if (status === "succeeded") return "AI Ready";
+    if (status === "pending") return "AI Pending";
+    return "AI Failed";
+  };
+
+  const getAIRecommendationLabel = (item: AdminAIInboxItem) => {
+    if (item.recommendedCatalogItem?.label) return item.recommendedCatalogItem.label;
+    if (item.recommendedAction === "custom_quote") return "Custom quote review";
+    return "Needs clarification";
+  };
+
+  const openContactDetails = (contact: Contact) => {
+    setSelectedContact(contact);
+    if (canRenderAIState) {
+      void loadAIInquiryDetail(contact.id);
+    }
+  };
+
+  const handleDesktopDetailToggle = (contactId: string, open: boolean) => {
+    if (!open || !canRenderAIState) return;
+    void loadAIInquiryDetail(contactId);
+  };
+
+  const renderAIState = (contactId: string) => {
+    if (!canRenderAIState) return null;
+    const item = aiInboxById[contactId];
+    if (!hasMeaningfulAIState(item)) return null;
+
+    return (
+      <div className="mt-2 space-y-1.5">
+        <div className="flex flex-wrap gap-2">
+          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${aiStatusClassByKey[item.analysisStatus]}`}>
+            {getAIStatusLabel(item.analysisStatus)}
+          </span>
+          {item.reviewState && item.reviewState !== "pending_review" && (
+            <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200">
+              {item.reviewState.replace(/_/g, " ")}
+            </span>
+          )}
+        </div>
+        {item.analysisStatus === "succeeded" && (
+          <p className="text-xs text-gray-600">
+            {getAIRecommendationLabel(item)}
+            {typeof item.confidenceScore === "number" ? ` • ${Math.round(item.confidenceScore * 100)}% confidence` : ""}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   const workflowCounts = contacts.reduce(
     (acc, contact) => {
       const workflow = getWorkflow(contact.id);
@@ -560,95 +834,81 @@ const AdminData: React.FC = () => {
     exportToCsv(exportData, "subscribers-export");
   };
 
+  const renderDetailRow = (label: string, content: React.ReactNode) => (
+    <div className="grid gap-1 py-2 sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-3">
+      <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">{label}</dt>
+      <dd className="min-w-0 [overflow-wrap:anywhere] break-words text-sm text-gray-800">{content}</dd>
+    </div>
+  );
+
   const renderContactDetails = (c: Contact) => (
-    <>
-      {c.service_tier && (
-        <p className="[overflow-wrap:anywhere] break-words">
-          <strong className="text-gray-900">Tier:</strong> {c.service_tier}
-        </p>
-      )}
-      {c.phone && (
-        <p className="[overflow-wrap:anywhere] break-words">
-          <strong className="text-gray-900">Phone:</strong>{" "}
-          <a className="text-blue-600 hover:underline" href={`tel:${c.phone}`}>
-            {c.phone}
-          </a>
-        </p>
-      )}
-      {c.location && (
-        <p className="[overflow-wrap:anywhere] break-words">
-          <strong className="text-gray-900">Location:</strong> {c.location}
-        </p>
-      )}
-      {c.occasion && (
-        <p className="[overflow-wrap:anywhere] break-words whitespace-pre-wrap">
-          <strong className="text-gray-900">Occasion:</strong> {c.occasion}
-        </p>
-      )}
-      {c.date && (
-        <p className="[overflow-wrap:anywhere] break-words">
-          <strong className="text-gray-900">Date:</strong> {c.date}
-        </p>
-      )}
-      {c.time && (
-        <p className="[overflow-wrap:anywhere] break-words">
-          <strong className="text-gray-900">Time:</strong> {c.time}
-        </p>
-      )}
-      {c.instagram && (
-        <p className="[overflow-wrap:anywhere] break-words">
-          <strong className="text-gray-900">Instagram:</strong> {c.instagram}
-        </p>
-      )}
-      {c.referralSource && (
-        <p className="[overflow-wrap:anywhere] break-words">
-          <strong className="text-gray-900">Referral Source:</strong> {c.referralSource}
-        </p>
-      )}
+    <div className="space-y-4">
+      <dl className="divide-y divide-gray-100">
+        {c.service_tier && renderDetailRow("Tier", c.service_tier)}
+        {c.date && renderDetailRow("Date", c.date)}
+        {c.time && renderDetailRow("Time", c.time)}
+        {c.location && renderDetailRow("Location", c.location)}
+        {c.phone &&
+          renderDetailRow(
+            "Phone",
+            <a className="text-blue-600 hover:underline" href={`tel:${c.phone}`}>
+              {c.phone}
+            </a>,
+          )}
+        {c.instagram && renderDetailRow("Instagram", c.instagram)}
+        {c.referralSource && renderDetailRow("Referral", c.referralSource)}
+        {c.occasion && renderDetailRow("Occasion", <span className="whitespace-pre-wrap">{c.occasion}</span>)}
+      </dl>
+
       {c.pinterestInspo && (() => {
         const links = parseInspirationLinks(c.pinterestInspo).validUrls;
         return (
-          <div className="[overflow-wrap:anywhere] break-words">
-            <strong className="text-gray-900">Inspiration Links:</strong>
+          <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-3">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">Inspiration</p>
             {links.length > 0 ? (
-              <ul className="mt-1 list-disc ml-5 space-y-1">
+              <ul className="mt-2 space-y-1.5 text-sm text-gray-800">
                 {links.map((link) => (
                   <li key={link}>
-                    <a className="text-blue-600 hover:underline break-all" href={link} target="_blank" rel="noopener noreferrer">
+                    <a className="break-all text-blue-600 hover:underline" href={link} target="_blank" rel="noopener noreferrer">
                       {link}
                     </a>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-1 text-gray-700 whitespace-pre-wrap">{c.pinterestInspo}</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{c.pinterestInspo}</p>
             )}
           </div>
         );
       })()}
+
       {c.add_ons?.length ? (
-        <div className="[overflow-wrap:anywhere] break-words">
-          <strong className="text-gray-900">Add-ons:</strong> {c.add_ons.join(", ")}
+        <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">Add-ons</p>
+          <p className="mt-2 text-sm text-gray-800">{c.add_ons.join(", ")}</p>
         </div>
       ) : null}
+
       {c.extra_questions && Object.keys(c.extra_questions).length > 0 && (
-        <div className="[overflow-wrap:anywhere] break-words">
-          <strong className="text-gray-900">Extra Details:</strong>
-          <ul className="list-disc ml-5 mt-1 space-y-1">
+        <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">Extra Details</p>
+          <ul className="mt-2 space-y-1.5 text-sm text-gray-800">
             {Object.entries(c.extra_questions).map(([k, v]) => (
               <li key={k}>
-                {labelize(k)}: {String(v)}
+                <span className="font-medium text-gray-900">{labelize(k)}:</span> {String(v)}
               </li>
             ))}
           </ul>
         </div>
       )}
+
       {c.questions && (
-        <p className="[overflow-wrap:anywhere] break-words whitespace-pre-wrap">
-          <strong className="text-gray-900">Questions:</strong> {c.questions}
-        </p>
+        <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">Questions</p>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{c.questions}</p>
+        </div>
       )}
-    </>
+    </div>
   );
 
   const renderWorkflowEditor = (c: Contact, compact = false) => {
@@ -704,6 +964,10 @@ const AdminData: React.FC = () => {
   };
 
   const selectedWorkflow = selectedContact ? getWorkflow(selectedContact.id) : null;
+  const selectedAIDetail = selectedContact ? aiDetailById[selectedContact.id] ?? null : null;
+  const selectedAILoading = selectedContact ? Boolean(aiDetailLoadingById[selectedContact.id]) : false;
+  const selectedAIError = selectedContact ? aiDetailErrorById[selectedContact.id] ?? null : null;
+  const selectedAIActionState = selectedContact ? aiActionStateById[selectedContact.id] ?? DEFAULT_AI_ACTION_STATE : DEFAULT_AI_ACTION_STATE;
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
@@ -761,6 +1025,8 @@ const AdminData: React.FC = () => {
         </motion.div>
       </div>
 
+      <AdminAISummaryCard enabled={aiEnabled} loading={aiInboxLoading} error={aiInboxError} items={aiInboxItems} />
+
       {activeTab === "contacts" && (
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -802,7 +1068,7 @@ const AdminData: React.FC = () => {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => setSelectedContact(contact)}
+                        onClick={() => openContactDetails(contact)}
                         className="inline-flex rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700"
                       >
                         Open
@@ -868,8 +1134,8 @@ const AdminData: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="relative md:col-span-2">
+          <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center">
+            <div className="relative xl:min-w-0 xl:flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
@@ -880,12 +1146,12 @@ const AdminData: React.FC = () => {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:min-w-[24rem]">
               {activeTab === "contacts" && (
                 <select
                   value={selectedService}
                   onChange={(e) => setSelectedService(e.target.value)}
-                  className="rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="min-w-0 rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="All">All Services</option>
                   {Object.keys(serviceOptions).map((service) => (
@@ -899,7 +1165,7 @@ const AdminData: React.FC = () => {
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value as DateFilterOption)}
-                className="rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="min-w-0 rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Time</option>
                 <option value="7days">Last 7 Days</option>
@@ -984,12 +1250,15 @@ const AdminData: React.FC = () => {
           <div>
             {activeTab === "contacts" && (
               <>
-                <div className="divide-y divide-gray-200 sm:hidden">
+                <div className="divide-y divide-gray-200 2xl:hidden md:grid md:grid-cols-2 md:gap-4 md:divide-y-0 md:p-4">
                   {filteredContacts.map((c) => {
                     const workflow = getWorkflow(c.id);
                     const isSelected = selectedIdSet.has(c.id);
                     return (
-                      <article key={c.id} className={`space-y-3 px-4 py-4 ${isSelected ? "bg-blue-50/40" : ""}`}>
+                      <article
+                        key={c.id}
+                        className={`space-y-3 px-4 py-4 md:rounded-xl md:border md:border-gray-200 md:px-4 ${isSelected ? "bg-blue-50/40 md:border-blue-200" : ""}`}
+                      >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-2">
                             <input
@@ -1011,13 +1280,14 @@ const AdminData: React.FC = () => {
                             {STATUS_LABELS[workflow.status]}
                           </span>
                         </div>
+                        {renderAIState(c.id)}
                         <a className="block text-sm text-blue-600 hover:underline" href={`mailto:${c.email}`}>
                           {c.email}
                         </a>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setSelectedContact(c)}
+                            onClick={() => openContactDetails(c)}
                             className="inline-flex rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white hover:bg-gray-700"
                           >
                             View Details
@@ -1031,7 +1301,7 @@ const AdminData: React.FC = () => {
                   })}
                 </div>
 
-                <div className="hidden overflow-x-auto sm:block">
+                <div className="hidden overflow-x-auto 2xl:block">
                   <table className="min-w-full">
                     <thead className="bg-gray-50">
                       <tr>
@@ -1084,18 +1354,58 @@ const AdminData: React.FC = () => {
                                   {STATUS_LABELS[workflow.status]}
                                 </span>
                               </div>
+                              {renderAIState(c.id)}
                               {workflow.assignedTo && <p className="mt-2 text-xs text-gray-600">Assigned: {workflow.assignedTo}</p>}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-700">{formatDate(c.created_at)}</td>
                             <td className="px-6 py-4 text-sm">
-                              <details className="group max-w-[44rem] cursor-pointer">
+                              <button
+                                type="button"
+                                onClick={() => openContactDetails(c)}
+                                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 2xl:hidden"
+                              >
+                                <span>▶</span>
+                                <span>View Details</span>
+                              </button>
+                              <details
+                                className="group hidden max-w-full cursor-pointer 2xl:block"
+                                onToggle={(event) => handleDesktopDetailToggle(c.id, event.currentTarget.open)}
+                              >
                                 <summary className="inline-flex list-none items-center gap-1 text-blue-600 hover:text-blue-800 [&::-webkit-details-marker]:hidden">
                                   <span className="transition-transform duration-200 group-open:rotate-90">▶</span>
                                   <span>View Details</span>
                                 </summary>
-                                <div className="mt-3 space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-800 [overflow-wrap:anywhere] break-words">
-                                  <div className="rounded-lg border border-gray-200 bg-white p-3">{renderWorkflowEditor(c)}</div>
-                                  <div className="space-y-2">{renderContactDetails(c)}</div>
+                                <div className="mt-3 w-[min(100%,calc(100vw-22rem))] max-w-[68rem] overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm leading-6 text-gray-800 [overflow-wrap:anywhere] break-words">
+                                  <div className="grid gap-3 2xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+                                    <div className="min-w-0 rounded-lg border border-gray-200 bg-white p-3.5">
+                                      <div className="mb-2.5">
+                                        <p className="text-xs font-medium uppercase tracking-[0.1em] text-gray-500">Inquiry Details</p>
+                                        <p className="mt-0.5 text-sm text-gray-500">Original client submission and request context.</p>
+                                      </div>
+                                      <div className="space-y-2">{renderContactDetails(c)}</div>
+                                    </div>
+                                    <div className="min-w-0 space-y-3">
+                                      <div className="rounded-lg border border-gray-200 bg-white p-3">{renderWorkflowEditor(c)}</div>
+                                      <AdminAIInsightSection
+                                        detail={aiDetailById[c.id] ?? null}
+                                        loading={Boolean(aiDetailLoadingById[c.id])}
+                                        error={aiDetailErrorById[c.id] ?? null}
+                                        actionState={aiActionStateById[c.id] ?? DEFAULT_AI_ACTION_STATE}
+                                        onSaveEdit={async (contactSubmissionId, draftId, payload) => {
+                                          await handleSaveDraftEdit(contactSubmissionId, draftId, payload);
+                                        }}
+                                        onApprove={async (draftId) => {
+                                          await handleApproveDraft(c.id, draftId);
+                                        }}
+                                        onCopyDraft={async (draft) => {
+                                          await handleCopyDraft(c.id, draft);
+                                        }}
+                                        onMarkSent={async (draftId) => {
+                                          await handleMarkDraftSent(c.id, draftId);
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
                               </details>
                             </td>
@@ -1158,17 +1468,20 @@ const AdminData: React.FC = () => {
 
       {selectedContact && (
         <div
-          className="fixed inset-0 z-50 flex items-end bg-black/50 p-0 lg:hidden"
+          className="fixed inset-0 z-50 flex items-end bg-transparent pt-6 sm:items-center sm:justify-center sm:p-6 2xl:hidden"
           role="dialog"
           aria-modal="true"
           aria-labelledby="mobile-contact-title"
           onClick={() => setSelectedContact(null)}
         >
-          <div className="max-h-[88vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="flex h-[calc(100dvh-1.5rem)] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:h-[min(90dvh,56rem)] sm:max-w-4xl sm:rounded-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex justify-center pt-2">
               <span className="h-1.5 w-12 rounded-full bg-gray-300" />
             </div>
-            <div className="sticky top-0 flex items-start justify-between border-b border-gray-200 bg-white px-4 py-3">
+            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-gray-200 bg-white px-4 py-3">
               <div>
                 <h3 id="mobile-contact-title" className="text-lg font-semibold text-gray-900">
                   {selectedContact.firstName} {selectedContact.lastName}
@@ -1191,7 +1504,7 @@ const AdminData: React.FC = () => {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="flex flex-wrap gap-2 border-b border-gray-200 px-4 py-3">
+            <div className="sticky top-[73px] z-10 flex flex-wrap gap-2 border-b border-gray-200 bg-white px-4 py-3">
               <a
                 href={`mailto:${selectedContact.email}`}
                 className="inline-flex rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white hover:bg-gray-700"
@@ -1207,9 +1520,32 @@ const AdminData: React.FC = () => {
                 </a>
               )}
             </div>
-            <div className="space-y-4 px-4 py-4 text-sm leading-6 text-gray-800">
+            <div ref={selectedContactScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 text-sm leading-6 text-gray-800">
+              <div className="space-y-4 pb-6">
               <section className="rounded-lg border border-gray-200 bg-gray-50 p-3">{renderWorkflowEditor(selectedContact, true)}</section>
+              <AdminAIInsightSection
+                detail={selectedAIDetail}
+                loading={selectedAILoading}
+                error={selectedAIError}
+                actionState={selectedAIActionState}
+                onSaveEdit={async (contactSubmissionId, draftId, payload) => {
+                  await handleSaveDraftEdit(contactSubmissionId, draftId, payload);
+                }}
+                onApprove={async (draftId) => {
+                  if (!selectedContact) return;
+                  await handleApproveDraft(selectedContact.id, draftId);
+                }}
+                onCopyDraft={async (draft) => {
+                  if (!selectedContact) return;
+                  await handleCopyDraft(selectedContact.id, draft);
+                }}
+                onMarkSent={async (draftId) => {
+                  if (!selectedContact) return;
+                  await handleMarkDraftSent(selectedContact.id, draftId);
+                }}
+              />
               <section className="space-y-2">{renderContactDetails(selectedContact)}</section>
+              </div>
             </div>
           </div>
         </div>

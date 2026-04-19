@@ -1,6 +1,16 @@
-import { Photo, ContactFormData, Contact } from "../../utils";
+import {
+  Photo,
+  ContactFormData,
+  Contact,
+  type AdminAIInboxResponse,
+  type AdminAIInquiryDetailResponse,
+  type AdminAIApproveDraftResponse,
+  type AdminAIMarkDraftSentResponse,
+  type AdminAISaveDraftEditResponse,
+  type AdminAISendDraftResponse,
+} from "../../utils";
 import type { AdminSubscriber } from "../../utils/admin/helpers";
-import { supabase } from "../supabase";
+import { supabase, supabaseAnonKey } from "../supabase";
 import { getAccessToken } from "../auth/session";
 
 // Supabase Edge Functions base URL
@@ -39,6 +49,22 @@ async function parseJsonOrText<T = unknown>(response: Response): Promise<T> {
   } catch {
     return { message: bodyText } as T;
   }
+}
+
+async function getProtectedEdgeHeaders(contentType: string = "application/json"): Promise<Record<string, string>> {
+  const token = await getAccessToken();
+  if (!token) throw new Error("Not authenticated");
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": contentType,
+  };
+
+  if (supabaseAnonKey) {
+    headers.apikey = supabaseAnonKey;
+  }
+
+  return headers;
 }
 
 function getStorageObjectFromPublicUrl(photoUrl?: string | null): { bucket: string; objectPath: string } | null {
@@ -108,6 +134,86 @@ export async function getGallery(
   if (!r.ok) throw new Error(await r.text());
   const data = await r.json();
   return Array.isArray(data?.photos) ? data.photos : [];
+}
+
+export async function getAdminAIInbox(limit: number = 100): Promise<AdminAIInboxResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const params = new URLSearchParams({ limit: String(limit) });
+  const r = await fetch(`${BASE}/admin-ai-inbox?${params.toString()}`, { headers });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<AdminAIInboxResponse>(r);
+}
+
+export async function getAdminAIInquiry(contactSubmissionId: string): Promise<AdminAIInquiryDetailResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const params = new URLSearchParams({ contactSubmissionId });
+  const r = await fetch(`${BASE}/admin-ai-inquiry?${params.toString()}`, { headers });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<AdminAIInquiryDetailResponse>(r);
+}
+
+export async function markAdminAILastSeen(seenAt: string = new Date().toISOString()): Promise<{ ok?: boolean; reqId?: string }> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-ai-mark-last-seen`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ seenAt }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<{ ok?: boolean; reqId?: string }>(r);
+}
+
+export async function saveAdminAIDraftEdit(
+  contactSubmissionId: string,
+  draftId: string,
+  payload: { subjectLine?: string | null; bodyText: string }
+): Promise<AdminAISaveDraftEditResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-ai-save-draft-edit`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      contactSubmissionId,
+      draftId,
+      subjectLine: payload.subjectLine ?? null,
+      bodyText: payload.bodyText,
+    }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<AdminAISaveDraftEditResponse>(r);
+}
+
+export async function approveAdminAIDraft(draftId: string): Promise<AdminAIApproveDraftResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/ai-approve-draft`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ draftId }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<AdminAIApproveDraftResponse>(r);
+}
+
+export async function sendAdminAIApprovedDraft(draftId: string): Promise<AdminAISendDraftResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/ai-send-approved-draft`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ draftId }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<AdminAISendDraftResponse>(r);
+}
+
+export async function markAdminAIDraftSent(draftId: string): Promise<AdminAIMarkDraftSentResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-ai-mark-draft-sent`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ draftId }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<AdminAIMarkDraftSentResponse>(r);
 }
 
 // Upload photos (FormData with repeated files)
