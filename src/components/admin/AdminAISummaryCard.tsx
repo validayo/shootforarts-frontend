@@ -12,8 +12,6 @@ interface AdminAISummaryCardProps {
 const metricChipClass = "rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5";
 
 const AdminAISummaryCard = ({ enabled, loading, error, items }: AdminAISummaryCardProps) => {
-  if (!enabled) return null;
-
   const { readyForReviewCount, draftsReadyCount, needsGuidanceCount } = useMemo(() => {
     return items.reduce(
       (acc, item) => {
@@ -31,6 +29,8 @@ const AdminAISummaryCard = ({ enabled, loading, error, items }: AdminAISummaryCa
       { readyForReviewCount: 0, draftsReadyCount: 0, needsGuidanceCount: 0 },
     );
   }, [items]);
+
+  if (!enabled) return null;
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm sm:px-5">
