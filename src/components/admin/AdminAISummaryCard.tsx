@@ -12,10 +12,15 @@ interface AdminAISummaryCardProps {
 const metricChipClass = "rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5";
 
 const AdminAISummaryCard = ({ enabled, loading, error, items }: AdminAISummaryCardProps) => {
+  const reviewedItems = useMemo(
+    () => items.filter((item) => item.analysisStatus === "succeeded"),
+    [items],
+  );
+
   const { readyForReviewCount, draftsReadyCount, needsGuidanceCount } = useMemo(() => {
-    return items.reduce(
+    return reviewedItems.reduce(
       (acc, item) => {
-        if (item.analysisStatus === "succeeded" && item.reviewState === "pending_review") {
+        if (item.reviewState === "pending_review") {
           acc.readyForReviewCount += 1;
         }
         if (item.draftStatus === "generated") {
@@ -28,7 +33,7 @@ const AdminAISummaryCard = ({ enabled, loading, error, items }: AdminAISummaryCa
       },
       { readyForReviewCount: 0, draftsReadyCount: 0, needsGuidanceCount: 0 },
     );
-  }, [items]);
+  }, [reviewedItems]);
 
   if (!enabled) return null;
 
@@ -55,7 +60,7 @@ const AdminAISummaryCard = ({ enabled, loading, error, items }: AdminAISummaryCa
         <div className="mt-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
           AI insights are temporarily unavailable. The rest of the dashboard is still fully usable.
         </div>
-      ) : items.length === 0 ? (
+      ) : reviewedItems.length === 0 ? (
         <div className="mt-2.5 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-3 text-sm text-gray-500">
           AI is enabled but no AI-reviewed inquiries are available yet.
         </div>

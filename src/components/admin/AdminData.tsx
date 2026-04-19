@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Download, TrendingUp, Users, Calendar, Mail, Search, X } from "lucide-react";
 import { supabase, supabaseAnonKey } from "../../lib/supabase";
 import {
+  approveAdminAIDraft,
   BASE,
   getContactSubmissions,
   getNewsletterSubscribers,
@@ -11,6 +12,7 @@ import {
   getAdminAIInbox,
   getAdminAIInquiry,
   markAdminAILastSeen,
+  saveAdminAIDraftEdit,
   type BookingWorkflowStatus,
 } from "../../lib/api/services";
 import {
@@ -39,6 +41,14 @@ interface BookingWorkflowMeta {
   updatedAt: string | null;
 }
 
+interface AIDraftActionState {
+  saving: boolean;
+  approving: boolean;
+  sending: boolean;
+  error: string | null;
+  success: string | null;
+}
+
 const edgeSyncEnabled = (import.meta.env.VITE_ENABLE_EDGE_SYNC ?? "false") === "true";
 const WORKFLOW_STORAGE_KEY = "sfa_admin_booking_workflow_v1";
 const NEEDS_ACTION_STATUSES: BookingStatus[] = ["new", "in_review", "follow_up"];
@@ -56,6 +66,14 @@ const DEFAULT_WORKFLOW: BookingWorkflowMeta = {
   assignedTo: "",
   note: "",
   updatedAt: null,
+};
+
+const DEFAULT_AI_ACTION_STATE: AIDraftActionState = {
+  saving: false,
+  approving: false,
+  sending: false,
+  error: null,
+  success: null,
 };
 
 const workflowStatusClass: Record<BookingStatus, string> = {
@@ -100,9 +118,11 @@ const AdminData: React.FC = () => {
   const [aiDetailById, setAIDetailById] = useState<Record<string, AdminAIInquiryDetailResponse>>({});
   const [aiDetailLoadingById, setAIDetailLoadingById] = useState<Record<string, boolean>>({});
   const [aiDetailErrorById, setAIDetailErrorById] = useState<Record<string, string | null>>({});
+  const [aiActionStateById, setAIActionStateById] = useState<Record<string, AIDraftActionState>>({});
   const saveTimersRef = useRef<Record<string, number>>({});
   const hasMarkedAILastSeenRef = useRef(false);
   const aiFetchStatusRef = useRef<Record<string, boolean>>({});
+  const selectedContactScrollRef = useRef<HTMLDivElement | null>(null);
 
   const formatDate = (timestamp?: string) => {
     if (!timestamp) return "N/A";
@@ -209,53 +229,44 @@ const AdminData: React.FC = () => {
     };
   }, [session]);
 
+  const fetchAIInbox = useCallback(async () => {
+    if (!session || !aiEnabled) return;
+
+    setAIInboxLoading(true);
+    setAIInboxError(null);
+
+    try {
+      const response = await getAdminAIInbox();
+      const items = Array.isArray(response.items) ? response.items : [];
+      const byId = items.reduce<Record<string, AdminAIInboxItem>>((acc, item) => {
+        acc[item.contactSubmissionId] = item;
+        return acc;
+      }, {});
+
+      setAIInboxItems(items);
+      setAIInboxById(byId);
+
+      if (!hasMarkedAILastSeenRef.current) {
+        hasMarkedAILastSeenRef.current = true;
+        void markAdminAILastSeen().catch((fetchError) => {
+          logAdminWarning("admin_data.ai_last_seen_failed", { reason: String(fetchError) });
+        });
+      }
+    } catch (fetchError) {
+      setAIInboxItems([]);
+      setAIInboxById({});
+      setAIInboxError("AI insights are temporarily unavailable.");
+      logAdminWarning("admin_data.ai_inbox_failed", { reason: String(fetchError) });
+    } finally {
+      setAIInboxLoading(false);
+    }
+  }, [session, aiEnabled]);
+
   useEffect(() => {
     if (!session || !aiEnabled) return;
 
-    let cancelled = false;
-
-    const fetchAIInbox = async () => {
-      setAIInboxLoading(true);
-      setAIInboxError(null);
-
-      try {
-        const response = await getAdminAIInbox();
-        if (cancelled) return;
-
-        const items = Array.isArray(response.items) ? response.items : [];
-        const byId = items.reduce<Record<string, AdminAIInboxItem>>((acc, item) => {
-          acc[item.contactSubmissionId] = item;
-          return acc;
-        }, {});
-
-        setAIInboxItems(items);
-        setAIInboxById(byId);
-
-        if (!hasMarkedAILastSeenRef.current) {
-          hasMarkedAILastSeenRef.current = true;
-          void markAdminAILastSeen().catch((error) => {
-            logAdminWarning("admin_data.ai_last_seen_failed", { reason: String(error) });
-          });
-        }
-      } catch (error) {
-        if (cancelled) return;
-        setAIInboxItems([]);
-        setAIInboxById({});
-        setAIInboxError("AI insights are temporarily unavailable.");
-        logAdminWarning("admin_data.ai_inbox_failed", { reason: String(error) });
-      } finally {
-        if (!cancelled) {
-          setAIInboxLoading(false);
-        }
-      }
-    };
-
-    fetchAIInbox();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [session, aiEnabled]);
+    void fetchAIInbox();
+  }, [session, aiEnabled, fetchAIInbox]);
 
   useEffect(() => {
     if (!selectedContact) return;
@@ -272,8 +283,21 @@ const AdminData: React.FC = () => {
     };
   }, [selectedContact]);
 
-  const loadAIInquiryDetail = useCallback(async (contactId: string) => {
-    if (!aiEnabled || !session || aiFetchStatusRef.current[contactId]) return;
+  useEffect(() => {
+    if (!selectedContact) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    selectedContactScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedContact]);
+
+  const loadAIInquiryDetail = useCallback(async (contactId: string, opts: { force?: boolean } = {}) => {
+    if (!aiEnabled || !session) return;
+    if (!opts.force && aiFetchStatusRef.current[contactId]) return;
 
     aiFetchStatusRef.current[contactId] = true;
     setAIDetailLoadingById((prev) => ({ ...prev, [contactId]: true }));
@@ -283,11 +307,11 @@ const AdminData: React.FC = () => {
       const detail = await getAdminAIInquiry(contactId);
       setAIDetailById((prev) => ({ ...prev, [contactId]: detail }));
     } catch (error) {
-      delete aiFetchStatusRef.current[contactId];
       const message = "AI insight could not be loaded.";
       setAIDetailErrorById((prev) => ({ ...prev, [contactId]: message }));
       logAdminError("admin_data.ai_inquiry_failed", { contactId, reason: String(error) });
     } finally {
+      delete aiFetchStatusRef.current[contactId];
       setAIDetailLoadingById((prev) => ({ ...prev, [contactId]: false }));
     }
   }, [aiEnabled, session]);
@@ -296,6 +320,82 @@ const AdminData: React.FC = () => {
     if (!selectedContact || !aiEnabled || aiInboxError || !session) return;
     void loadAIInquiryDetail(selectedContact.id);
   }, [selectedContact, aiEnabled, aiInboxError, session, loadAIInquiryDetail]);
+
+  const setAIActionState = useCallback((contactId: string, patch: Partial<AIDraftActionState>) => {
+    setAIActionStateById((prev) => ({
+      ...prev,
+      [contactId]: {
+        ...(prev[contactId] ?? DEFAULT_AI_ACTION_STATE),
+        ...patch,
+      },
+    }));
+  }, []);
+
+  const refreshAIState = useCallback(async (contactId: string) => {
+    await Promise.all([
+      loadAIInquiryDetail(contactId, { force: true }),
+      fetchAIInbox(),
+    ]);
+  }, [fetchAIInbox, loadAIInquiryDetail]);
+
+  const handleSaveDraftEdit = useCallback(async (
+    contactId: string,
+    draftId: string,
+    payload: { subjectLine?: string | null; bodyText: string },
+  ) => {
+    setAIActionState(contactId, { saving: true, error: null, success: null });
+
+    try {
+      await saveAdminAIDraftEdit(contactId, draftId, payload);
+      await refreshAIState(contactId);
+      setAIActionState(contactId, { saving: false, error: null, success: "Edited draft saved." });
+      logAdminAction("admin_data.ai_draft_saved", { contactId, draftId });
+    } catch (actionError) {
+      const message = "Draft edit could not be saved.";
+      setAIActionState(contactId, { saving: false, error: message, success: null });
+      logAdminError("admin_data.ai_draft_save_failed", { contactId, draftId, reason: String(actionError) });
+      throw actionError;
+    }
+  }, [refreshAIState, setAIActionState]);
+
+  const handleApproveDraft = useCallback(async (contactId: string, draftId: string) => {
+    setAIActionState(contactId, { approving: true, error: null, success: null });
+
+    try {
+      await approveAdminAIDraft(draftId);
+      await refreshAIState(contactId);
+      setAIActionState(contactId, { approving: false, error: null, success: "Draft approved. Copy and send it manually." });
+      logAdminAction("admin_data.ai_draft_approved", { contactId, draftId });
+    } catch (actionError) {
+      const message = "Draft approval failed.";
+      setAIActionState(contactId, { approving: false, error: message, success: null });
+      logAdminError("admin_data.ai_draft_approve_failed", { contactId, draftId, reason: String(actionError) });
+    }
+  }, [refreshAIState, setAIActionState]);
+
+  const handleCopyDraft = useCallback(async (
+    contactId: string,
+    payload: { subjectLine?: string | null; bodyText: string },
+  ) => {
+    try {
+      const clipboardText = payload.subjectLine?.trim()
+        ? `${payload.subjectLine.trim()}\n\n${payload.bodyText}`
+        : payload.bodyText;
+      await navigator.clipboard.writeText(clipboardText);
+      setAIActionState(contactId, {
+        saving: false,
+        approving: false,
+        sending: false,
+        error: null,
+        success: "Draft copied. Send it manually, then mark it as sent later.",
+      });
+      logAdminAction("admin_data.ai_draft_copied", { contactId });
+    } catch (actionError) {
+      const message = "Draft copy failed. You can still copy it manually.";
+      setAIActionState(contactId, { error: message, success: null });
+      logAdminError("admin_data.ai_draft_copy_failed", { contactId, reason: String(actionError) });
+    }
+  }, [setAIActionState]);
 
   useEffect(() => {
     try {
@@ -555,6 +655,13 @@ const AdminData: React.FC = () => {
 
   const canRenderAIState = aiEnabled && !aiInboxError;
 
+  const hasMeaningfulAIState = (item: AdminAIInboxItem | undefined) => {
+    if (!item) return false;
+    if (item.analysisStatus === "succeeded") return true;
+    if (item.analysisStatus === "failed") return true;
+    return Boolean(item.draftStatus || item.reviewState || item.summary || item.recommendedCatalogItem || typeof item.confidenceScore === "number");
+  };
+
   const getAIStatusLabel = (status: AdminAIInboxItem["analysisStatus"]) => {
     if (status === "succeeded") return "AI Ready";
     if (status === "pending") return "AI Pending";
@@ -582,24 +689,26 @@ const AdminData: React.FC = () => {
   const renderAIState = (contactId: string) => {
     if (!canRenderAIState) return null;
     const item = aiInboxById[contactId];
-    if (!item) return null;
+    if (!hasMeaningfulAIState(item)) return null;
 
     return (
-      <div className="mt-2 space-y-2">
+      <div className="mt-2 space-y-1.5">
         <div className="flex flex-wrap gap-2">
           <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${aiStatusClassByKey[item.analysisStatus]}`}>
             {getAIStatusLabel(item.analysisStatus)}
           </span>
-          {item.reviewState && (
+          {item.reviewState && item.reviewState !== "pending_review" && (
             <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200">
               {item.reviewState.replace(/_/g, " ")}
             </span>
           )}
         </div>
-        <p className="text-xs text-gray-600">
-          {getAIRecommendationLabel(item)}
-          {typeof item.confidenceScore === "number" ? ` • ${Math.round(item.confidenceScore * 100)}% confidence` : ""}
-        </p>
+        {item.analysisStatus === "succeeded" && (
+          <p className="text-xs text-gray-600">
+            {getAIRecommendationLabel(item)}
+            {typeof item.confidenceScore === "number" ? ` • ${Math.round(item.confidenceScore * 100)}% confidence` : ""}
+          </p>
+        )}
       </div>
     );
   };
@@ -838,6 +947,7 @@ const AdminData: React.FC = () => {
   const selectedAIDetail = selectedContact ? aiDetailById[selectedContact.id] ?? null : null;
   const selectedAILoading = selectedContact ? Boolean(aiDetailLoadingById[selectedContact.id]) : false;
   const selectedAIError = selectedContact ? aiDetailErrorById[selectedContact.id] ?? null : null;
+  const selectedAIActionState = selectedContact ? aiActionStateById[selectedContact.id] ?? DEFAULT_AI_ACTION_STATE : DEFAULT_AI_ACTION_STATE;
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
@@ -1260,6 +1370,16 @@ const AdminData: React.FC = () => {
                                         detail={aiDetailById[c.id] ?? null}
                                         loading={Boolean(aiDetailLoadingById[c.id])}
                                         error={aiDetailErrorById[c.id] ?? null}
+                                        actionState={aiActionStateById[c.id] ?? DEFAULT_AI_ACTION_STATE}
+                                        onSaveEdit={async (contactSubmissionId, draftId, payload) => {
+                                          await handleSaveDraftEdit(contactSubmissionId, draftId, payload);
+                                        }}
+                                        onApprove={async (draftId) => {
+                                          await handleApproveDraft(c.id, draftId);
+                                        }}
+                                        onCopyDraft={async (draft) => {
+                                          await handleCopyDraft(c.id, draft);
+                                        }}
                                       />
                                     </div>
                                   </div>
@@ -1325,7 +1445,7 @@ const AdminData: React.FC = () => {
 
       {selectedContact && (
         <div
-          className="fixed inset-0 z-50 flex items-end bg-black/50 pt-6 sm:items-center sm:justify-center sm:p-6 2xl:hidden"
+          className="fixed inset-0 z-50 flex items-end bg-transparent pt-6 sm:items-center sm:justify-center sm:p-6 2xl:hidden"
           role="dialog"
           aria-modal="true"
           aria-labelledby="mobile-contact-title"
@@ -1377,10 +1497,26 @@ const AdminData: React.FC = () => {
                 </a>
               )}
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 text-sm leading-6 text-gray-800">
+            <div ref={selectedContactScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 text-sm leading-6 text-gray-800">
               <div className="space-y-4 pb-6">
               <section className="rounded-lg border border-gray-200 bg-gray-50 p-3">{renderWorkflowEditor(selectedContact, true)}</section>
-              <AdminAIInsightSection detail={selectedAIDetail} loading={selectedAILoading} error={selectedAIError} />
+              <AdminAIInsightSection
+                detail={selectedAIDetail}
+                loading={selectedAILoading}
+                error={selectedAIError}
+                actionState={selectedAIActionState}
+                onSaveEdit={async (contactSubmissionId, draftId, payload) => {
+                  await handleSaveDraftEdit(contactSubmissionId, draftId, payload);
+                }}
+                onApprove={async (draftId) => {
+                  if (!selectedContact) return;
+                  await handleApproveDraft(selectedContact.id, draftId);
+                }}
+                onCopyDraft={async (draft) => {
+                  if (!selectedContact) return;
+                  await handleCopyDraft(selectedContact.id, draft);
+                }}
+              />
               <section className="space-y-2">{renderContactDetails(selectedContact)}</section>
               </div>
             </div>
