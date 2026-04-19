@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import type { AdminAIInboxItem } from "../../utils";
 
 interface AdminAISummaryCardProps {
@@ -12,11 +14,23 @@ const metricChipClass = "rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.
 const AdminAISummaryCard = ({ enabled, loading, error, items }: AdminAISummaryCardProps) => {
   if (!enabled) return null;
 
-  const readyForReviewCount = items.filter(
-    (item) => item.analysisStatus === "succeeded" && item.reviewState === "pending_review"
-  ).length;
-  const draftsReadyCount = items.filter((item) => item.draftStatus === "generated").length;
-  const needsGuidanceCount = items.filter((item) => item.recommendedAction !== "recommend_catalog").length;
+  const { readyForReviewCount, draftsReadyCount, needsGuidanceCount } = useMemo(() => {
+    return items.reduce(
+      (acc, item) => {
+        if (item.analysisStatus === "succeeded" && item.reviewState === "pending_review") {
+          acc.readyForReviewCount += 1;
+        }
+        if (item.draftStatus === "generated") {
+          acc.draftsReadyCount += 1;
+        }
+        if (item.recommendedAction !== "recommend_catalog") {
+          acc.needsGuidanceCount += 1;
+        }
+        return acc;
+      },
+      { readyForReviewCount: 0, draftsReadyCount: 0, needsGuidanceCount: 0 },
+    );
+  }, [items]);
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm sm:px-5">

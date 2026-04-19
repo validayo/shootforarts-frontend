@@ -25,6 +25,7 @@ import type { Session } from "@supabase/supabase-js";
 import { logAdminAction, logAdminError, logAdminWarning } from "../../lib/observability/logger";
 import AdminAISummaryCard from "./AdminAISummaryCard";
 import AdminAIInsightSection from "./AdminAIInsightSection";
+import { aiStatusClassByKey } from "./adminAIStyles";
 
 type DateFilterOption = "all" | "7days" | "30days" | "90days";
 type Subscriber = AdminSubscriber;
@@ -77,12 +78,6 @@ const workflowSortRank: Record<BookingStatus, number> = {
 const normalizeBookingStatus = (value?: string | null): BookingStatus =>
   value && value in STATUS_LABELS ? (value as BookingStatus) : DEFAULT_WORKFLOW.status;
 
-const aiBadgeClass: Record<string, string> = {
-  succeeded: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
-  pending: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
-  failed: "bg-rose-50 text-rose-700 ring-1 ring-rose-100",
-};
-
 const AdminData: React.FC = () => {
   const aiEnabled = (import.meta.env.VITE_ENABLE_AI_ADMIN ?? "false") === "true";
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -107,6 +102,7 @@ const AdminData: React.FC = () => {
   const [aiDetailErrorById, setAIDetailErrorById] = useState<Record<string, string | null>>({});
   const saveTimersRef = useRef<Record<string, number>>({});
   const hasMarkedAILastSeenRef = useRef(false);
+  const aiFetchStatusRef = useRef<Record<string, boolean>>({});
 
   const formatDate = (timestamp?: string) => {
     if (!timestamp) return "N/A";
@@ -277,8 +273,9 @@ const AdminData: React.FC = () => {
   }, [selectedContact]);
 
   const loadAIInquiryDetail = useCallback(async (contactId: string) => {
-    if (!aiEnabled || !session || aiDetailById[contactId] || aiDetailLoadingById[contactId]) return;
+    if (!aiEnabled || !session || aiFetchStatusRef.current[contactId]) return;
 
+    aiFetchStatusRef.current[contactId] = true;
     setAIDetailLoadingById((prev) => ({ ...prev, [contactId]: true }));
     setAIDetailErrorById((prev) => ({ ...prev, [contactId]: null }));
 
@@ -286,13 +283,14 @@ const AdminData: React.FC = () => {
       const detail = await getAdminAIInquiry(contactId);
       setAIDetailById((prev) => ({ ...prev, [contactId]: detail }));
     } catch (error) {
+      delete aiFetchStatusRef.current[contactId];
       const message = "AI insight could not be loaded.";
       setAIDetailErrorById((prev) => ({ ...prev, [contactId]: message }));
       logAdminError("admin_data.ai_inquiry_failed", { contactId, reason: String(error) });
     } finally {
       setAIDetailLoadingById((prev) => ({ ...prev, [contactId]: false }));
     }
-  }, [aiEnabled, session, aiDetailById, aiDetailLoadingById]);
+  }, [aiEnabled, session]);
 
   useEffect(() => {
     if (!selectedContact || !aiEnabled || aiInboxError || !session) return;
@@ -589,7 +587,7 @@ const AdminData: React.FC = () => {
     return (
       <div className="mt-2 space-y-2">
         <div className="flex flex-wrap gap-2">
-          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${aiBadgeClass[item.analysisStatus]}`}>
+          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${aiStatusClassByKey[item.analysisStatus]}`}>
             {getAIStatusLabel(item.analysisStatus)}
           </span>
           {item.reviewState && (
