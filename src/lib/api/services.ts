@@ -5,6 +5,7 @@ import {
   type AdminAIInboxResponse,
   type AdminAIInquiryDetailResponse,
   type AdminAIApproveDraftResponse,
+  type AdminAIMarkDraftSentResponse,
   type AdminAISaveDraftEditResponse,
   type AdminAISendDraftResponse,
 } from "../../utils";
@@ -202,6 +203,17 @@ export async function sendAdminAIApprovedDraft(draftId: string): Promise<AdminAI
   });
   if (!r.ok) throw new Error(await r.text());
   return parseJsonOrText<AdminAISendDraftResponse>(r);
+}
+
+export async function markAdminAIDraftSent(draftId: string): Promise<AdminAIMarkDraftSentResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-ai-mark-draft-sent`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ draftId }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJsonOrText<AdminAIMarkDraftSentResponse>(r);
 }
 
 // Upload photos (FormData with repeated files)

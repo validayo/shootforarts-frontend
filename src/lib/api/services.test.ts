@@ -13,7 +13,19 @@ vi.mock("../auth/session", () => ({
   getAccessToken: vi.fn(),
 }));
 
-import { BASE, getAdminAIInbox, getAdminAIInquiry, getGallery, markAdminAILastSeen, submitContact, subscribe } from "./services";
+import {
+  approveAdminAIDraft,
+  BASE,
+  getAdminAIInbox,
+  getAdminAIInquiry,
+  getGallery,
+  markAdminAIDraftSent,
+  markAdminAILastSeen,
+  saveAdminAIDraftEdit,
+  sendAdminAIApprovedDraft,
+  submitContact,
+  subscribe,
+} from "./services";
 
 const fetchMock = vi.fn();
 
@@ -172,6 +184,98 @@ describe("api/services wrappers", () => {
         apikey: "anon-key",
       },
       body: JSON.stringify({ seenAt: "2026-04-19T00:00:00.000Z" }),
+    });
+  });
+
+  it("posts a manual admin draft edit", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, draftId: "draft-2", versionNumber: 2, status: "edited" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await saveAdminAIDraftEdit("contact-1", "draft-1", {
+      subjectLine: "Updated subject",
+      bodyText: "Updated draft body",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/admin-ai-save-draft-edit`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+      body: JSON.stringify({
+        contactSubmissionId: "contact-1",
+        draftId: "draft-1",
+        subjectLine: "Updated subject",
+        bodyText: "Updated draft body",
+      }),
+    });
+  });
+
+  it("posts draft approval with protected headers", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, draftId: "draft-2", status: "approved" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await approveAdminAIDraft("draft-2");
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/ai-approve-draft`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+      body: JSON.stringify({ draftId: "draft-2" }),
+    });
+  });
+
+  it("posts approved draft sending with protected headers", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, draftId: "draft-2", status: "sent", sentAt: "2026-04-19T00:00:00.000Z", toEmail: "client@example.com" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await sendAdminAIApprovedDraft("draft-2");
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/ai-send-approved-draft`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+      body: JSON.stringify({ draftId: "draft-2" }),
+    });
+  });
+
+  it("posts manual sent confirmation with protected headers", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, draftId: "draft-2", status: "sent", sentAt: "2026-04-19T00:00:00.000Z" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await markAdminAIDraftSent("draft-2");
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/admin-ai-mark-draft-sent`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+      body: JSON.stringify({ draftId: "draft-2" }),
     });
   });
 });

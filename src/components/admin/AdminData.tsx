@@ -12,6 +12,7 @@ import {
   getAdminAIInbox,
   getAdminAIInquiry,
   markAdminAILastSeen,
+  markAdminAIDraftSent,
   saveAdminAIDraftEdit,
   type BookingWorkflowStatus,
 } from "../../lib/api/services";
@@ -396,6 +397,25 @@ const AdminData: React.FC = () => {
       logAdminError("admin_data.ai_draft_copy_failed", { contactId, reason: String(actionError) });
     }
   }, [setAIActionState]);
+
+  const handleMarkDraftSent = useCallback(async (contactId: string, draftId: string) => {
+    setAIActionState(contactId, { sending: true, error: null, success: null });
+
+    try {
+      await markAdminAIDraftSent(draftId);
+      await refreshAIState(contactId);
+      setAIActionState(contactId, {
+        sending: false,
+        error: null,
+        success: "Draft marked as sent.",
+      });
+      logAdminAction("admin_data.ai_draft_marked_sent", { contactId, draftId });
+    } catch (actionError) {
+      const message = "Could not mark draft as sent.";
+      setAIActionState(contactId, { sending: false, error: message, success: null });
+      logAdminError("admin_data.ai_draft_mark_sent_failed", { contactId, draftId, reason: String(actionError) });
+    }
+  }, [refreshAIState, setAIActionState]);
 
   useEffect(() => {
     try {
@@ -1380,6 +1400,9 @@ const AdminData: React.FC = () => {
                                         onCopyDraft={async (draft) => {
                                           await handleCopyDraft(c.id, draft);
                                         }}
+                                        onMarkSent={async (draftId) => {
+                                          await handleMarkDraftSent(c.id, draftId);
+                                        }}
                                       />
                                     </div>
                                   </div>
@@ -1515,6 +1538,10 @@ const AdminData: React.FC = () => {
                 onCopyDraft={async (draft) => {
                   if (!selectedContact) return;
                   await handleCopyDraft(selectedContact.id, draft);
+                }}
+                onMarkSent={async (draftId) => {
+                  if (!selectedContact) return;
+                  await handleMarkDraftSent(selectedContact.id, draftId);
                 }}
               />
               <section className="space-y-2">{renderContactDetails(selectedContact)}</section>

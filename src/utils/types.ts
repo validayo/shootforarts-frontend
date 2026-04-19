@@ -77,6 +77,7 @@ export type AdminAIReviewActionType =
   | "reviewed"
   | "approved"
   | "archived"
+  | "send_confirmed"
   | "send_requested"
   | "send_succeeded"
   | "send_failed";
@@ -186,6 +187,14 @@ export interface AdminAISendDraftResponse {
   status: "sent";
   sentAt: string;
   toEmail: string;
+  reqId?: string;
+}
+
+export interface AdminAIMarkDraftSentResponse {
+  ok: boolean;
+  draftId: string;
+  status: "sent";
+  sentAt: string;
   reqId?: string;
 }
 

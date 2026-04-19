@@ -17,6 +17,7 @@ interface AdminAIInsightSectionProps {
   onSaveEdit?: (contactSubmissionId: string, draftId: string, payload: { subjectLine?: string | null; bodyText: string }) => Promise<void>;
   onApprove?: (draftId: string) => Promise<void>;
   onCopyDraft?: (draft: { subjectLine?: string | null; bodyText: string }) => Promise<void> | void;
+  onMarkSent?: (draftId: string) => Promise<void>;
 }
 
 const labelize = (value: string) =>
@@ -65,6 +66,7 @@ const AdminAIInsightSection = ({
   onSaveEdit,
   onApprove,
   onCopyDraft,
+  onMarkSent,
 }: AdminAIInsightSectionProps) => {
   const activeAnalysis = detail?.activeAnalysis ?? null;
   const latestDraft = detail ? getLatestDraft(detail.draftVersions) : null;
@@ -276,19 +278,32 @@ const AdminAIInsightSection = ({
                     </button>
                   )}
                   {sendableDraft && !isEditing && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!onCopyDraft) return;
-                        void onCopyDraft({
-                          subjectLine: sendableDraft.subject_line,
-                          bodyText: sendableDraft.body_text,
-                        });
-                      }}
-                      className="inline-flex rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white hover:bg-gray-700"
-                    >
-                      Copy Draft
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!onCopyDraft) return;
+                          void onCopyDraft({
+                            subjectLine: sendableDraft.subject_line,
+                            bodyText: sendableDraft.body_text,
+                          });
+                        }}
+                        className="inline-flex rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white hover:bg-gray-700"
+                      >
+                        Copy Draft
+                      </button>
+                      <button
+                        type="button"
+                        disabled={Boolean(actionState?.sending) || !onMarkSent}
+                        onClick={() => {
+                          if (!onMarkSent) return;
+                          void onMarkSent(sendableDraft.id);
+                        }}
+                        className="inline-flex rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {actionState?.sending ? "Marking..." : "Mark as Sent"}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

@@ -176,5 +176,6 @@ describe("AdminAIInsightSection", () => {
     );
 
     expect(screen.getByRole("button", { name: "Copy Draft" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mark as Sent" })).toBeInTheDocument();
   });
 });
