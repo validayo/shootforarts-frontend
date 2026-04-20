@@ -14,13 +14,19 @@ vi.mock("../auth/session", () => ({
 }));
 
 import {
+  askAdminAssistant,
+  uploadAdminAssistantAttachment,
+  askAdminAIInquiryAssistant,
   approveAdminAIDraft,
+  archiveAdminAIContextNote,
   BASE,
   getAdminAIInbox,
   getAdminAIInquiry,
   getGallery,
   markAdminAIDraftSent,
   markAdminAILastSeen,
+  rewriteAdminAIDraft,
+  saveAdminAIContextNote,
   saveAdminAIDraftEdit,
   sendAdminAIApprovedDraft,
   submitContact,
@@ -146,6 +152,9 @@ describe("api/services wrappers", () => {
           draftVersions: [],
           latestApprovedDraft: null,
           reviewActions: [],
+          contextNotes: [],
+          assistantThread: null,
+          assistantMessages: [],
           workflowStatus: null,
         }),
         {
@@ -184,6 +193,51 @@ describe("api/services wrappers", () => {
         apikey: "anon-key",
       },
       body: JSON.stringify({ seenAt: "2026-04-19T00:00:00.000Z" }),
+    });
+  });
+
+  it("posts a context note save with protected headers", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, contextNoteId: "note-1", contactSubmissionId: "contact-1", status: "active" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await saveAdminAIContextNote("contact-1", "Client called with updated location details.");
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/admin-ai-save-context-note`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+      body: JSON.stringify({
+        contactSubmissionId: "contact-1",
+        note: "Client called with updated location details.",
+      }),
+    });
+  });
+
+  it("posts context note archive with protected headers", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, contextNoteId: "note-1", status: "archived" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await archiveAdminAIContextNote("note-1");
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/admin-ai-archive-context-note`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+      body: JSON.stringify({ contextNoteId: "note-1" }),
     });
   });
 
@@ -235,6 +289,194 @@ describe("api/services wrappers", () => {
       },
       body: JSON.stringify({ draftId: "draft-2" }),
     });
+  });
+
+  it("posts rewrite/regenerate requests with protected headers", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, draftId: "draft-3", versionNumber: 3, status: "generated", runId: "run-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await rewriteAdminAIDraft("contact-1", "draft-2", {
+      mode: "rewrite",
+      selectedContextNoteIds: ["note-1", "note-2"],
+      instruction: "Shorten this and reference the updated location.",
+      tone: "warm-professional",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/ai-chat-edit-draft`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+      body: JSON.stringify({
+        contactSubmissionId: "contact-1",
+        draftId: "draft-2",
+        mode: "rewrite",
+        selectedContextNoteIds: ["note-1", "note-2"],
+        instruction: "Shorten this and reference the updated location.",
+        tone: "warm-professional",
+      }),
+    });
+  });
+
+  it("posts assistant requests with protected headers", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        ok: true,
+        threadId: "thread-1",
+        requestMessageId: "message-1",
+        responseMessageId: "message-2",
+        taskType: "pricing_guidance",
+        answer: "Lead with a custom quote direction.",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await askAdminAIInquiryAssistant("contact-1", {
+      taskType: "pricing_guidance",
+      message: "What pricing direction makes sense here?",
+      selectedContextNoteIds: ["note-1"],
+      sourceDraftId: "draft-2",
+      threadId: "thread-1",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/ai-inquiry-assistant`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+      body: JSON.stringify({
+        contactSubmissionId: "contact-1",
+        taskType: "pricing_guidance",
+        message: "What pricing direction makes sense here?",
+        selectedContextNoteIds: ["note-1"],
+        sourceDraftId: "draft-2",
+        threadId: "thread-1",
+      }),
+    });
+  });
+
+  it("posts general assistant requests with bounded recent turns and optional inquiry reference", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        ok: true,
+        taskType: "location_ideas",
+        answer: "Try a rooftop or lakeside direction with flexible golden-hour timing.",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await askAdminAssistant({
+      taskType: "location_ideas",
+      message: "What kinds of Toronto locations fit a creative portrait shoot?",
+      recentTurns: [
+        {
+          role: "admin",
+          content: "I want options that feel elevated but not overused.",
+          taskType: "location_ideas",
+          createdAt: "2026-04-19T00:00:00.000Z",
+        },
+      ],
+      inquiryReference: {
+        contactSubmissionId: "contact-1",
+      },
+      attachmentIds: ["attachment-1", "attachment-2"],
+      enableResearch: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/admin-ai-assistant`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+      body: JSON.stringify({
+        taskType: "location_ideas",
+        message: "What kinds of Toronto locations fit a creative portrait shoot?",
+        recentTurns: [
+          {
+            role: "admin",
+            content: "I want options that feel elevated but not overused.",
+          },
+        ],
+        attachments: [{ id: "attachment-1" }, { id: "attachment-2" }],
+        enableResearch: true,
+        inquiryReference: {
+          contactSubmissionId: "contact-1",
+        },
+      }),
+    });
+  });
+
+  it("surfaces structured backend errors for general assistant requests", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        error: "OpenAI structured output validation failure: General assistant model output has invalid source url protocol",
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(
+      askAdminAssistant({
+        taskType: "location_ideas",
+        message: "Need staircase locations",
+      }),
+    ).rejects.toThrow("OpenAI structured output validation failure: General assistant model output has invalid source url protocol");
+  });
+
+  it("uploads assistant attachments with form data and protected headers", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        ok: true,
+        attachment: {
+          id: "attachment-1",
+          kind: "image",
+          bucket: "ai-assistant-attachments",
+          path: "admin/attachment.png",
+          mimeType: "image/png",
+          sizeBytes: 1024,
+          width: null,
+          height: null,
+          expiresAt: "2026-04-20T12:00:00.000Z",
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const file = new File(["test"], "reference.png", { type: "image/png" });
+    await uploadAdminAssistantAttachment(file, "contact-1");
+
+    const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1] ?? [];
+    const [url, options] = lastCall;
+    expect(url).toBe(`${BASE}/admin-ai-assistant-upload-attachment`);
+    expect(options?.method).toBe("POST");
+    expect(options?.headers).toEqual({
+      Authorization: "Bearer admin-token",
+      apikey: "anon-key",
+    });
+    expect(options?.body).toBeInstanceOf(FormData);
+    const formData = options?.body as FormData;
+    expect(formData.get("contactSubmissionId")).toBe("contact-1");
+    const uploadedFile = formData.get("file");
+    expect(uploadedFile).toBeInstanceOf(File);
+    expect((uploadedFile as File).name).toBe(file.name);
+    expect((uploadedFile as File).type).toBe(file.type);
   });
 
   it("posts approved draft sending with protected headers", async () => {

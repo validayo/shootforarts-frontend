@@ -3,7 +3,9 @@ import { motion } from "framer-motion";
 import { Download, TrendingUp, Users, Calendar, Mail, Search, X } from "lucide-react";
 import { supabase, supabaseAnonKey } from "../../lib/supabase";
 import {
+  askAdminAIInquiryAssistant,
   approveAdminAIDraft,
+  archiveAdminAIContextNote,
   BASE,
   getContactSubmissions,
   getNewsletterSubscribers,
@@ -13,11 +15,14 @@ import {
   getAdminAIInquiry,
   markAdminAILastSeen,
   markAdminAIDraftSent,
+  rewriteAdminAIDraft,
+  saveAdminAIContextNote,
   saveAdminAIDraftEdit,
   type BookingWorkflowStatus,
 } from "../../lib/api/services";
 import {
   Contact,
+  type AdminAIAssistantTaskType,
   parseInspirationLinks,
   type AdminAIInboxItem,
   type AdminAIInquiryDetailResponse,
@@ -46,6 +51,10 @@ interface AIDraftActionState {
   saving: boolean;
   approving: boolean;
   sending: boolean;
+  savingContext: boolean;
+  archivingContext: boolean;
+  rewriting: boolean;
+  assistantAsking: boolean;
   error: string | null;
   success: string | null;
 }
@@ -73,6 +82,10 @@ const DEFAULT_AI_ACTION_STATE: AIDraftActionState = {
   saving: false,
   approving: false,
   sending: false,
+  savingContext: false,
+  archivingContext: false,
+  rewriting: false,
+  assistantAsking: false,
   error: null,
   success: null,
 };
@@ -416,6 +429,118 @@ const AdminData: React.FC = () => {
       logAdminError("admin_data.ai_draft_mark_sent_failed", { contactId, draftId, reason: String(actionError) });
     }
   }, [refreshAIState, setAIActionState]);
+
+  const handleSaveContextNote = useCallback(async (contactId: string, note: string) => {
+    setAIActionState(contactId, { savingContext: true, error: null, success: null });
+
+    try {
+      await saveAdminAIContextNote(contactId, note);
+      await refreshAIState(contactId);
+      setAIActionState(contactId, {
+        savingContext: false,
+        error: null,
+        success: "Context note saved.",
+      });
+      logAdminAction("admin_data.ai_context_note_saved", { contactId });
+    } catch (actionError) {
+      const message = "Context note could not be saved.";
+      setAIActionState(contactId, { savingContext: false, error: message, success: null });
+      logAdminError("admin_data.ai_context_note_save_failed", { contactId, reason: String(actionError) });
+      throw actionError;
+    }
+  }, [refreshAIState, setAIActionState]);
+
+  const handleArchiveContextNote = useCallback(async (contactId: string, contextNoteId: string) => {
+    setAIActionState(contactId, { archivingContext: true, error: null, success: null });
+
+    try {
+      await archiveAdminAIContextNote(contextNoteId);
+      await refreshAIState(contactId);
+      setAIActionState(contactId, {
+        archivingContext: false,
+        error: null,
+        success: "Context note archived.",
+      });
+      logAdminAction("admin_data.ai_context_note_archived", { contactId, contextNoteId });
+    } catch (actionError) {
+      const message = "Context note could not be archived.";
+      setAIActionState(contactId, { archivingContext: false, error: message, success: null });
+      logAdminError("admin_data.ai_context_note_archive_failed", { contactId, contextNoteId, reason: String(actionError) });
+    }
+  }, [refreshAIState, setAIActionState]);
+
+  const handleRewriteDraft = useCallback(async (
+    contactId: string,
+    draftId: string,
+    payload: { mode: "rewrite" | "regenerate"; selectedContextNoteIds: string[]; instruction?: string | null; tone?: string | null },
+  ) => {
+    setAIActionState(contactId, { rewriting: true, error: null, success: null });
+
+    try {
+      await rewriteAdminAIDraft(contactId, draftId, payload);
+      await refreshAIState(contactId);
+      setAIActionState(contactId, {
+        rewriting: false,
+        error: null,
+        success: "New draft generated from selected context.",
+      });
+      logAdminAction("admin_data.ai_draft_rewritten", {
+        contactId,
+        draftId,
+        mode: payload.mode,
+        selectedContextNoteIds: payload.selectedContextNoteIds,
+      });
+    } catch (actionError) {
+      const message = payload.mode === "rewrite" ? "Draft rewrite failed." : "Draft regenerate failed.";
+      setAIActionState(contactId, { rewriting: false, error: message, success: null });
+      logAdminError("admin_data.ai_draft_rewrite_failed", {
+        contactId,
+        draftId,
+        mode: payload.mode,
+        selectedContextNoteIds: payload.selectedContextNoteIds,
+        reason: String(actionError),
+      });
+      throw actionError;
+    }
+  }, [refreshAIState, setAIActionState]);
+
+  const handleAskAssistant = useCallback(async (
+    contactId: string,
+    payload: {
+      taskType: AdminAIAssistantTaskType;
+      message: string;
+      selectedContextNoteIds: string[];
+      sourceDraftId?: string | null;
+      threadId?: string | null;
+    },
+  ) => {
+    setAIActionState(contactId, { assistantAsking: true, error: null, success: null });
+
+    try {
+      await askAdminAIInquiryAssistant(contactId, payload);
+      await loadAIInquiryDetail(contactId, { force: true });
+      setAIActionState(contactId, {
+        assistantAsking: false,
+        error: null,
+        success: "Assistant response added.",
+      });
+      logAdminAction("admin_data.ai_assistant_asked", {
+        contactId,
+        taskType: payload.taskType,
+        selectedContextNoteIds: payload.selectedContextNoteIds,
+      });
+    } catch (actionError) {
+      const message = "Assistant response could not be generated.";
+      setAIActionState(contactId, { assistantAsking: false, error: message, success: null });
+      logAdminError("admin_data.ai_assistant_failed", {
+        contactId,
+        taskType: payload.taskType,
+        selectedContextNoteIds: payload.selectedContextNoteIds,
+        reason: String(actionError),
+      });
+      throw actionError;
+    }
+  }, [loadAIInquiryDetail, setAIActionState]);
 
   useEffect(() => {
     try {
@@ -1403,6 +1528,18 @@ const AdminData: React.FC = () => {
                                         onMarkSent={async (draftId) => {
                                           await handleMarkDraftSent(c.id, draftId);
                                         }}
+                                        onSaveContextNote={async (note) => {
+                                          await handleSaveContextNote(c.id, note);
+                                        }}
+                                        onArchiveContextNote={async (contextNoteId) => {
+                                          await handleArchiveContextNote(c.id, contextNoteId);
+                                        }}
+                                        onRewriteDraft={async (draftId, payload) => {
+                                          await handleRewriteDraft(c.id, draftId, payload);
+                                        }}
+                                        onAskAssistant={async (payload) => {
+                                          await handleAskAssistant(c.id, payload);
+                                        }}
                                       />
                                     </div>
                                   </div>
@@ -1542,6 +1679,22 @@ const AdminData: React.FC = () => {
                 onMarkSent={async (draftId) => {
                   if (!selectedContact) return;
                   await handleMarkDraftSent(selectedContact.id, draftId);
+                }}
+                onSaveContextNote={async (note) => {
+                  if (!selectedContact) return;
+                  await handleSaveContextNote(selectedContact.id, note);
+                }}
+                onArchiveContextNote={async (contextNoteId) => {
+                  if (!selectedContact) return;
+                  await handleArchiveContextNote(selectedContact.id, contextNoteId);
+                }}
+                onRewriteDraft={async (draftId, payload) => {
+                  if (!selectedContact) return;
+                  await handleRewriteDraft(selectedContact.id, draftId, payload);
+                }}
+                onAskAssistant={async (payload) => {
+                  if (!selectedContact) return;
+                  await handleAskAssistant(selectedContact.id, payload);
                 }}
               />
               <section className="space-y-2">{renderContactDetails(selectedContact)}</section>
