@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Calendar as CalendarIcon, Image, LogOut, Menu, Upload, Users, X } from "lucide-react";
+import { Calendar as CalendarIcon, Image, LogOut, Menu, MessageSquare, Upload, Users, X } from "lucide-react";
 import { ROUTES } from "../../config/routes";
 
-type AdminNavKey = "dashboard" | "calendar" | "upload" | "gallery";
+type AdminNavKey = "dashboard" | "assistant" | "calendar" | "upload" | "gallery";
 
 interface AdminShellLayoutProps {
   title: string;
@@ -20,6 +20,7 @@ const navItems: Array<{
   icon: React.ComponentType<{ className?: string }>;
 }> = [
   { key: "dashboard", label: "Dashboard", href: ROUTES.admin.dashboard, icon: Users },
+  { key: "assistant", label: "Assistant", href: ROUTES.admin.assistant, icon: MessageSquare },
   { key: "calendar", label: "Calendar", href: ROUTES.admin.calendar, icon: CalendarIcon },
   { key: "upload", label: "Upload", href: ROUTES.admin.upload, icon: Upload },
   { key: "gallery", label: "Gallery Manager", href: ROUTES.admin.galleryManager, icon: Image },

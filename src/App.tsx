@@ -18,6 +18,7 @@ const ContactThankYouPage = lazy(() => import("./pages/public/ContactThankYouPag
 const NotFoundPage = lazy(() => import("./pages/public/NotFoundPage"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLoginPage"));
 const AdminPage = lazy(() => import("./pages/admin/AdminPage"));
+const AdminAssistantPage = lazy(() => import("./pages/admin/AdminAssistantPage"));
 const AdminGalleryManager = lazy(() => import("./pages/admin/AdminGalleryManagerPage"));
 
 const AdminIndexRedirect = () => {
@@ -58,6 +59,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path={ROUTES.admin.assistant}
+                  element={
+                    <ProtectedRoute>
+                      <AdminAssistantPage />
                     </ProtectedRoute>
                   }
                 />

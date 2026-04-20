@@ -11,6 +11,7 @@ export const ROUTES = {
     base: "/sfaadmin",
     login: "/sfaadmin/login",
     dashboard: "/sfaadmin/dashboard",
+    assistant: "/sfaadmin/assistant",
     calendar: "/sfaadmin/calendar",
     calendarAlias: "/sfaadmin/calender",
     upload: "/sfaadmin/upload",
