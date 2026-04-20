@@ -2,10 +2,20 @@ import {
   Photo,
   ContactFormData,
   Contact,
+  type AdminAIAssistantTaskType,
+  type AdminGeneralAssistantInquiryReference,
+  type AdminGeneralAssistantUploadAttachmentResponse,
+  type AdminGeneralAssistantResponse,
+  type AdminGeneralAssistantTaskType,
+  type AdminGeneralAssistantTurn,
   type AdminAIInboxResponse,
   type AdminAIInquiryDetailResponse,
   type AdminAIApproveDraftResponse,
+  type AdminAIArchiveContextNoteResponse,
+  type AdminAIInquiryAssistantResponse,
+  type AdminAIRewriteDraftResponse,
   type AdminAIMarkDraftSentResponse,
+  type AdminAISaveContextNoteResponse,
   type AdminAISaveDraftEditResponse,
   type AdminAISendDraftResponse,
 } from "../../utils";
@@ -51,14 +61,41 @@ async function parseJsonOrText<T = unknown>(response: Response): Promise<T> {
   }
 }
 
-async function getProtectedEdgeHeaders(contentType: string = "application/json"): Promise<Record<string, string>> {
+async function throwApiError(response: Response): Promise<never> {
+  const payload = await parseJsonOrText<{
+    error?: string;
+    message?: string;
+    details?: { message?: string } | string;
+  }>(response);
+
+  const detailsMessage =
+    typeof payload?.details === "string"
+      ? payload.details
+      : typeof payload?.details?.message === "string"
+        ? payload.details.message
+        : null;
+
+  const message =
+    typeof payload?.error === "string"
+      ? payload.error
+      : typeof payload?.message === "string"
+        ? payload.message
+        : detailsMessage;
+
+  throw new Error(message || `Request failed with status ${response.status}`);
+}
+
+async function getProtectedEdgeHeaders(contentType: string | null = "application/json"): Promise<Record<string, string>> {
   const token = await getAccessToken();
   if (!token) throw new Error("Not authenticated");
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    "Content-Type": contentType,
   };
+
+  if (contentType) {
+    headers["Content-Type"] = contentType;
+  }
 
   if (supabaseAnonKey) {
     headers.apikey = supabaseAnonKey;
@@ -140,7 +177,7 @@ export async function getAdminAIInbox(limit: number = 100): Promise<AdminAIInbox
   const headers = await getProtectedEdgeHeaders();
   const params = new URLSearchParams({ limit: String(limit) });
   const r = await fetch(`${BASE}/admin-ai-inbox?${params.toString()}`, { headers });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) await throwApiError(r);
   return parseJsonOrText<AdminAIInboxResponse>(r);
 }
 
@@ -148,7 +185,7 @@ export async function getAdminAIInquiry(contactSubmissionId: string): Promise<Ad
   const headers = await getProtectedEdgeHeaders();
   const params = new URLSearchParams({ contactSubmissionId });
   const r = await fetch(`${BASE}/admin-ai-inquiry?${params.toString()}`, { headers });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) await throwApiError(r);
   return parseJsonOrText<AdminAIInquiryDetailResponse>(r);
 }
 
@@ -159,7 +196,7 @@ export async function markAdminAILastSeen(seenAt: string = new Date().toISOStrin
     headers,
     body: JSON.stringify({ seenAt }),
   });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) await throwApiError(r);
   return parseJsonOrText<{ ok?: boolean; reqId?: string }>(r);
 }
 
@@ -179,7 +216,7 @@ export async function saveAdminAIDraftEdit(
       bodyText: payload.bodyText,
     }),
   });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) await throwApiError(r);
   return parseJsonOrText<AdminAISaveDraftEditResponse>(r);
 }
 
@@ -190,7 +227,7 @@ export async function approveAdminAIDraft(draftId: string): Promise<AdminAIAppro
     headers,
     body: JSON.stringify({ draftId }),
   });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) await throwApiError(r);
   return parseJsonOrText<AdminAIApproveDraftResponse>(r);
 }
 
@@ -201,7 +238,7 @@ export async function sendAdminAIApprovedDraft(draftId: string): Promise<AdminAI
     headers,
     body: JSON.stringify({ draftId }),
   });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) await throwApiError(r);
   return parseJsonOrText<AdminAISendDraftResponse>(r);
 }
 
@@ -212,8 +249,135 @@ export async function markAdminAIDraftSent(draftId: string): Promise<AdminAIMark
     headers,
     body: JSON.stringify({ draftId }),
   });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) await throwApiError(r);
   return parseJsonOrText<AdminAIMarkDraftSentResponse>(r);
+}
+
+export async function saveAdminAIContextNote(
+  contactSubmissionId: string,
+  note: string
+): Promise<AdminAISaveContextNoteResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-ai-save-context-note`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ contactSubmissionId, note }),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminAISaveContextNoteResponse>(r);
+}
+
+export async function archiveAdminAIContextNote(contextNoteId: string): Promise<AdminAIArchiveContextNoteResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-ai-archive-context-note`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ contextNoteId }),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminAIArchiveContextNoteResponse>(r);
+}
+
+export async function rewriteAdminAIDraft(
+  contactSubmissionId: string,
+  draftId: string,
+  payload: {
+    mode: "rewrite" | "regenerate";
+    selectedContextNoteIds: string[];
+    instruction?: string | null;
+    tone?: string | null;
+  }
+): Promise<AdminAIRewriteDraftResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/ai-chat-edit-draft`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      contactSubmissionId,
+      draftId,
+      mode: payload.mode,
+      selectedContextNoteIds: payload.selectedContextNoteIds,
+      instruction: payload.instruction ?? null,
+      tone: payload.tone ?? null,
+    }),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminAIRewriteDraftResponse>(r);
+}
+
+export async function askAdminAIInquiryAssistant(
+  contactSubmissionId: string,
+  payload: {
+    taskType: AdminAIAssistantTaskType;
+    message: string;
+    selectedContextNoteIds: string[];
+    sourceDraftId?: string | null;
+    threadId?: string | null;
+  }
+): Promise<AdminAIInquiryAssistantResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/ai-inquiry-assistant`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      contactSubmissionId,
+      taskType: payload.taskType,
+      message: payload.message,
+      selectedContextNoteIds: payload.selectedContextNoteIds,
+      sourceDraftId: payload.sourceDraftId ?? null,
+      threadId: payload.threadId ?? null,
+    }),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminAIInquiryAssistantResponse>(r);
+}
+
+export async function askAdminAssistant(payload: {
+  taskType: AdminGeneralAssistantTaskType;
+  message: string;
+  recentTurns?: AdminGeneralAssistantTurn[];
+  inquiryReference?: AdminGeneralAssistantInquiryReference | null;
+  attachmentIds?: string[];
+  enableResearch?: boolean;
+}): Promise<AdminGeneralAssistantResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-ai-assistant`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      taskType: payload.taskType,
+      message: payload.message,
+      recentTurns: (payload.recentTurns ?? []).map((turn) => ({
+        role: turn.role,
+        content: turn.content,
+      })),
+      attachments: (payload.attachmentIds ?? []).map((id) => ({ id })),
+      enableResearch: payload.enableResearch === true,
+      inquiryReference: payload.inquiryReference ?? null,
+    }),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminGeneralAssistantResponse>(r);
+}
+
+export async function uploadAdminAssistantAttachment(
+  file: File,
+  contactSubmissionId?: string | null,
+): Promise<AdminGeneralAssistantUploadAttachmentResponse> {
+  const headers = await getProtectedEdgeHeaders(null);
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+  if (contactSubmissionId) {
+    formData.append("contactSubmissionId", contactSubmissionId);
+  }
+
+  const r = await fetch(`${BASE}/admin-ai-assistant-upload-attachment`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminGeneralAssistantUploadAttachmentResponse>(r);
 }
 
 // Upload photos (FormData with repeated files)

@@ -72,15 +72,34 @@ export type AdminAIDraftStatus = "generated" | "edited" | "approved" | "archived
 
 export type AdminAIReviewActionType =
   | "opened"
+  | "assistant_requested"
+  | "assistant_responded"
+  | "assistant_failed"
   | "copied"
+  | "context_added"
+  | "context_archived"
   | "edited"
   | "reviewed"
   | "approved"
   | "archived"
+  | "rewrite_requested"
+  | "rewrite_succeeded"
+  | "rewrite_failed"
   | "send_confirmed"
   | "send_requested"
   | "send_succeeded"
   | "send_failed";
+
+export type AdminAIContextNoteStatus = "active" | "archived";
+export type AdminAIAssistantThreadStatus = "active" | "archived";
+export type AdminAIAssistantActorType = "admin" | "assistant" | "system";
+export type AdminAIAssistantTaskType =
+  | "suggested_reply_help"
+  | "pricing_guidance"
+  | "clarifying_questions"
+  | "shoot_planning"
+  | "package_recommendation"
+  | "general_inquiry_help";
 
 export interface AdminAIRecommendedCatalogItem {
   id: string;
@@ -166,6 +185,43 @@ export interface AdminAIReviewAction {
   created_at: string;
 }
 
+export interface AdminAIContextNote {
+  id: string;
+  contact_submission_id: string;
+  actor_user_id: string;
+  note_text: string;
+  status: AdminAIContextNoteStatus;
+  metadata_json: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminAIAssistantThread {
+  id: string;
+  contact_submission_id: string;
+  status: AdminAIAssistantThreadStatus;
+  created_by_user_id: string;
+  metadata_json: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminAIAssistantMessage {
+  id: string;
+  thread_id: string;
+  contact_submission_id: string;
+  actor_type: AdminAIAssistantActorType;
+  task_type: AdminAIAssistantTaskType;
+  message_text: string;
+  selected_context_note_ids: string[];
+  source_draft_id: string | null;
+  response_to_message_id: string | null;
+  run_id: string | null;
+  metadata_json: Record<string, unknown>;
+  created_by_user_id: string | null;
+  created_at: string;
+}
+
 export interface AdminAISaveDraftEditResponse {
   ok: boolean;
   draftId: string;
@@ -198,6 +254,154 @@ export interface AdminAIMarkDraftSentResponse {
   reqId?: string;
 }
 
+export interface AdminAISaveContextNoteResponse {
+  ok: boolean;
+  contextNoteId: string;
+  contactSubmissionId: string;
+  status: AdminAIContextNoteStatus;
+  reqId?: string;
+}
+
+export interface AdminAIArchiveContextNoteResponse {
+  ok: boolean;
+  contextNoteId: string;
+  status: "archived";
+  reqId?: string;
+}
+
+export interface AdminAIRewriteDraftResponse {
+  ok: boolean;
+  draftId: string;
+  versionNumber: number;
+  status: "generated";
+  runId?: string;
+  reqId?: string;
+}
+
+export interface AdminAIInquiryAssistantResponse {
+  ok: boolean;
+  threadId: string;
+  requestMessageId: string;
+  responseMessageId: string;
+  taskType: AdminAIAssistantTaskType;
+  answer: string;
+  runId?: string;
+  reqId?: string;
+}
+
+export type AdminGeneralAssistantTaskType =
+  | "pricing_help"
+  | "wording_help"
+  | "shoot_planning"
+  | "location_ideas"
+  | "timing_lighting_weather"
+  | "general_internal_support";
+
+export type AdminGeneralAssistantSourceType =
+  | "official_site"
+  | "official_park"
+  | "tourism_board"
+  | "venue"
+  | "photography_blog"
+  | "location_roundup"
+  | "local_guide"
+  | "map_reference"
+  | "other";
+
+export type AdminGeneralAssistantPermitLikelihood = "low" | "unclear" | "likely";
+export type AdminGeneralAssistantQuickShootPracticality = "easy" | "possible_with_care" | "poor_fit";
+
+export interface AdminGeneralAssistantAttachment {
+  id: string;
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+export interface AdminGeneralAssistantSource {
+  id: string;
+  title: string;
+  url: string;
+  domain: string;
+  sourceType: AdminGeneralAssistantSourceType;
+  whyRelevant: string;
+}
+
+export interface AdminGeneralAssistantLocationSuggestion {
+  label: string;
+  area: string | null;
+  whyFit: string;
+  bestUseWindow: string | null;
+  bestShootWindows?: string[];
+  locationFeatures?: string[];
+  permitLikelihood?: AdminGeneralAssistantPermitLikelihood;
+  permitBasis?: string | null;
+  permitSourceRef?: string | null;
+  quickShootPracticality?: AdminGeneralAssistantQuickShootPracticality;
+  accessCautions?: string[];
+  frictionNotes?: string[];
+  cautions: string[];
+  sourceRefs: string[];
+  sourceUrls?: string[];
+}
+
+export interface AdminGeneralAssistantTurn {
+  role: "admin" | "assistant";
+  content: string;
+  taskType: AdminGeneralAssistantTaskType;
+  createdAt: string;
+  enableResearch?: boolean;
+  attachments?: AdminGeneralAssistantAttachment[];
+  answer?: string;
+  imageObservations?: string[];
+  locationSuggestions?: AdminGeneralAssistantLocationSuggestion[];
+  sources?: AdminGeneralAssistantSource[];
+  suggestedNextSteps?: string[];
+  suggestedQuestions?: string[];
+  cautions?: string[];
+  referencedCatalogSlugs?: string[];
+}
+
+export interface AdminGeneralAssistantInquiryReference {
+  contactSubmissionId: string;
+  selectedContextNoteIds?: string[];
+  sourceDraftId?: string | null;
+}
+
+export interface AdminGeneralAssistantUploadedAttachment {
+  id: string;
+  kind: "image";
+  bucket: string;
+  path: string;
+  mimeType: string;
+  sizeBytes: number;
+  width: number | null;
+  height: number | null;
+  expiresAt: string | null;
+}
+
+export interface AdminGeneralAssistantUploadAttachmentResponse {
+  ok: boolean;
+  attachment: AdminGeneralAssistantUploadedAttachment;
+  reqId?: string;
+}
+
+export interface AdminGeneralAssistantResponse {
+  ok: boolean;
+  taskType: AdminGeneralAssistantTaskType;
+  answer: string;
+  suggestedNextSteps?: string[];
+  suggestedQuestions?: string[];
+  cautions?: string[];
+  referencedCatalogSlugs?: string[];
+  imageObservations?: string[];
+  locationSuggestions?: AdminGeneralAssistantLocationSuggestion[];
+  sources?: AdminGeneralAssistantSource[];
+  inquiryLinked?: boolean;
+  runId?: string;
+  reqId?: string;
+}
+
 export interface AdminAIInquiryDetailResponse {
   ok: boolean;
   contactSubmissionId: string;
@@ -206,6 +410,9 @@ export interface AdminAIInquiryDetailResponse {
   draftVersions: AdminAIDraftVersion[];
   latestApprovedDraft: AdminAIDraftVersion | null;
   reviewActions: AdminAIReviewAction[];
+  contextNotes: AdminAIContextNote[];
+  assistantThread: AdminAIAssistantThread | null;
+  assistantMessages: AdminAIAssistantMessage[];
   workflowStatus: string | null;
   reqId?: string;
 }
