@@ -192,7 +192,7 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [loading, renderedHtml]);
 
   const horizontalPadding = viewportWidth > 0 && viewportWidth < 640 ? 16 : 48;
   const availableWidth = viewportWidth > 0 ? Math.max(0, viewportWidth - horizontalPadding) : PAGE_WIDTH_PX;
@@ -201,9 +201,10 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
   const isScaledPreview = previewScale < 1;
   const scaledPageWidth = PAGE_WIDTH_PX * previewScale;
   const scaledPageHeight = PAGE_HEIGHT_PX * previewScale;
+  const hasPreviewContent = loading || Boolean(renderedHtml);
 
   return (
-    <section className="overflow-hidden rounded-[1.5rem] border border-stone-300 bg-stone-200 shadow-[0_22px_60px_rgba(17,24,39,0.12)] sm:rounded-[2rem]">
+    <section className="w-full overflow-hidden rounded-[1.5rem] border border-stone-300 bg-stone-200 shadow-[0_22px_60px_rgba(17,24,39,0.12)] sm:rounded-[2rem]">
       <div className="flex flex-col gap-3 border-b border-stone-300 bg-stone-100 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-5">
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Preview</h3>
@@ -219,73 +220,77 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
         </button>
       </div>
 
-      <div ref={viewportRef} className="h-[760px] overflow-auto overscroll-contain bg-stone-300/60 p-2 sm:h-[990px] sm:p-6 xl:h-[1010px]">
-        {loading ? (
-          <div
-            className="mx-auto rounded-sm bg-white p-6 shadow-[0_18px_40px_rgba(17,24,39,0.16)] sm:w-[820px] sm:p-10"
-            style={isScaledPreview ? { width: `${scaledPageWidth}px` } : undefined}
-            aria-label="Contract preview loading"
-          >
-            <div className="animate-pulse space-y-4">
-              <div className="h-5 w-40 rounded bg-stone-200" />
-              <div className="h-4 w-full rounded bg-stone-100" />
-              <div className="h-4 w-5/6 rounded bg-stone-100" />
-              <div className="h-4 w-3/4 rounded bg-stone-100" />
-              <div className="pt-8">
-                <div className="h-4 w-32 rounded bg-stone-200" />
-                <div className="mt-3 h-4 w-2/3 rounded bg-stone-100" />
-              </div>
-            </div>
-          </div>
-        ) : renderedHtml ? (
-          <>
-            <div
-              ref={measureRootRef}
-              aria-hidden="true"
-              className={`pointer-events-none fixed left-[-9999px] top-0 w-[820px] opacity-0 ${PREVIEW_PAGE_CLASSNAME} ${PREVIEW_DOCUMENT_CLASSNAME}`}
-              style={{ fontFamily: '"Times New Roman", Times, serif', lineHeight: 2 }}
-            >
-              {blocks.map((block) => (
-                <div key={block.key} data-preview-block={block.key} dangerouslySetInnerHTML={{ __html: block.html }} />
-              ))}
-            </div>
-
-            <div
-              aria-label="Contract preview"
-              className={`mx-auto space-y-4 sm:w-[820px] sm:space-y-6 ${isScaledPreview ? "flex flex-col items-center" : ""}`}
-              style={isScaledPreview ? { width: `${scaledPageWidth}px` } : undefined}
-            >
-              {pageGroups.map((group, pageIndex) => (
-                <div
-                  key={`page-${pageIndex}`}
-                  style={isScaledPreview ? { width: `${scaledPageWidth}px`, height: `${scaledPageHeight}px` } : undefined}
-                >
-                  <div
-                    className={`${PREVIEW_PAGE_CLASSNAME} ${PREVIEW_DOCUMENT_CLASSNAME}`}
-                    style={{
-                      fontFamily: '"Times New Roman", Times, serif',
-                      lineHeight: 2,
-                      transform: isScaledPreview ? `scale(${previewScale})` : undefined,
-                      transformOrigin: isScaledPreview ? "top left" : undefined,
-                    }}
-                  >
-                    {group.map((block) => (
-                      <div key={block.key} dangerouslySetInnerHTML={{ __html: block.html }} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div
-            className="mx-auto rounded-sm border border-dashed border-stone-400 bg-white px-6 py-10 text-sm text-stone-600 shadow-[0_18px_40px_rgba(17,24,39,0.12)] sm:w-[820px]"
-            style={isScaledPreview ? { width: `${scaledPageWidth}px` } : undefined}
-          >
+      {!hasPreviewContent ? (
+        <div className="bg-stone-100 px-3 py-4 sm:px-6 sm:py-6">
+          <div className="mx-auto rounded-2xl border border-dashed border-stone-400 bg-white px-5 py-6 text-sm text-stone-600 shadow-[0_18px_40px_rgba(17,24,39,0.08)] sm:max-w-[820px] sm:px-6 sm:py-8">
             Preview will appear here after a contract draft is loaded.
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div
+          ref={viewportRef}
+          className="h-[460px] overflow-auto overscroll-contain bg-stone-300/60 p-2 sm:h-[760px] sm:p-6 xl:h-[1010px]"
+        >
+          {loading ? (
+            <div
+              className="mx-auto rounded-sm bg-white p-6 shadow-[0_18px_40px_rgba(17,24,39,0.16)] sm:w-[820px] sm:p-10"
+              style={isScaledPreview ? { width: `${scaledPageWidth}px` } : undefined}
+              aria-label="Contract preview loading"
+            >
+              <div className="animate-pulse space-y-4">
+                <div className="h-5 w-40 rounded bg-stone-200" />
+                <div className="h-4 w-full rounded bg-stone-100" />
+                <div className="h-4 w-5/6 rounded bg-stone-100" />
+                <div className="h-4 w-3/4 rounded bg-stone-100" />
+                <div className="pt-8">
+                  <div className="h-4 w-32 rounded bg-stone-200" />
+                  <div className="mt-3 h-4 w-2/3 rounded bg-stone-100" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                ref={measureRootRef}
+                aria-hidden="true"
+                className={`pointer-events-none fixed left-[-9999px] top-0 w-[820px] opacity-0 ${PREVIEW_PAGE_CLASSNAME} ${PREVIEW_DOCUMENT_CLASSNAME}`}
+                style={{ fontFamily: '"Times New Roman", Times, serif', lineHeight: 2 }}
+              >
+                {blocks.map((block) => (
+                  <div key={block.key} data-preview-block={block.key} dangerouslySetInnerHTML={{ __html: block.html }} />
+                ))}
+              </div>
+
+              <div
+                aria-label="Contract preview"
+                className={`mx-auto space-y-4 sm:w-[820px] sm:space-y-6 ${isScaledPreview ? "flex flex-col items-center" : ""}`}
+                style={isScaledPreview ? { width: `${scaledPageWidth}px` } : undefined}
+              >
+                {pageGroups.map((group, pageIndex) => (
+                  <div
+                    key={`page-${pageIndex}`}
+                    style={isScaledPreview ? { width: `${scaledPageWidth}px`, height: `${scaledPageHeight}px` } : undefined}
+                  >
+                    <div
+                      className={`${PREVIEW_PAGE_CLASSNAME} ${PREVIEW_DOCUMENT_CLASSNAME}`}
+                      style={{
+                        fontFamily: '"Times New Roman", Times, serif',
+                        lineHeight: 2,
+                        transform: isScaledPreview ? `scale(${previewScale})` : undefined,
+                        transformOrigin: isScaledPreview ? "top left" : undefined,
+                      }}
+                    >
+                      {group.map((block) => (
+                        <div key={block.key} dangerouslySetInnerHTML={{ __html: block.html }} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 };

@@ -6,6 +6,7 @@ import { BASE_URL, FONT_STYLESHEET, ROUTE_SHELL_PAGES, SHARED_OG_IMAGE, SHARED_T
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, "..");
+const ROUTE_SHELL_BUILD_ID = Date.now().toString(36);
 
 const APP_BOOTSTRAP_SCRIPT = String.raw`(function () {
   function injectScript(src) {
@@ -32,7 +33,7 @@ const APP_BOOTSTRAP_SCRIPT = String.raw`(function () {
       '<p style="margin:0;"><a href="/" style="color:#7c5c41;text-decoration:underline;">Go to home</a></p></div></div>';
   }
 
-  fetch("/index.html", { cache: "no-store" })
+  fetch("/index.html?route-shell=${ROUTE_SHELL_BUILD_ID}", { cache: "no-store" })
     .then(function (response) {
       if (!response.ok) throw new Error("Failed to load app shell");
       return response.text();
