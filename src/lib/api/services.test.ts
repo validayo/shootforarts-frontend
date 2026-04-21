@@ -20,12 +20,18 @@ import {
   approveAdminAIDraft,
   archiveAdminAIContextNote,
   BASE,
+  createAdminContract,
+  deleteAdminContract,
+  getAdminContractDetail,
+  getAdminContractsTemplateManifest,
   getAdminAIInbox,
   getAdminAIInquiry,
   getGallery,
+  listAdminContracts,
   markAdminAIDraftSent,
   markAdminAILastSeen,
   rewriteAdminAIDraft,
+  saveAdminContract,
   saveAdminAIContextNote,
   saveAdminAIDraftEdit,
   sendAdminAIApprovedDraft,
@@ -436,6 +442,193 @@ describe("api/services wrappers", () => {
         message: "Need staircase locations",
       }),
     ).rejects.toThrow("OpenAI structured output validation failure: General assistant model output has invalid source url protocol");
+  });
+
+  it("fetches admin contracts template manifest with protected headers", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        ok: true,
+        templates: [
+          {
+            contract_type: "portrait",
+            label: "Portrait",
+            description: "Portrait contract",
+            section_order: ["terms", "signatures"],
+            fields: [
+              { key: "clientName", label: "Client name", type: "text", required: true },
+              { key: "retainerPercent", label: "Retainer %", type: "number", ui_group: "advanced" },
+            ],
+            toggles: [{ key: "includeWeatherClause", label: "Weather clause", default_value: true }],
+          },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const manifest = await getAdminContractsTemplateManifest();
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/admin-contracts-template-manifest`, {
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+    });
+    expect(manifest.templates[0]).toMatchObject({
+      type: "portrait",
+      label: "Portrait",
+      fields: [
+        { key: "clientName", label: "Client name", type: "text", required: true },
+        { key: "retainerPercent", label: "Retainer %", type: "number", uiGroup: "advanced" },
+      ],
+      toggles: [{ key: "includeWeatherClause", label: "Weather clause", defaultValue: true }],
+    });
+  });
+
+  it("creates, fetches, lists, and saves admin contracts with normalized shapes", async () => {
+    const detailPayload = {
+      id: "contract-1",
+      title: "Armi portrait contract",
+      contract_type: "portrait_branding",
+      status: "draft",
+      contact_submission_id: "contact-1",
+      template_key: "portrait_branding",
+      template_version: "v1",
+      field_values_json: { clientName: "Armi" },
+      toggle_values_json: { includeWeatherClause: true },
+      sections_json: [
+        {
+          key: "terms",
+          title: "Terms",
+          included: true,
+          body_text: "Terms body",
+          body_html: "<p>Terms body</p>",
+          edited_manually: false,
+        },
+      ],
+      rendered_html: "<article>Preview</article>",
+      source_snapshot_json: { origin: "manual" },
+      updated_at: "2026-04-20T12:00:00.000Z",
+      approved_at: null,
+    };
+
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, contract: detailPayload }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, contract: detailPayload }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          ok: true,
+          contracts: [
+            {
+              id: "contract-1",
+              title: "Armi portrait contract",
+              contract_type: "portrait_branding",
+              status: "draft",
+              contact_submission_id: "contact-1",
+              client_name: "Armi De Francia",
+              template_version: "v1",
+              updated_at: "2026-04-20T12:00:00.000Z",
+              approved_at: null,
+            },
+          ],
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, contract: detailPayload }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          ok: true,
+          contractId: "contract-1",
+          status: "archived",
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    const created = await createAdminContract({
+      contractType: "portrait_branding",
+      contactSubmissionId: "contact-1",
+    });
+    const fetched = await getAdminContractDetail("contract-1");
+    const listed = await listAdminContracts();
+    const saved = await saveAdminContract({
+      contractId: "contract-1",
+      fieldValues: { clientName: "Armi" },
+      toggleValues: { includeWeatherClause: true },
+      sections: [
+        {
+          key: "terms",
+          title: "Terms",
+          included: true,
+          bodyText: "Terms body",
+          bodyHtml: "<p>Terms body</p>",
+          editedManually: false,
+        },
+      ],
+      status: "draft",
+    });
+    const deleted = await deleteAdminContract("contract-1");
+
+    expect(created.renderedHtml).toBe("<article>Preview</article>");
+    expect(fetched.sections[0]).toMatchObject({ key: "terms", bodyText: "Terms body" });
+    expect(listed[0]).toMatchObject({ id: "contract-1", contractType: "portrait_branding", clientName: "Armi De Francia" });
+    expect(saved.fieldValues).toEqual({ clientName: "Armi" });
+    expect(deleted).toEqual({ ok: true, contractId: "contract-1", status: "archived", reqId: undefined });
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${BASE}/admin-contracts-create`, expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({
+        contractType: "portrait_branding",
+        contactSubmissionId: "contact-1",
+        fieldValues: {},
+        toggleValues: {},
+      }),
+    }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${BASE}/admin-contracts-detail?contractId=contract-1`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${BASE}/admin-contracts-list`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, `${BASE}/admin-contracts-save`, expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({
+        contractId: "contract-1",
+        fieldValues: { clientName: "Armi" },
+        toggleValues: { includeWeatherClause: true },
+        sections: [
+          {
+            key: "terms",
+            title: "Terms",
+            included: true,
+            bodyText: "Terms body",
+            editedManually: false,
+          },
+        ],
+        status: "draft",
+      }),
+    }));
+    expect(fetchMock).toHaveBeenNthCalledWith(5, `${BASE}/admin-contracts-delete`, expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({
+        contractId: "contract-1",
+      }),
+    }));
   });
 
   it("uploads assistant attachments with form data and protected headers", async () => {

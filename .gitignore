@@ -25,7 +25,10 @@ lerna-debug.log*
 .env.*
 !.env.example
 *.local
+.envrc
 supabase/.env
+supabase/functions/.env
+supabase/functions/.env.*
 backend/.env
 
 # Editor / OS files
@@ -43,6 +46,20 @@ Thumbs.db
 # Deployment local state
 .vercel/
 
+# Secrets / credentials / local certs
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+.npmrc
+.pnpmrc
+.netrc
+
 # Supabase local-only artifacts
 supabase/.branches/
 supabase/.temp/
@@ -52,4 +69,17 @@ supabase/config.toml
 supabase/migrations/
 playwright-report/
 test-results/
+
+# Local caches and generated repo noise
+.cache/
+.turbo/
+.eslintcache
+tmp/
+*.tmp
+*.bak
+*.orig
+*.seed
+*.sqlite
+*.sqlite3
+*.db
 

@@ -1,8 +1,3 @@
-import React from 'react';
-import AdminLogin from '../../components/admin/AdminLogin';
-
-const AdminLoginPage: React.FC = () => {
-  return <AdminLogin />;
-};
+import AdminLoginPage from "../../features/admin/auth/pages/AdminLoginPage";
 
 export default AdminLoginPage;

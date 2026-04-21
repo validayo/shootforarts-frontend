@@ -16,10 +16,11 @@ const ServicesPage = lazy(() => import("./pages/public/ServicesPage"));
 const ContactPage = lazy(() => import("./pages/public/ContactPage"));
 const ContactThankYouPage = lazy(() => import("./pages/public/ContactThankYouPage"));
 const NotFoundPage = lazy(() => import("./pages/public/NotFoundPage"));
-const AdminLogin = lazy(() => import("./pages/admin/AdminLoginPage"));
-const AdminPage = lazy(() => import("./pages/admin/AdminPage"));
+const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage"));
+const AdminDashboardPage = lazy(() => import("./pages/admin/AdminPage"));
 const AdminAssistantPage = lazy(() => import("./pages/admin/AdminAssistantPage"));
-const AdminGalleryManager = lazy(() => import("./pages/admin/AdminGalleryManagerPage"));
+const AdminContractsPage = lazy(() => import("./pages/admin/contracts/AdminContractsPage"));
+const AdminGalleryManagerPage = lazy(() => import("./pages/admin/AdminGalleryManagerPage"));
 
 const AdminIndexRedirect = () => {
   const { currentUser } = useAuth();
@@ -53,12 +54,12 @@ function App() {
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
 
-                <Route path={ROUTES.admin.login} element={<AdminLogin />} />
+                <Route path={ROUTES.admin.login} element={<AdminLoginPage />} />
                 <Route
                   path={ROUTES.admin.dashboard}
                   element={
                     <ProtectedRoute>
-                      <AdminPage />
+                      <AdminDashboardPage />
                     </ProtectedRoute>
                   }
                 />
@@ -71,10 +72,18 @@ function App() {
                   }
                 />
                 <Route
+                  path={ROUTES.admin.contracts}
+                  element={
+                    <ProtectedRoute>
+                      <AdminContractsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path={ROUTES.admin.calendar}
                   element={
                     <ProtectedRoute>
-                      <AdminPage />
+                      <AdminDashboardPage />
                     </ProtectedRoute>
                   }
                 />
@@ -83,7 +92,7 @@ function App() {
                   path={ROUTES.admin.upload}
                   element={
                     <ProtectedRoute>
-                      <AdminPage />
+                      <AdminDashboardPage />
                     </ProtectedRoute>
                   }
                 />
@@ -91,7 +100,7 @@ function App() {
                   path={ROUTES.admin.galleryManager}
                   element={
                     <ProtectedRoute>
-                      <AdminGalleryManager />
+                      <AdminGalleryManagerPage />
                     </ProtectedRoute>
                   }
                 />

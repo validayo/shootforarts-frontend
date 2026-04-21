@@ -12,6 +12,7 @@ export const ROUTES = {
     login: "/sfaadmin/login",
     dashboard: "/sfaadmin/dashboard",
     assistant: "/sfaadmin/assistant",
+    contracts: "/sfaadmin/contracts",
     calendar: "/sfaadmin/calendar",
     calendarAlias: "/sfaadmin/calender",
     upload: "/sfaadmin/upload",

@@ -135,12 +135,13 @@ Use `VITE_*` only for values safe to expose to the client bundle.
 ## Quick File Guide
 
 - App shell and routes: `src/App.tsx`
-- Gallery behavior: `src/components/gallery/Gallery.tsx`
-- Contact form: `src/components/contact/ContactForm.tsx`
-- Newsletter flows: `src/components/newsletter/`
-- Admin dashboard: `src/pages/admin/AdminPage.tsx`
-- Admin gallery manager route shell: `src/pages/admin/AdminGalleryManagerPage.tsx`
-- Admin gallery manager module: `src/components/admin/AdminGalleryManager.tsx`
+- Gallery behavior: `src/features/gallery/components/Gallery.tsx`
+- Contact form: `src/features/contact/components/ContactForm.tsx`
+- Newsletter flows: `src/features/newsletter/`
+- Admin dashboard route entry: `src/pages/admin/AdminPage.tsx`
+- Admin dashboard feature page: `src/features/admin/dashboard/pages/AdminDashboardPage.tsx`
+- Admin gallery manager route entry: `src/pages/admin/AdminGalleryManagerPage.tsx`
+- Admin gallery manager module: `src/features/admin/gallery/components/AdminGalleryManager.tsx`
 - API service layer: `src/lib/api/services.ts`
 - Auth/session helpers: `src/lib/auth/session.ts`, `src/contexts/AuthContext.tsx`
 - SEO component: `src/components/seo/SEO.tsx`
@@ -148,12 +149,12 @@ Use `VITE_*` only for values safe to expose to the client bundle.
 
 ## Additional Docs
 
-- Frontend technical deep dive: `docs/frontend-deep-dive.md`
-- SEO checklist: `docs/seo-validation-checklist.md`
-- Analytics checklist: `docs/analytics-conversions-checklist.md`
-- Ops runbook: `docs/ops-runbook.md`
-- Admin login hardening: `docs/admin-login-security.md`
-- Changelog: `docs/changes.md`
+- Frontend technical deep dive: `docs/architecture/frontend-deep-dive.md`
+- SEO checklist: `docs/seo/seo-validation-checklist.md`
+- Analytics checklist: `docs/analytics/analytics-conversions-checklist.md`
+- Ops runbook: `docs/workflows/ops-runbook.md`
+- Admin login hardening: `docs/admin/security/admin-login-security.md`
+- Changelog: `docs/changelog/changes.md`
 
 Copyright (c) 2026 Shoot For Arts. All rights reserved.
 No permission is granted to use, copy, modify, or distribute this code.
