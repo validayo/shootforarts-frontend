@@ -47,7 +47,7 @@ const AdminContractsList: React.FC<AdminContractsListProps> = ({
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-4">
+      <div className="flex flex-col items-start gap-3 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-gray-500">Contracts</h3>
           <p className="mt-1 text-sm text-gray-600">Saved drafts and inquiry-linked contracts.</p>
@@ -55,7 +55,7 @@ const AdminContractsList: React.FC<AdminContractsListProps> = ({
         <button
           type="button"
           onClick={onNewContract}
-          className="inline-flex rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+          className="inline-flex w-full justify-center rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 sm:w-auto"
         >
           New contract
         </button>

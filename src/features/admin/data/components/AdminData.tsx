@@ -1582,20 +1582,20 @@ const AdminData: React.FC = () => {
 
       {selectedContact && (
         <div
-          className="fixed inset-0 z-50 flex items-end bg-transparent pt-6 sm:items-center sm:justify-center sm:p-6 2xl:hidden"
+          className="fixed inset-0 z-50 flex items-end bg-stone-950/35 pt-6 backdrop-blur-[2px] sm:items-center sm:justify-center sm:bg-stone-950/45 sm:p-6 2xl:hidden"
           role="dialog"
           aria-modal="true"
           aria-labelledby="mobile-contact-title"
           onClick={() => setSelectedContact(null)}
         >
           <div
-            className="flex h-[calc(100dvh-1.5rem)] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:h-[min(90dvh,56rem)] sm:max-w-4xl sm:rounded-2xl"
+            className="flex h-[calc(100dvh-1.5rem)] w-full flex-col rounded-t-[1.75rem] border border-stone-200 bg-stone-50 shadow-[0_-20px_60px_rgba(17,24,39,0.22)] sm:h-[min(90dvh,56rem)] sm:max-w-4xl sm:rounded-2xl sm:bg-white"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex justify-center pt-2">
-              <span className="h-1.5 w-12 rounded-full bg-gray-300" />
+              <span className="h-1.5 w-12 rounded-full bg-stone-300" />
             </div>
-            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-gray-200 bg-white px-4 py-3">
+            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-stone-200 bg-stone-50/95 px-4 py-3 backdrop-blur sm:bg-white">
               <div>
                 <h3 id="mobile-contact-title" className="text-lg font-semibold text-gray-900">
                   {selectedContact.firstName} {selectedContact.lastName}
@@ -1615,13 +1615,13 @@ const AdminData: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedContact(null)}
-                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                className="rounded-lg p-1 text-gray-500 hover:bg-stone-200 hover:text-gray-700"
                 aria-label="Close booking details"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="sticky top-[73px] z-10 flex flex-wrap gap-2 border-b border-gray-200 bg-white px-4 py-3">
+            <div className="sticky top-[73px] z-10 flex flex-wrap gap-2 border-b border-stone-200 bg-stone-50/95 px-4 py-3 backdrop-blur sm:bg-white">
               <a
                 href={`mailto:${selectedContact.email}`}
                 className="inline-flex rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white hover:bg-gray-700"
@@ -1630,8 +1630,8 @@ const AdminData: React.FC = () => {
               </a>
               {selectedContact.phone && (
                 <a
-                  href={`tel:${selectedContact.phone}`}
-                  className="inline-flex rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                    href={`tel:${selectedContact.phone}`}
+                  className="inline-flex rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-stone-100"
                 >
                   Call Client
                 </a>

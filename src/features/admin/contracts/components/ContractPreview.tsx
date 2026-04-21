@@ -12,6 +12,7 @@ interface PreviewBlock {
 }
 
 const PAGE_HEIGHT_PX = 1120;
+const PAGE_WIDTH_PX = 820;
 const PAGE_VERTICAL_PADDING_PX = 112;
 const PAGE_CONTENT_HEIGHT_PX = PAGE_HEIGHT_PX - PAGE_VERTICAL_PADDING_PX;
 
@@ -152,7 +153,9 @@ const buildPageGroups = (blocks: PreviewBlock[], measureRoot: HTMLDivElement | n
 const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtml, loading = false, onDownloadPdf }) => {
   const blocks = useMemo(() => parsePreviewBlocks(renderedHtml), [renderedHtml]);
   const measureRootRef = useRef<HTMLDivElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const [pageGroups, setPageGroups] = useState<PreviewBlock[][]>(blocks.length ? [blocks] : []);
+  const [viewportWidth, setViewportWidth] = useState(PAGE_WIDTH_PX);
 
   useLayoutEffect(() => {
     if (!blocks.length) {
@@ -167,9 +170,37 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
     return () => window.cancelAnimationFrame(frame);
   }, [blocks]);
 
+  useLayoutEffect(() => {
+    const node = viewportRef.current;
+    if (!node) return;
+
+    const measure = () => {
+      setViewportWidth(node.clientWidth);
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+      return () => window.removeEventListener("resize", measure);
+    }
+
+    const observer = new ResizeObserver(() => {
+      measure();
+    });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const mobileScale = viewportWidth > 0 && viewportWidth < 640 ? Math.min(1, Math.max(0.58, (viewportWidth - 16) / PAGE_WIDTH_PX)) : 1;
+  const isPhoneLayout = mobileScale < 1;
+  const scaledPageWidth = PAGE_WIDTH_PX * mobileScale;
+  const scaledPageHeight = PAGE_HEIGHT_PX * mobileScale;
+
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-stone-300 bg-stone-200 shadow-[0_22px_60px_rgba(17,24,39,0.12)]">
-      <div className="flex items-start justify-between gap-4 border-b border-stone-300 bg-stone-100 px-5 py-4">
+    <section className="overflow-hidden rounded-[1.5rem] border border-stone-300 bg-stone-200 shadow-[0_22px_60px_rgba(17,24,39,0.12)] sm:rounded-[2rem]">
+      <div className="flex flex-col gap-3 border-b border-stone-300 bg-stone-100 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-5">
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Preview</h3>
           <p className="mt-1 text-sm text-stone-700">Read-only contract preview</p>
@@ -178,15 +209,19 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
           type="button"
           onClick={onDownloadPdf}
           disabled={!renderedHtml || loading}
-          className="inline-flex shrink-0 rounded-xl border border-stone-400 bg-stone-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex w-full shrink-0 justify-center rounded-xl border border-stone-400 bg-stone-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           Save as PDF
         </button>
       </div>
 
-      <div className="h-[930px] overflow-auto overscroll-contain bg-stone-300/60 p-4 sm:h-[990px] sm:p-6 xl:h-[1010px]">
+      <div ref={viewportRef} className="h-[760px] overflow-auto overscroll-contain bg-stone-300/60 p-2 sm:h-[990px] sm:p-6 xl:h-[1010px]">
         {loading ? (
-          <div className="mx-auto w-[820px] rounded-sm bg-white p-10 shadow-[0_18px_40px_rgba(17,24,39,0.16)]" aria-label="Contract preview loading">
+          <div
+            className="mx-auto rounded-sm bg-white p-6 shadow-[0_18px_40px_rgba(17,24,39,0.16)] sm:w-[820px] sm:p-10"
+            style={isPhoneLayout ? { width: `${scaledPageWidth}px` } : undefined}
+            aria-label="Contract preview loading"
+          >
             <div className="animate-pulse space-y-4">
               <div className="h-5 w-40 rounded bg-stone-200" />
               <div className="h-4 w-full rounded bg-stone-100" />
@@ -211,22 +246,35 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
               ))}
             </div>
 
-            <div aria-label="Contract preview" className="mx-auto w-[820px] space-y-6">
+            <div
+              aria-label="Contract preview"
+              className={`mx-auto space-y-4 sm:w-[820px] sm:space-y-6 ${isPhoneLayout ? "flex flex-col items-center" : ""}`}
+              style={isPhoneLayout ? { width: `${scaledPageWidth}px` } : undefined}
+            >
               {pageGroups.map((group, pageIndex) => (
-                <div
-                  key={`page-${pageIndex}`}
-                  className={`${PREVIEW_PAGE_CLASSNAME} ${PREVIEW_DOCUMENT_CLASSNAME}`}
-                  style={{ fontFamily: '"Times New Roman", Times, serif', lineHeight: 2 }}
-                >
-                  {group.map((block) => (
-                    <div key={block.key} dangerouslySetInnerHTML={{ __html: block.html }} />
-                  ))}
+                <div key={`page-${pageIndex}`} style={isPhoneLayout ? { width: `${scaledPageWidth}px`, height: `${scaledPageHeight}px` } : undefined}>
+                  <div
+                    className={`${PREVIEW_PAGE_CLASSNAME} ${PREVIEW_DOCUMENT_CLASSNAME}`}
+                    style={{
+                      fontFamily: '"Times New Roman", Times, serif',
+                      lineHeight: 2,
+                      transform: isPhoneLayout ? `scale(${mobileScale})` : undefined,
+                      transformOrigin: isPhoneLayout ? "top left" : undefined,
+                    }}
+                  >
+                    {group.map((block) => (
+                      <div key={block.key} dangerouslySetInnerHTML={{ __html: block.html }} />
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
           </>
         ) : (
-          <div className="mx-auto w-[820px] rounded-sm border border-dashed border-stone-400 bg-white px-6 py-10 text-sm text-stone-600 shadow-[0_18px_40px_rgba(17,24,39,0.12)]">
+          <div
+            className="mx-auto rounded-sm border border-dashed border-stone-400 bg-white px-6 py-10 text-sm text-stone-600 shadow-[0_18px_40px_rgba(17,24,39,0.12)] sm:w-[820px]"
+            style={isPhoneLayout ? { width: `${scaledPageWidth}px` } : undefined}
+          >
             Preview will appear here after a contract draft is loaded.
           </div>
         )}
