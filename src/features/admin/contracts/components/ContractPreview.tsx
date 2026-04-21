@@ -192,7 +192,7 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [loading, renderedHtml]);
 
   const horizontalPadding = viewportWidth > 0 && viewportWidth < 640 ? 16 : 48;
   const availableWidth = viewportWidth > 0 ? Math.max(0, viewportWidth - horizontalPadding) : PAGE_WIDTH_PX;

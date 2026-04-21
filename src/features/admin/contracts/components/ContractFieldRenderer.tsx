@@ -26,7 +26,7 @@ const normalizeTemporalInputValue = (type: AdminContractFieldDefinition["type"],
   }
 
   if (type === "time") {
-    const timeMatch = value.match(/^(\d{2}:\d{2})(?::\d{2}(?:\.\d{1,3})?)?$/);
+    const timeMatch = value.match(/(?:^|[T\s])(\d{2}:\d{2})(?::\d{2}(?:\.\d{1,3})?)?/);
     return timeMatch ? timeMatch[1] : value;
   }
 

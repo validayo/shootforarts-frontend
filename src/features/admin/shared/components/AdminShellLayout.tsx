@@ -41,7 +41,7 @@ const AdminShellLayout: React.FC<AdminShellLayoutProps> = ({ title, subtitle, ac
   };
 
   return (
-    <div className="min-h-screen w-screen max-w-none overflow-x-hidden bg-gray-50">
+    <div className="min-h-screen w-full max-w-none overflow-x-hidden bg-gray-50">
       <a
         href="#admin-main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-gray-900 focus:px-4 focus:py-2 focus:text-white"
