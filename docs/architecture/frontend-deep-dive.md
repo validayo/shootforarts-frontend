@@ -66,15 +66,16 @@ The summary below is intentionally high-level and documents ownership and bounda
 flowchart LR
   U[Visitor/Admin Browser] --> FE[Frontend SPA]
   FE --> EF[Supabase Edge Functions]
-  FE --> UP[Upload Service]
-  EF --> DB[(Supabase Database)]
-  EF --> ST[(Supabase Storage)]
-  UP --> DB
-  UP --> ST
-  EF --> DISC[Discord Notifications]
-  UP --> DISC
-  DB --> AUDIT[(audit.event_log)]
-  AUDIT --> DISC
+  FE --> RENDER[Render Upload Backend]
+  EF --> DB[(Supabase DB)]
+  EF --> STORAGE[(Supabase Storage)]
+  EF --> OPENAI[OpenAI]
+  RENDER --> DB
+  RENDER --> STORAGE
+  EF --> DISCORD[Discord Webhooks]
+  RENDER --> DISCORD
+  DB --> AUDIT[Audit Trigger + Webhook]
+  AUDIT --> DISCORD
 ```
 
 ### Backend responsibilities
@@ -82,7 +83,7 @@ flowchart LR
 - Contact: validates and persists inquiry submissions, then emits operational notifications.
 - Newsletter: handles subscriptions and protected subscriber access paths for admin workflows.
 - Gallery: serves ordered photo datasets for public rendering (including prioritized selections).
-- Uploads: processes admin-uploaded images, stores optimized assets, and records photo metadata.
+- Uploads: the Render upload backend processes admin-uploaded images, stores optimized assets, records photo metadata, and emits operational notifications.
 
 ### Asset optimization
 
@@ -97,8 +98,8 @@ Uploaded images are normalized and optimized server-side to ensure consistent fo
 
 ### Observability
 
-- Discord is used for operational notifications and error signaling across backend surfaces.
-- Database mutation auditing is recorded in an audit table (`audit.event_log`).
+- Discord webhooks are used for operational notifications and error signaling across backend surfaces.
+- Database mutation auditing is handled through an audit trigger + webhook path.
 - Audit events are forwarded to Discord for near-real-time visibility.
 
 ## Key Engineering Decisions + Tradeoffs
