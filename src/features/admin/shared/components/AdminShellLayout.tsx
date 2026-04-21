@@ -41,14 +41,14 @@ const AdminShellLayout: React.FC<AdminShellLayoutProps> = ({ title, subtitle, ac
   };
 
   return (
-    <div className="min-h-screen w-full max-w-none overflow-x-hidden bg-gray-50">
+    <div className="min-h-screen w-full max-w-none overflow-x-hidden bg-gray-50 lg:h-screen lg:overflow-hidden">
       <a
         href="#admin-main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-gray-900 focus:px-4 focus:py-2 focus:text-white"
       >
         Skip to admin content
       </a>
-      <div className="w-full max-w-none lg:flex">
+      <div className="w-full max-w-none lg:flex lg:h-screen">
         <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-gray-200 bg-white/95 lg:flex">
           <div className="border-b border-gray-200 px-6 py-6">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-500">Admin</p>
@@ -76,7 +76,7 @@ const AdminShellLayout: React.FC<AdminShellLayoutProps> = ({ title, subtitle, ac
           </div>
         </aside>
 
-        <div className="min-w-0 w-full max-w-none flex-1">
+        <div className="min-w-0 w-full max-w-none flex-1 lg:flex lg:h-screen lg:flex-col lg:overflow-hidden">
           <div className="sticky top-0 z-40 w-full max-w-none border-b border-gray-200 bg-white/95 backdrop-blur">
             <div className="flex w-full max-w-none items-center justify-between px-4 py-3 sm:px-6 lg:px-10">
               <div className="min-w-0">
@@ -144,7 +144,10 @@ const AdminShellLayout: React.FC<AdminShellLayoutProps> = ({ title, subtitle, ac
             </div>
           )}
 
-          <main id="admin-main" className="w-full max-w-none min-w-0 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+          <main
+            id="admin-main"
+            className="w-full max-w-none min-w-0 px-4 py-6 sm:px-6 lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:px-10 lg:py-8"
+          >
             <div className="mb-6 w-full max-w-none rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
               <p className="mt-1 text-sm text-gray-600">{subtitle}</p>
