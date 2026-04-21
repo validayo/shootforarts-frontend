@@ -15,6 +15,7 @@ const PAGE_HEIGHT_PX = 1120;
 const PAGE_WIDTH_PX = 820;
 const PAGE_VERTICAL_PADDING_PX = 112;
 const PAGE_CONTENT_HEIGHT_PX = PAGE_HEIGHT_PX - PAGE_VERTICAL_PADDING_PX;
+const MIN_PREVIEW_SCALE = 0.58;
 
 const PREVIEW_PAGE_CLASSNAME =
   "contract-preview-page mx-auto min-h-[1120px] w-[820px] bg-white px-12 py-14 text-[16px] leading-8 text-stone-900 shadow-[0_24px_54px_rgba(17,24,39,0.18)]";
@@ -155,7 +156,7 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
   const measureRootRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [pageGroups, setPageGroups] = useState<PreviewBlock[][]>(blocks.length ? [blocks] : []);
-  const [viewportWidth, setViewportWidth] = useState(PAGE_WIDTH_PX);
+  const [viewportWidth, setViewportWidth] = useState(0);
 
   useLayoutEffect(() => {
     if (!blocks.length) {
@@ -193,10 +194,13 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
     return () => observer.disconnect();
   }, []);
 
-  const mobileScale = viewportWidth > 0 && viewportWidth < 640 ? Math.min(1, Math.max(0.58, (viewportWidth - 16) / PAGE_WIDTH_PX)) : 1;
-  const isPhoneLayout = mobileScale < 1;
-  const scaledPageWidth = PAGE_WIDTH_PX * mobileScale;
-  const scaledPageHeight = PAGE_HEIGHT_PX * mobileScale;
+  const horizontalPadding = viewportWidth > 0 && viewportWidth < 640 ? 16 : 48;
+  const availableWidth = viewportWidth > 0 ? Math.max(0, viewportWidth - horizontalPadding) : PAGE_WIDTH_PX;
+  const previewScale =
+    availableWidth < PAGE_WIDTH_PX ? Math.max(MIN_PREVIEW_SCALE, availableWidth / PAGE_WIDTH_PX) : 1;
+  const isScaledPreview = previewScale < 1;
+  const scaledPageWidth = PAGE_WIDTH_PX * previewScale;
+  const scaledPageHeight = PAGE_HEIGHT_PX * previewScale;
 
   return (
     <section className="overflow-hidden rounded-[1.5rem] border border-stone-300 bg-stone-200 shadow-[0_22px_60px_rgba(17,24,39,0.12)] sm:rounded-[2rem]">
@@ -219,7 +223,7 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
         {loading ? (
           <div
             className="mx-auto rounded-sm bg-white p-6 shadow-[0_18px_40px_rgba(17,24,39,0.16)] sm:w-[820px] sm:p-10"
-            style={isPhoneLayout ? { width: `${scaledPageWidth}px` } : undefined}
+            style={isScaledPreview ? { width: `${scaledPageWidth}px` } : undefined}
             aria-label="Contract preview loading"
           >
             <div className="animate-pulse space-y-4">
@@ -248,18 +252,21 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
 
             <div
               aria-label="Contract preview"
-              className={`mx-auto space-y-4 sm:w-[820px] sm:space-y-6 ${isPhoneLayout ? "flex flex-col items-center" : ""}`}
-              style={isPhoneLayout ? { width: `${scaledPageWidth}px` } : undefined}
+              className={`mx-auto space-y-4 sm:w-[820px] sm:space-y-6 ${isScaledPreview ? "flex flex-col items-center" : ""}`}
+              style={isScaledPreview ? { width: `${scaledPageWidth}px` } : undefined}
             >
               {pageGroups.map((group, pageIndex) => (
-                <div key={`page-${pageIndex}`} style={isPhoneLayout ? { width: `${scaledPageWidth}px`, height: `${scaledPageHeight}px` } : undefined}>
+                <div
+                  key={`page-${pageIndex}`}
+                  style={isScaledPreview ? { width: `${scaledPageWidth}px`, height: `${scaledPageHeight}px` } : undefined}
+                >
                   <div
                     className={`${PREVIEW_PAGE_CLASSNAME} ${PREVIEW_DOCUMENT_CLASSNAME}`}
                     style={{
                       fontFamily: '"Times New Roman", Times, serif',
                       lineHeight: 2,
-                      transform: isPhoneLayout ? `scale(${mobileScale})` : undefined,
-                      transformOrigin: isPhoneLayout ? "top left" : undefined,
+                      transform: isScaledPreview ? `scale(${previewScale})` : undefined,
+                      transformOrigin: isScaledPreview ? "top left" : undefined,
                     }}
                   >
                     {group.map((block) => (
@@ -273,7 +280,7 @@ const AdminContractPreview: React.FC<AdminContractPreviewProps> = ({ renderedHtm
         ) : (
           <div
             className="mx-auto rounded-sm border border-dashed border-stone-400 bg-white px-6 py-10 text-sm text-stone-600 shadow-[0_18px_40px_rgba(17,24,39,0.12)] sm:w-[820px]"
-            style={isPhoneLayout ? { width: `${scaledPageWidth}px` } : undefined}
+            style={isScaledPreview ? { width: `${scaledPageWidth}px` } : undefined}
           >
             Preview will appear here after a contract draft is loaded.
           </div>

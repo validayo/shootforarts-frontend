@@ -123,7 +123,7 @@ const AdminContractEditor: React.FC<AdminContractEditorProps> = ({
                 type="button"
                 onClick={onDelete}
                 disabled={saving || deleting}
-                className="inline-flex w-full justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-5 sm:w-auto"
+                className="inline-flex w-full justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 {deleting ? "Deleting..." : "Delete contract"}
               </button>
@@ -132,7 +132,7 @@ const AdminContractEditor: React.FC<AdminContractEditorProps> = ({
               type="button"
               onClick={onSave}
               disabled={saving || deleting}
-              className="inline-flex w-full justify-center rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-5 sm:w-auto"
+              className="inline-flex w-full justify-center rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               {saving ? "Saving..." : "Save draft"}
             </button>
