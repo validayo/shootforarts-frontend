@@ -1,4 +1,5 @@
 # Shoot For Arts Frontend Deep Dive
+
 [![CI](https://github.com/validayo/shootforarts-frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/validayo/shootforarts-frontend/actions/workflows/ci.yml)
 
 Production frontend for the Shoot For Arts photography site.  
@@ -136,12 +137,14 @@ See [Security and Abuse Controls](#14-security-and-abuse-controls) for implement
 ## 1) What This App Is
 
 The site has two major surfaces:
+
 - Public marketing/portfolio pages:
   `/, /about, /services, /contact`
 - Admin surface:
   `/sfaadmin/login, /sfaadmin/dashboard, /sfaadmin/calendar, /sfaadmin/upload, /sfaadmin/gallery-manager`
 
 Core capabilities:
+
 - Portfolio gallery with category filtering and lightbox.
 - Services and package/tier display with CTA into contact form.
 - Contact inquiry flow with anti-spam controls.
@@ -151,6 +154,7 @@ Core capabilities:
 ## 2) Runtime Architecture
 
 ### Frontend runtime
+
 - Single-page app bootstrapped at [`index.html`](../index.html) + [`src/main.tsx`](../src/main.tsx).
 - Router and page composition in [`src/App.tsx`](../src/App.tsx).
 - Global layout shell in [`src/components/layout/Layout.tsx`](../src/components/layout/Layout.tsx).
@@ -158,6 +162,7 @@ Core capabilities:
 - Route analytics + robots noindex handling for admin routes in [`src/components/routing/RouteChangeTracker.tsx`](../src/components/routing/RouteChangeTracker.tsx).
 
 ### External backend surfaces used by frontend
+
 - Supabase project:
   auth, database tables, storage, and policies.
 - Supabase Edge Functions base:
@@ -166,6 +171,7 @@ Core capabilities:
   configured via `VITE_UPLOAD_BASE`.
 
 ### Data path summary
+
 - `BASE` below refers to the Supabase Edge Functions base defined in [`src/lib/api/services.ts`](../src/lib/api/services.ts).
 - Gallery reads:
   frontend -> `GET {BASE}/gallery?...` -> rendered on homepage gallery.
@@ -183,6 +189,7 @@ Core capabilities:
 ## 3) Project Structure
 
 Top-level:
+
 - `src/`: application code.
 - `public/`: static assets + crawler-friendly route entry HTML + robots/sitemaps.
 - `scripts/`: SEO and sitemap build/validation scripts.
@@ -193,6 +200,7 @@ Top-level:
 - `vercel.json`: rewrites/headers for deployment.
 
 `src/` map:
+
 - `src/main.tsx`: React mount.
 - `src/App.tsx`: lazy-loaded routes, auth provider, route guards.
 - `src/pages/public/`: public route pages.
@@ -215,6 +223,7 @@ Top-level:
 ## 4) Routes and What Each One Does
 
 ### Public routes
+
 - `/` -> [`src/pages/public/HomePage.tsx`](../src/pages/public/HomePage.tsx)
   Renders `NewsletterPopup` and `Gallery`.
 - `/about` -> [`src/pages/public/AboutPage.tsx`](../src/pages/public/AboutPage.tsx)
@@ -225,6 +234,7 @@ Top-level:
   Renders contact intro copy + [`src/features/contact/components/ContactForm.tsx`](../src/features/contact/components/ContactForm.tsx).
 
 ### Admin routes
+
 - `/sfaadmin/login` -> [`src/pages/admin/AdminLoginPage.tsx`](../src/pages/admin/AdminLoginPage.tsx)
   Supabase email/password login.
 - `/sfaadmin/dashboard`, `/sfaadmin/calendar`, `/sfaadmin/upload` -> [`src/pages/admin/AdminPage.tsx`](../src/pages/admin/AdminPage.tsx) (protected)
@@ -233,6 +243,7 @@ Top-level:
   Route entry for [`src/features/admin/gallery/pages/AdminGalleryManagerPage.tsx`](../src/features/admin/gallery/pages/AdminGalleryManagerPage.tsx) and [`src/features/admin/gallery/components/AdminGalleryManager.tsx`](../src/features/admin/gallery/components/AdminGalleryManager.tsx).
 
 Routing details:
+
 - Auth provider wraps app in [`src/App.tsx`](../src/App.tsx).
 - [`src/components/routing/ProtectedRoute.tsx`](../src/components/routing/ProtectedRoute.tsx) redirects unauthenticated users to `/sfaadmin/login`.
 - `/sfaadmin` auto-redirects to login or dashboard based on current auth session.
@@ -241,6 +252,7 @@ Routing details:
 ## 5) Key Feature Modules
 
 ### Gallery ([`src/features/gallery/components/Gallery.tsx`](../src/features/gallery/components/Gallery.tsx))
+
 - Uses `getGallery()` from [`src/lib/api/services.ts`](../src/lib/api/services.ts).
 - Initial load fetches transformed thumbnails.
 - On lightbox open, it lazily fetches higher resolution images and loads zoom plugin.
@@ -248,6 +260,7 @@ Routing details:
 - Tracks gallery category views via analytics.
 
 ### Contact form ([`src/features/contact/components/ContactForm.tsx`](../src/features/contact/components/ContactForm.tsx))
+
 - Dynamic form options based on selected service/tier from [`src/utils/options.ts`](../src/utils/options.ts).
 - Includes anti-spam protections from [`src/lib/security/formProtection.ts`](../src/lib/security/formProtection.ts):
   honeypot field, minimum fill time, localStorage cooldown window.
@@ -257,12 +270,14 @@ Routing details:
   `/contact?service=...` (used by services page Book Now buttons).
 
 ### Newsletter ([`src/features/newsletter/components/Newsletter.tsx`](../src/features/newsletter/components/Newsletter.tsx), [`src/features/newsletter/components/NewsletterPopup.tsx`](../src/features/newsletter/components/NewsletterPopup.tsx))
+
 - Both use the same backend subscribe API.
 - Both use anti-spam + cooldown protection.
 - Popup display logic:
   opens after delay or 50% scroll, suppressed per session and optionally across days with localStorage/sessionStorage keys.
 
 ### Admin dashboard ([`src/features/admin/dashboard/pages/AdminDashboardPage.tsx`](../src/features/admin/dashboard/pages/AdminDashboardPage.tsx), [`src/features/admin/data/components/AdminData.tsx`](../src/features/admin/data/components/AdminData.tsx))
+
 - Dashboard stats and tables for contacts/subscribers.
 - Search + filtering + date windows.
 - CSV export for contacts/subscribers.
@@ -270,12 +285,14 @@ Routing details:
 - Optional edge sync mode when `VITE_ENABLE_EDGE_SYNC=true`.
 
 ### Admin uploader ([`src/features/admin/upload/components/AdminUpload.tsx`](../src/features/admin/upload/components/AdminUpload.tsx))
+
 - Multi-image upload with previews and per-file progress via XHR.
 - Enforces client-side type and max size validation (13 MB/file).
 - Requires valid Supabase access token from current session.
 - Sends multipart form-data to external upload service.
 
 ### Admin gallery manager ([`src/features/admin/gallery/components/AdminGalleryManager.tsx`](../src/features/admin/gallery/components/AdminGalleryManager.tsx))
+
 - Pulls top/season/all photo lists from Supabase.
 - Drag-and-drop ordering with `react-dnd`.
 - Persists top and seasonal ranks.
@@ -285,9 +302,11 @@ Routing details:
 ## 6) Data and Service Layer
 
 Main API wrapper:
+
 - [`src/lib/api/services.ts`](../src/lib/api/services.ts)
 
 Functions exposed:
+
 - `submitContact(payload)`
 - `subscribe(email)`
 - `getGallery(category, transforms, extra)`
@@ -304,10 +323,12 @@ Functions exposed:
 - `getNewsletterSubscribers()`
 
 Auth helpers:
+
 - [`src/lib/auth/session.ts`](../src/lib/auth/session.ts)
 - [`src/contexts/AuthContext.tsx`](../src/contexts/AuthContext.tsx)
 
 Supabase client:
+
 - singleton client in [`src/lib/supabase/client.ts`](../src/lib/supabase/client.ts)
 - re-exported in:
   [`src/lib/supabase/index.ts`](../src/lib/supabase/index.ts)
@@ -315,10 +336,12 @@ Supabase client:
 ## 7) Environment Variables
 
 Used in frontend code:
+
 - Core: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 - Optional: `VITE_UPLOAD_BASE`, `VITE_ENABLE_EDGE_SYNC`, `VITE_GA_MEASUREMENT_ID`, `VITE_SENTRY_DSN`, `VITE_SENTRY_ENVIRONMENT`, `VITE_SENTRY_ENABLE_DEV`
 
 Important:
+
 - `VITE_*` variables are injected into the client bundle at build time. Do not store private server secrets in `VITE_*`.
 - Values are intentionally omitted for security and because this repo is intended for review, not third-party deployment.
 
@@ -342,34 +365,41 @@ Important:
 ## 9) SEO Strategy
 
 There are two SEO layers:
+
 - Dynamic SPA metadata via [`src/components/seo/SEO.tsx`](../src/components/seo/SEO.tsx).
 - Static route entry HTML pages for crawler-first metadata:
   [`public/about/index.html`](../public/about/index.html), [`public/services/index.html`](../public/services/index.html), [`public/contact/index.html`](../public/contact/index.html).
 
 These static pages:
+
 - include canonical/OG/Twitter tags,
 - include JSON-LD breadcrumbs,
 - include GA init,
 - then dynamically inject the main SPA script/styles from `/index.html`.
 
 SEO scripts:
+
 - [`scripts/generate-sitemaps.mjs`](../scripts/generate-sitemaps.mjs)
   builds page and image sitemaps.
 - [`scripts/validate-seo.mjs`](../scripts/validate-seo.mjs)
   checks required meta/canonical/GA/robots lines.
 
 See also:
+
 - [`docs/seo/seo-validation-checklist.md`](../seo/seo-validation-checklist.md)
 
 ## 10) Analytics Strategy
 
 GA bootstrapping:
+
 - [`public/scripts/ga-init.js`](../public/scripts/ga-init.js) (reads `VITE_GA_MEASUREMENT_ID` from root [`index.html`](../index.html) meta tag and reuses it across static route shells).
 
 Event wrappers:
+
 - [`src/lib/analytics/events.ts`](../src/lib/analytics/events.ts)
 
 Common tracked events:
+
 - `page_view`
 - `gallery_view`
 - `contact_form_started`
@@ -383,6 +413,7 @@ Common tracked events:
 - popup open/close and joke interactions
 
 Setup checklist:
+
 - [`docs/analytics/analytics-conversions-checklist.md`](../analytics/analytics-conversions-checklist.md)
 
 ## 11) Observability
@@ -396,10 +427,12 @@ Setup checklist:
 ## 12) Styling System
 
 Primary styling:
+
 - Tailwind CSS with custom theme extension in [`tailwind.config.js`](../tailwind.config.js).
 - Shared utility/component classes in [`src/index.css`](../src/index.css).
 
 Notable custom classes:
+
 - `.container-custom`
 - `.nav-link` / `.nav-link-active`
 - `.input-field`
@@ -408,42 +441,50 @@ Notable custom classes:
 - mobile menu transition classes
 
 Fonts:
+
 - Cormorant Garamond (serif)
 - Inter (sans)
 
 ## 13) Deployment and Hosting
 
 Primary deployment target:
+
 - Vercel (see [`vercel.json`](../vercel.json)).
 
 [`vercel.json`](../vercel.json) behavior:
+
 - redirects `/home` -> `/`
 - rewrites `/sfaadmin` and `/sfaadmin/*` to `/index.html` (SPA handling)
 - route-specific cache headers for public pages
 - global security headers, including a baseline Content Security Policy (CSP)
 
 CI pipeline:
+
 - GitHub Actions workflow at [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
 - jobs: lint, typecheck, build, unit/component tests, Playwright e2e
 - optional preview deploy verification job (runs only when Vercel secrets are present)
 
 Other infrastructure:
+
 - Supabase project for auth/database/storage/edge functions.
 - Render backend for upload endpoint.
 
 ## 14) Security and Abuse Controls
 
 Current client-side protections:
+
 - hidden honeypot fields (contact/newsletter forms),
 - minimum-fill-time threshold,
 - cooldown windows via localStorage timestamps.
 
 Auth controls:
+
 - admin routes gated by Supabase session state.
 - route robots meta set to `noindex,nofollow` on `/sfaadmin*`.
 - `ProtectedRoute` is a UX guard only; it is not the primary data-protection boundary.
 
 RLS and policies:
+
 - All sensitive reads/writes must be protected by Supabase RLS.
 - migration history in [`supabase/migrations/`](../supabase/migrations/).
 - includes authenticated policies for photos table and storage bucket operations.
@@ -453,12 +494,14 @@ RLS and policies:
 ## 15) Database Notes (as Used by Frontend)
 
 Frontend expects and uses:
+
 - `photos` with fields including:
   `id, url, category, uploaded_at, is_top, top_rank, season_tag, season_rank`
 - `contact_submissions` mapped into admin/contact views.
 - `newsletter_subscribers` for admin list/export.
 
 Important:
+
 - migration history contains iterative schema evolution.
 - when setting up a fresh environment, validate that actual Supabase table columns match what [`src/lib/api/services.ts`](../src/lib/api/services.ts) selects/updates.
 
