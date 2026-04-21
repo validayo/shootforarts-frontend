@@ -17,9 +17,48 @@ const parseNumericInputValue = (value: string) => {
   return Number.isNaN(parsed) ? "" : parsed;
 };
 
+const normalizeTemporalInputValue = (type: AdminContractFieldDefinition["type"], value: string) => {
+  if (!value) return "";
+
+  if (type === "date") {
+    const dateMatch = value.match(/^(\d{4}-\d{2}-\d{2})(?:[T\s].*)?$/);
+    return dateMatch ? dateMatch[1] : value;
+  }
+
+  if (type === "time") {
+    const timeMatch = value.match(/^(\d{2}:\d{2})(?::\d{2}(?:\.\d{1,3})?)?$/);
+    return timeMatch ? timeMatch[1] : value;
+  }
+
+  if (type === "datetime") {
+    const isoLikeMatch = value.match(
+      /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})?$/,
+    );
+    if (isoLikeMatch) {
+      return `${isoLikeMatch[1]}T${isoLikeMatch[2]}`;
+    }
+
+    const twelveHourMatch = value.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}):(\d{2})\s*([AP]M)$/i);
+    if (twelveHourMatch) {
+      const [, datePart, hourPart, minutePart, meridiemPart] = twelveHourMatch;
+      const meridiem = meridiemPart.toUpperCase();
+      let hour = Number(hourPart);
+      if (meridiem === "AM") {
+        hour = hour === 12 ? 0 : hour;
+      } else {
+        hour = hour === 12 ? 12 : hour + 12;
+      }
+      return `${datePart}T${String(hour).padStart(2, "0")}:${minutePart}`;
+    }
+  }
+
+  return value;
+};
+
 const AdminContractFieldRenderer: React.FC<AdminContractFieldRendererProps> = ({ field, value, onChange }) => {
   const fieldId = `contract-field-${field.key}`;
   const stringValue = typeof value === "string" ? value : value == null ? "" : String(value);
+  const normalizedInputValue = normalizeTemporalInputValue(field.type, stringValue);
   const showUnsupportedType =
     Boolean(field.rawType) &&
     field.type === "text";
@@ -112,7 +151,7 @@ const AdminContractFieldRenderer: React.FC<AdminContractFieldRendererProps> = ({
           step={field.type === "currency" ? "0.01" : field.type === "number" ? "1" : undefined}
           className={inputBaseClasses}
           placeholder={field.placeholder}
-          value={stringValue}
+          value={normalizedInputValue}
           onChange={(event) =>
             onChange(
               field.type === "number" || field.type === "currency"

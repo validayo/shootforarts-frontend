@@ -285,8 +285,8 @@ const AdminContractsPage: React.FC = () => {
       activeNav="contracts"
       onLogout={handleLogout}
     >
-      <div className="grid gap-6 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
-        <div className="space-y-6">
+      <div className="grid w-full max-w-none min-w-0 grid-cols-1 justify-items-stretch gap-6 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-6">
           <AdminContractsList
             contracts={contracts}
             templates={templates}
@@ -303,10 +303,10 @@ const AdminContractsPage: React.FC = () => {
           />
         </div>
 
-        <div className="grid gap-6 min-[1700px]:grid-cols-[minmax(20rem,0.95fr)_minmax(30rem,1.15fr)] min-[1700px]:items-start">
-          <div className="space-y-6">
+        <div className="grid w-full max-w-none min-w-0 grid-cols-1 justify-items-stretch gap-6 min-[1700px]:grid-cols-[minmax(20rem,0.95fr)_minmax(30rem,1.15fr)] min-[1700px]:items-start">
+          <div className="min-w-0 space-y-6">
             {manifestLoading ? (
-              <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <section className="w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div className="animate-pulse space-y-4">
                   <div className="h-5 w-48 rounded bg-gray-200" />
                   <div className="h-4 w-full rounded bg-gray-100" />
@@ -387,11 +387,11 @@ const AdminContractsPage: React.FC = () => {
                 onDelete={handleDelete}
               />
             ) : workspaceError ? (
-              <section className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700 shadow-sm">
+              <section className="w-full rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700 shadow-sm">
                 {workspaceError}
               </section>
             ) : (
-              <section className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center shadow-sm">
+              <section className="w-full rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-900">Open or create a contract draft</h3>
                 <p className="mt-2 text-sm text-gray-600">
                   Start from an inquiry or manual entry, then edit fields, toggles, and section source on one page.
@@ -407,7 +407,7 @@ const AdminContractsPage: React.FC = () => {
             )}
           </div>
 
-          <div className="mx-auto w-full max-w-[980px] min-[1700px]:mx-0 min-[1700px]:max-w-none min-[1700px]:sticky min-[1700px]:top-24">
+          <div className="w-full min-w-0 min-[1700px]:sticky min-[1700px]:top-24">
             <AdminContractPreview
               renderedHtml={documentHtml}
               loading={detailLoading}
