@@ -476,16 +476,16 @@ const AdminDashboardPage: React.FC = () => {
           </div>
 
           {selectedContact && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 p-4 backdrop-blur-[2px]">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative max-h-[90vh] w-full max-w-2xl overflow-x-hidden overflow-y-auto rounded-2xl bg-white shadow-2xl"
+                className="relative max-h-[90vh] w-full max-w-2xl overflow-x-hidden overflow-y-auto rounded-2xl border border-stone-200 bg-stone-50 shadow-2xl sm:bg-white"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="selected-contact-title"
               >
-                <div className="sticky top-0 flex items-start justify-between border-b border-gray-200 bg-white p-4 sm:p-6">
+                <div className="sticky top-0 flex items-start justify-between border-b border-stone-200 bg-stone-50/95 p-4 backdrop-blur sm:bg-white sm:p-6">
                   <div>
                     <h3 id="selected-contact-title" className="text-xl font-bold text-gray-900 sm:text-2xl">
                       {selectedContact.service}

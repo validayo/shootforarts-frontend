@@ -407,7 +407,7 @@ const AdminContractsPage: React.FC = () => {
             )}
           </div>
 
-          <div className="md:mx-auto md:w-full md:max-w-[980px] min-[1700px]:mx-0 min-[1700px]:max-w-none min-[1700px]:sticky min-[1700px]:top-24">
+          <div className="mx-auto w-full max-w-[980px] min-[1700px]:mx-0 min-[1700px]:max-w-none min-[1700px]:sticky min-[1700px]:top-24">
             <AdminContractPreview
               renderedHtml={documentHtml}
               loading={detailLoading}

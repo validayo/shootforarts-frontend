@@ -103,8 +103,8 @@ const AdminContractEditor: React.FC<AdminContractEditorProps> = ({
               {template?.label ?? contract.contractType.replace(/_/g, " ")} · Template version {contract.templateVersion}
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <label className="block min-w-[11rem]">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-end lg:w-auto">
+            <label className="block w-full sm:min-w-[11rem] lg:w-auto">
               <span className="text-xs font-medium uppercase tracking-[0.14em] text-gray-500">Status</span>
               <select
                 className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
@@ -123,7 +123,7 @@ const AdminContractEditor: React.FC<AdminContractEditorProps> = ({
                 type="button"
                 onClick={onDelete}
                 disabled={saving || deleting}
-                className="mt-5 inline-flex rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex w-full justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 {deleting ? "Deleting..." : "Delete contract"}
               </button>
@@ -132,7 +132,7 @@ const AdminContractEditor: React.FC<AdminContractEditorProps> = ({
               type="button"
               onClick={onSave}
               disabled={saving || deleting}
-              className="mt-5 inline-flex rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex w-full justify-center rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               {saving ? "Saving..." : "Save draft"}
             </button>
