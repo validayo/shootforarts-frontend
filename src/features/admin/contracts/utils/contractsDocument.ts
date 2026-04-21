@@ -5,6 +5,8 @@ const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g,
 const normalizeWhitespace = (value: string) => value.replace(/\s+/g, " ").trim();
 const PLACEHOLDER_PATTERN = /\bTBD\b|to be determined/i;
 const SPECIAL_NOTES_PATTERN = /^special notes currently recorded\s*:/i;
+const DEFAULT_PHOTOGRAPHER_SIGNATURE_NAME = "Ayodeji Adigun";
+const DEFAULT_PHOTOGRAPHER_BUSINESS_NAME = "Shoot For Arts";
 
 const toText = (value: unknown): string => {
   if (value == null) return "";
@@ -74,9 +76,17 @@ const renderBulletList = (items: string[]) => {
   return `<ul>${safeItems.map(renderBullet).join("")}</ul>`;
 };
 
+const getPhotographerDisplayName = (contract: AdminContractDetail) =>
+  toText(contract.photographerDisplayName) || DEFAULT_PHOTOGRAPHER_SIGNATURE_NAME;
+
 const getPhotographerScriptName = (contract: AdminContractDetail) => {
-  const raw = toText(contract.fieldValues.photographerSignatureName) || "Ayodeji Adigun";
-  return raw.split(",")[0]?.trim() || "Ayodeji Adigun";
+  const displayName = getPhotographerDisplayName(contract);
+  const raw =
+    displayName ||
+    toText(contract.photographerSignatureName) ||
+    toText(contract.fieldValues.photographerSignatureName) ||
+    DEFAULT_PHOTOGRAPHER_SIGNATURE_NAME;
+  return raw.split(",")[0]?.trim() || DEFAULT_PHOTOGRAPHER_SIGNATURE_NAME;
 };
 
 const getDeliveryWindow = (contractType: AdminContractDetail["contractType"]) => {
@@ -549,8 +559,12 @@ const getAutoSignedDate = (contract: AdminContractDetail) => formatDate(contract
 
 const renderSignatureSection = (contract: AdminContractDetail) => {
   const photographerName = getPhotographerScriptName(contract);
-  const photographerBusiness = toText(contract.fieldValues.photographerName) || "Shoot For Arts";
-  const photographerPrintLine = [photographerName, photographerBusiness].filter(Boolean).join(", ");
+  const photographerDisplayName = getPhotographerDisplayName(contract);
+  const photographerBusiness =
+    toText(contract.photographerBusinessName) ||
+    toText(contract.fieldValues.photographerName) ||
+    DEFAULT_PHOTOGRAPHER_BUSINESS_NAME;
+  const photographerPrintLine = [photographerDisplayName, photographerBusiness].filter(Boolean).join(", ");
   const clientName = toText(contract.fieldValues.clientSignatureName) || toText(contract.fieldValues.clientName) || "Client";
   const clientBusinessName = toText(contract.fieldValues.clientBusinessName);
   const clientPrintLine = [clientName, clientBusinessName].filter(Boolean).join(", ");

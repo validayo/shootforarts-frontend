@@ -267,8 +267,6 @@ const AdminContractsPage: React.FC = () => {
         status: editingContract.status,
       });
       setEditingContract(savedDetail);
-      const refreshedDetail = await getAdminContractDetail(savedDetail.id);
-      setEditingContract(refreshedDetail);
       setSaveSuccess("Contract draft saved.");
       await fetchContractsList();
     } catch (error) {

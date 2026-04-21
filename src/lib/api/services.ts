@@ -333,6 +333,24 @@ function normalizeContractDetailPayload(value: unknown): AdminContractDetail {
       .filter((section: AdminContractSection | null): section is AdminContractSection => section !== null),
     renderedHtml: toStringOrNull(source.renderedHtml ?? source.rendered_html) ?? "",
     sourceSnapshot: asRecord(source.sourceSnapshot ?? source.source_snapshot_json),
+    photographerDisplayName: toStringOrNull(
+      source.photographerDisplayName ??
+        source.photographer_display_name ??
+        root.photographerDisplayName ??
+        root.photographer_display_name,
+    ) ?? undefined,
+    photographerBusinessName: toStringOrNull(
+      source.photographerBusinessName ??
+        source.photographer_business_name ??
+        root.photographerBusinessName ??
+        root.photographer_business_name,
+    ) ?? undefined,
+    photographerSignatureName: toStringOrNull(
+      source.photographerSignatureName ??
+        source.photographer_signature_name ??
+        root.photographerSignatureName ??
+        root.photographer_signature_name,
+    ) ?? undefined,
     updatedAt: toStringOrNull(source.updatedAt ?? source.updated_at),
     approvedAt: toStringOrNull(source.approvedAt ?? source.approved_at),
   };

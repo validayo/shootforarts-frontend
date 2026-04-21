@@ -123,9 +123,7 @@ const AdminData: React.FC = () => {
   const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilter>("all");
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState<BookingStatus>("in_review");
-  const [, setAIInboxLoading] = useState(false);
   const [aiInboxError, setAIInboxError] = useState<string | null>(null);
-  const [, setAIInboxItems] = useState<AdminAIInboxItem[]>([]);
   const [aiInboxById, setAIInboxById] = useState<Record<string, AdminAIInboxItem>>({});
   const [aiDetailById, setAIDetailById] = useState<Record<string, AdminAIInquiryDetailResponse>>({});
   const [aiDetailLoadingById, setAIDetailLoadingById] = useState<Record<string, boolean>>({});
@@ -244,7 +242,6 @@ const AdminData: React.FC = () => {
   const fetchAIInbox = useCallback(async () => {
     if (!session || !aiEnabled) return;
 
-    setAIInboxLoading(true);
     setAIInboxError(null);
 
     try {
@@ -255,7 +252,6 @@ const AdminData: React.FC = () => {
         return acc;
       }, {});
 
-      setAIInboxItems(items);
       setAIInboxById(byId);
 
       if (!hasMarkedAILastSeenRef.current) {
@@ -265,12 +261,9 @@ const AdminData: React.FC = () => {
         });
       }
     } catch (fetchError) {
-      setAIInboxItems([]);
       setAIInboxById({});
       setAIInboxError("AI insights are temporarily unavailable.");
       logAdminWarning("admin_data.ai_inbox_failed", { reason: String(fetchError) });
-    } finally {
-      setAIInboxLoading(false);
     }
   }, [session, aiEnabled]);
 

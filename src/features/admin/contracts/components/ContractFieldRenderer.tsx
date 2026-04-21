@@ -11,6 +11,12 @@ interface AdminContractFieldRendererProps {
 const inputBaseClasses =
   "mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200";
 
+const parseNumericInputValue = (value: string) => {
+  if (value === "") return "";
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? "" : parsed;
+};
+
 const AdminContractFieldRenderer: React.FC<AdminContractFieldRendererProps> = ({ field, value, onChange }) => {
   const fieldId = `contract-field-${field.key}`;
   const stringValue = typeof value === "string" ? value : value == null ? "" : String(value);
@@ -110,9 +116,7 @@ const AdminContractFieldRenderer: React.FC<AdminContractFieldRendererProps> = ({
           onChange={(event) =>
             onChange(
               field.type === "number" || field.type === "currency"
-                ? event.target.value === ""
-                  ? ""
-                  : Number(event.target.value)
+                ? parseNumericInputValue(event.target.value)
                 : event.target.value,
             )
           }

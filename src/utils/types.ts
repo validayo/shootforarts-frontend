@@ -520,6 +520,9 @@ export interface AdminContractDetail {
   sections: AdminContractSection[];
   renderedHtml: string;
   sourceSnapshot: Record<string, unknown>;
+  photographerDisplayName?: string;
+  photographerBusinessName?: string;
+  photographerSignatureName?: string;
   updatedAt: string | null;
   approvedAt: string | null;
 }

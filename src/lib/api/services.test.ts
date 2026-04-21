@@ -510,13 +510,24 @@ describe("api/services wrappers", () => {
       ],
       rendered_html: "<article>Preview</article>",
       source_snapshot_json: { origin: "manual" },
+      photographer_display_name: "Ayodeji Adigun",
+      photographer_business_name: "Shoot For Arts",
+      photographer_signature_name: "Ayodeji Adigun, Shoot For Arts",
       updated_at: "2026-04-20T12:00:00.000Z",
       approved_at: null,
     };
 
     fetchMock
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ ok: true, contract: detailPayload }), {
+        new Response(JSON.stringify({
+          ok: true,
+          contractId: "contract-1",
+          status: "draft",
+          contract: detailPayload,
+          photographerDisplayName: "Ayodeji Adigun",
+          photographerBusinessName: "Shoot For Arts",
+          photographerSignatureName: "Ayodeji Adigun, Shoot For Arts",
+        }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),
@@ -590,9 +601,12 @@ describe("api/services wrappers", () => {
     const deleted = await deleteAdminContract("contract-1");
 
     expect(created.renderedHtml).toBe("<article>Preview</article>");
+    expect(created.photographerDisplayName).toBe("Ayodeji Adigun");
     expect(fetched.sections[0]).toMatchObject({ key: "terms", bodyText: "Terms body" });
     expect(listed[0]).toMatchObject({ id: "contract-1", contractType: "portrait_branding", clientName: "Armi De Francia" });
     expect(saved.fieldValues).toEqual({ clientName: "Armi" });
+    expect(saved.photographerBusinessName).toBe("Shoot For Arts");
+    expect(saved.photographerSignatureName).toBe("Ayodeji Adigun, Shoot For Arts");
     expect(deleted).toEqual({ ok: true, contractId: "contract-1", status: "archived", reqId: undefined });
     expect(fetchMock).toHaveBeenNthCalledWith(1, `${BASE}/admin-contracts-create`, expect.objectContaining({
       method: "POST",
