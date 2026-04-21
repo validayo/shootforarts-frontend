@@ -417,6 +417,131 @@ export interface AdminAIInquiryDetailResponse {
   reqId?: string;
 }
 
+export type AdminContractType = "portrait_branding" | "portrait" | "event_conference" | "event";
+
+export type AdminContractStatus = "draft" | "review_ready" | "approved" | "archived";
+
+export type AdminContractFieldType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "currency"
+  | "date"
+  | "datetime"
+  | "time"
+  | "boolean"
+  | "select"
+  | "multiselect"
+  | "list";
+
+export interface AdminContractFieldOption {
+  label: string;
+  value: string;
+}
+
+export interface AdminContractVisibilityRule {
+  toggle?: string;
+  fieldEquals?: {
+    key: string;
+    value: string | number | boolean;
+  };
+}
+
+export interface AdminContractFieldDefinition {
+  key: string;
+  label: string;
+  type: AdminContractFieldType;
+  rawType?: string;
+  uiGroup?: string;
+  required?: boolean;
+  requiredOnCreate?: boolean;
+  placeholder?: string;
+  helpText?: string;
+  defaultValue?: string | number | boolean | string[];
+  options?: AdminContractFieldOption[];
+  visibleWhen?: AdminContractVisibilityRule;
+}
+
+export interface AdminContractToggleDefinition {
+  key: string;
+  label: string;
+  defaultValue: boolean;
+  helpText?: string;
+}
+
+export interface AdminContractTemplateDefinition {
+  type: AdminContractType;
+  label: string;
+  description: string;
+  category?: "portrait" | "event" | string;
+  fields: AdminContractFieldDefinition[];
+  toggles: AdminContractToggleDefinition[];
+  sectionOrder: string[];
+}
+
+export interface AdminContractsTemplateManifestResponse {
+  ok: boolean;
+  templates: AdminContractTemplateDefinition[];
+  reqId?: string;
+}
+
+export interface AdminContractSection {
+  key: string;
+  title: string;
+  included: boolean;
+  bodyText: string;
+  bodyHtml: string;
+  editedManually: boolean;
+}
+
+export interface AdminContractListItem {
+  id: string;
+  title: string;
+  contractType: AdminContractType;
+  status: AdminContractStatus;
+  contactSubmissionId: string | null;
+  clientName: string | null;
+  clientBusinessName: string | null;
+  templateVersion: string | null;
+  updatedAt: string | null;
+  approvedAt: string | null;
+}
+
+export interface AdminContractDetail {
+  id: string;
+  title: string;
+  contractType: AdminContractType;
+  status: AdminContractStatus;
+  contactSubmissionId: string | null;
+  templateKey: string;
+  templateVersion: string;
+  fieldValues: Record<string, unknown>;
+  toggleValues: Record<string, boolean>;
+  sections: AdminContractSection[];
+  renderedHtml: string;
+  sourceSnapshot: Record<string, unknown>;
+  photographerDisplayName?: string;
+  photographerBusinessName?: string;
+  photographerSignatureName?: string;
+  updatedAt: string | null;
+  approvedAt: string | null;
+}
+
+export interface AdminContractCreatePayload {
+  contractType: AdminContractType;
+  contactSubmissionId?: string | null;
+  fieldValues?: Record<string, unknown>;
+  toggleValues?: Record<string, boolean>;
+}
+
+export interface AdminContractSavePayload {
+  contractId: string;
+  fieldValues: Record<string, unknown>;
+  toggleValues: Record<string, boolean>;
+  sections: AdminContractSection[];
+  status: AdminContractStatus;
+}
+
 // Admin credentials interface
 export interface AdminCredentials {
   email: string;

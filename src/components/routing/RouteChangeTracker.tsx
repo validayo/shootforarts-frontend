@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { trackPageView } from "../../lib/analytics/events";
 import { ROUTES, shouldNoIndexRoutePath } from "../../config/routes";
-import { hasValidContactThankYouAccess } from "../contact/thankYouAccess";
+import { hasValidContactThankYouAccess } from "../../features/contact/utils/contactThankYouAccess";
 
 const RouteChangeTracker = () => {
   const location = useLocation();

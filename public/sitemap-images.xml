@@ -8,39 +8,4 @@
       <image:caption>Explore portraits, headshots, branding sessions, graduation photos, and event coverage by Shoot For Arts in Toronto.</image:caption>
     </image:image>
   </url>
-  <url>
-    <loc>https://shootforarts.com/about</loc>
-    <image:image>
-      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/AYO.jpg</image:loc>
-      <image:title>About Ayo — Shoot For Arts</image:title>
-      <image:caption>Ayo, photographer and creator of Shoot For Arts.</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://shootforarts.com/services</loc>
-    <image:image>
-      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/BASE.jpg</image:loc>
-      <image:title>base</image:title>
-    </image:image>
-    <image:image>
-      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/Creative.jpg</image:loc>
-      <image:title>creative</image:title>
-    </image:image>
-    <image:image>
-      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/PROM.jpg</image:loc>
-      <image:title>prom</image:title>
-    </image:image>
-    <image:image>
-      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/GRAD.jpg</image:loc>
-      <image:title>grad</image:title>
-    </image:image>
-    <image:image>
-      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/EVENTS.JPG</image:loc>
-      <image:title>event</image:title>
-    </image:image>
-    <image:image>
-      <image:loc>https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/WEDDING.jpg</image:loc>
-      <image:title>wedding</image:title>
-    </image:image>
-  </url>
 </urlset>

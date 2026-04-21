@@ -18,10 +18,29 @@ import {
   type AdminAISaveContextNoteResponse,
   type AdminAISaveDraftEditResponse,
   type AdminAISendDraftResponse,
-} from "../../utils";
-import type { AdminSubscriber } from "../../utils/admin/helpers";
+  type AdminContractCreatePayload,
+  type AdminContractDetail,
+  type AdminContractFieldDefinition,
+  type AdminContractFieldOption,
+  type AdminContractFieldType,
+  type AdminContractListItem,
+  type AdminContractSavePayload,
+  type AdminContractSection,
+  type AdminContractStatus,
+  type AdminContractTemplateDefinition,
+  type AdminContractsTemplateManifestResponse,
+  type AdminContractToggleDefinition,
+  type AdminContractType,
+} from "../../utils/types";
+import type { AdminSubscriber } from "../../features/admin/shared/helpers";
 import { supabase, supabaseAnonKey } from "../supabase";
 import { getAccessToken } from "../auth/session";
+
+// Shared network transport layer.
+// If this file grows further, the next clean split points are:
+// - public engagement: contact/newsletter
+// - admin AI + contracts
+// - gallery/media + uploads
 
 // Supabase Edge Functions base URL
 export const BASE = "https://obhiuvlfopgtbgjuznok.functions.supabase.co";
@@ -104,6 +123,258 @@ async function getProtectedEdgeHeaders(contentType: string | null = "application
   return headers;
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function toStringOrNull(value: unknown): string | null {
+  return typeof value === "string" ? value : value == null ? null : String(value);
+}
+
+function toBoolean(value: unknown, fallback = false): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item));
+}
+
+function normalizeContractDefaultValue(
+  value: unknown,
+): string | number | boolean | string[] | undefined {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item));
+  }
+  return undefined;
+}
+
+function normalizeContractFieldType(value: unknown): AdminContractFieldType {
+  const candidate = typeof value === "string" ? value : "text";
+  switch (candidate) {
+    case "text":
+    case "textarea":
+    case "number":
+    case "currency":
+    case "date":
+    case "datetime":
+    case "time":
+    case "boolean":
+    case "select":
+    case "multiselect":
+    case "list":
+      return candidate;
+    case "string_array":
+      return "list";
+    default:
+      return "text";
+  }
+}
+
+function normalizeContractOptions(value: unknown): AdminContractFieldOption[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((option) => {
+        const record = asRecord(option);
+        const optionValue = toStringOrNull(record.value ?? option);
+        if (!optionValue) return null;
+        return {
+          label: toStringOrNull(record.label) ?? optionValue,
+          value: optionValue,
+        };
+      })
+      .filter((option): option is AdminContractFieldOption => option !== null);
+  }
+
+  const record = asRecord(value);
+  return Object.entries(record).map(([optionValue, optionLabel]) => ({
+    label: toStringOrNull(optionLabel) ?? optionValue,
+    value: optionValue,
+  }));
+}
+
+function normalizeContractFieldDefinition(value: unknown): AdminContractFieldDefinition | null {
+  const record = asRecord(value);
+  const key = toStringOrNull(record.key ?? record.name);
+  if (!key) return null;
+  const rawType = typeof record.type === "string" ? record.type : undefined;
+  const normalizedType = normalizeContractFieldType(record.type);
+
+  const fieldEquals = asRecord(record.visibleWhen ?? record.visible_when).fieldEquals ??
+    asRecord(record.visibleWhen ?? record.visible_when).field_equals;
+  const fieldEqualsRecord = asRecord(fieldEquals);
+
+  return {
+    key,
+    label: toStringOrNull(record.label) ?? key,
+    type: normalizedType,
+    rawType: rawType && normalizedType !== rawType ? rawType : undefined,
+    uiGroup: toStringOrNull(record.uiGroup ?? record.ui_group ?? record.group) ?? undefined,
+    required: toBoolean(record.required),
+    requiredOnCreate: toBoolean(record.requiredOnCreate ?? record.required_on_create ?? record.createRequired),
+    placeholder: toStringOrNull(record.placeholder) ?? undefined,
+    helpText: toStringOrNull(record.helpText ?? record.help_text) ?? undefined,
+    defaultValue: normalizeContractDefaultValue(
+      record.defaultValue ?? record.default_value ?? record.default,
+    ),
+    options: normalizeContractOptions(record.options),
+    visibleWhen:
+      record.visibleWhen || record.visible_when
+        ? {
+            toggle: toStringOrNull(asRecord(record.visibleWhen ?? record.visible_when).toggle) ?? undefined,
+            fieldEquals:
+              Object.keys(fieldEqualsRecord).length > 0
+                ? {
+                    key: toStringOrNull(fieldEqualsRecord.key) ?? "",
+                    value: (fieldEqualsRecord.value ?? "") as string | number | boolean,
+                  }
+                : undefined,
+          }
+        : undefined,
+  };
+}
+
+function normalizeContractToggleDefinition(value: unknown): AdminContractToggleDefinition | null {
+  const record = asRecord(value);
+  const key = toStringOrNull(record.key ?? record.name);
+  if (!key) return null;
+
+  return {
+    key,
+    label: toStringOrNull(record.label) ?? key,
+    defaultValue: toBoolean(record.defaultValue ?? record.default_value ?? record.default),
+    helpText: toStringOrNull(record.helpText ?? record.help_text) ?? undefined,
+  };
+}
+
+function normalizeContractTemplateDefinition(value: unknown): AdminContractTemplateDefinition | null {
+  const record = asRecord(value);
+  const type = toStringOrNull(record.type ?? record.contractType ?? record.contract_type ?? record.templateKey ?? record.template_key);
+  if (!type) return null;
+
+  const fieldsSource = Array.isArray(record.fields)
+    ? record.fields
+    : Object.entries(asRecord(record.fields)).map(([key, fieldValue]) => ({
+        key,
+        ...asRecord(fieldValue),
+      }));
+  const fields = fieldsSource
+    .map(normalizeContractFieldDefinition)
+    .filter((field): field is AdminContractFieldDefinition => field !== null);
+
+  const togglesValue = record.toggles ?? record.toggleDefinitions ?? record.toggle_definitions;
+  const togglesArray = Array.isArray(togglesValue)
+    ? togglesValue
+    : Object.entries(asRecord(togglesValue)).map(([key, toggleValue]) => {
+        const toggleRecord = asRecord(toggleValue);
+        return Object.keys(toggleRecord).length > 0
+          ? { key, ...toggleRecord }
+          : { key, defaultValue: toggleValue };
+      });
+  const toggles = togglesArray
+    .map(normalizeContractToggleDefinition)
+    .filter((toggle): toggle is AdminContractToggleDefinition => toggle !== null);
+
+  return {
+    type: type as AdminContractType,
+    label: toStringOrNull(record.label) ?? type,
+    description: toStringOrNull(record.description) ?? "",
+    category: toStringOrNull(record.category) ?? undefined,
+    fields,
+    toggles,
+    sectionOrder: toStringArray(record.sectionOrder ?? record.section_order),
+  };
+}
+
+function normalizeContractSection(value: unknown): AdminContractSection | null {
+  const record = asRecord(value);
+  const key = toStringOrNull(record.key);
+  if (!key) return null;
+
+  return {
+    key,
+    title: toStringOrNull(record.title) ?? key,
+    included: record.included == null ? true : toBoolean(record.included, true),
+    bodyText: toStringOrNull(record.bodyText ?? record.body_text) ?? "",
+    bodyHtml: toStringOrNull(record.bodyHtml ?? record.body_html) ?? "",
+    editedManually: toBoolean(record.editedManually ?? record.edited_manually),
+  };
+}
+
+function normalizeContractDetailPayload(value: unknown): AdminContractDetail {
+  const root = asRecord(value);
+  const record = asRecord(root.contract ?? root.item ?? root.data);
+
+  const source = Object.keys(record).length > 0 ? record : root;
+  const sectionsSource = source.sections ?? source.sections_json;
+  const sectionsArray: unknown[] = Array.isArray(sectionsSource) ? sectionsSource : [];
+
+  return {
+    id: toStringOrNull(source.id ?? source.contractId ?? source.contract_id) ?? "",
+    title: toStringOrNull(source.title) ?? "Untitled contract",
+    contractType: (toStringOrNull(source.contractType ?? source.contract_type) ?? "portrait") as AdminContractType,
+    status: (toStringOrNull(source.status) ?? "draft") as AdminContractStatus,
+    contactSubmissionId: toStringOrNull(source.contactSubmissionId ?? source.contact_submission_id),
+    templateKey: toStringOrNull(source.templateKey ?? source.template_key) ?? "",
+    templateVersion: toStringOrNull(source.templateVersion ?? source.template_version) ?? "",
+    fieldValues: asRecord(source.fieldValues ?? source.field_values_json),
+    toggleValues: Object.fromEntries(
+      Object.entries(asRecord(source.toggleValues ?? source.toggle_values_json)).map(([key, toggleValue]) => [key, toBoolean(toggleValue)])
+    ),
+    sections: sectionsArray
+      .map(normalizeContractSection)
+      .filter((section: AdminContractSection | null): section is AdminContractSection => section !== null),
+    renderedHtml: toStringOrNull(source.renderedHtml ?? source.rendered_html) ?? "",
+    sourceSnapshot: asRecord(source.sourceSnapshot ?? source.source_snapshot_json),
+    photographerDisplayName: toStringOrNull(
+      source.photographerDisplayName ??
+        source.photographer_display_name ??
+        root.photographerDisplayName ??
+        root.photographer_display_name,
+    ) ?? undefined,
+    photographerBusinessName: toStringOrNull(
+      source.photographerBusinessName ??
+        source.photographer_business_name ??
+        root.photographerBusinessName ??
+        root.photographer_business_name,
+    ) ?? undefined,
+    photographerSignatureName: toStringOrNull(
+      source.photographerSignatureName ??
+        source.photographer_signature_name ??
+        root.photographerSignatureName ??
+        root.photographer_signature_name,
+    ) ?? undefined,
+    updatedAt: toStringOrNull(source.updatedAt ?? source.updated_at),
+    approvedAt: toStringOrNull(source.approvedAt ?? source.approved_at),
+  };
+}
+
+function normalizeContractListItem(value: unknown): AdminContractListItem | null {
+  const record = asRecord(value);
+  const id = toStringOrNull(record.id);
+  if (!id) return null;
+
+  return {
+    id,
+    title: toStringOrNull(record.title) ?? "Untitled contract",
+    contractType: (toStringOrNull(record.contractType ?? record.contract_type) ?? "portrait") as AdminContractType,
+    status: (toStringOrNull(record.status) ?? "draft") as AdminContractStatus,
+    contactSubmissionId: toStringOrNull(record.contactSubmissionId ?? record.contact_submission_id),
+    clientName: toStringOrNull(record.clientName ?? record.client_name),
+    clientBusinessName: toStringOrNull(record.clientBusinessName ?? record.client_business_name),
+    templateVersion: toStringOrNull(record.templateVersion ?? record.template_version),
+    updatedAt: toStringOrNull(record.updatedAt ?? record.updated_at),
+    approvedAt: toStringOrNull(record.approvedAt ?? record.approved_at),
+  };
+}
+
 function getStorageObjectFromPublicUrl(photoUrl?: string | null): { bucket: string; objectPath: string } | null {
   if (!photoUrl) return null;
   try {
@@ -125,7 +396,7 @@ function getStorageObjectFromPublicUrl(photoUrl?: string | null): { bucket: stri
   }
 }
 
-// Contact form submit
+// Public site services
 export async function submitContact(payload: ContactFormData) {
   const r = await fetch(`${BASE}/contact-form`, {
     method: "POST",
@@ -136,7 +407,6 @@ export async function submitContact(payload: ContactFormData) {
   return parseJsonOrText(r);
 }
 
-// Newsletter subscribe
 export async function subscribe(email: string) {
   const r = await fetch(`${BASE}/newsletter`, {
     method: "POST",
@@ -147,7 +417,7 @@ export async function subscribe(email: string) {
   return parseJsonOrText(r);
 }
 
-// Gallery fetch (with optional transforms)
+// Public gallery services
 export async function getGallery(
   category: string = "ALL",
   opts: { width?: number; quality?: number; format?: string } = { width: 1200, quality: 80, format: "webp" },
@@ -173,6 +443,7 @@ export async function getGallery(
   return Array.isArray(data?.photos) ? data.photos : [];
 }
 
+// Admin AI services
 export async function getAdminAIInbox(limit: number = 100): Promise<AdminAIInboxResponse> {
   const headers = await getProtectedEdgeHeaders();
   const params = new URLSearchParams({ limit: String(limit) });
@@ -380,7 +651,113 @@ export async function uploadAdminAssistantAttachment(
   return parseJsonOrText<AdminGeneralAssistantUploadAttachmentResponse>(r);
 }
 
-// Upload photos (FormData with repeated files)
+// Admin contracts services
+export async function getAdminContractsTemplateManifest(): Promise<AdminContractsTemplateManifestResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-contracts-template-manifest`, { headers });
+  if (!r.ok) await throwApiError(r);
+
+  const payload = await parseJsonOrText<Record<string, unknown>>(r);
+  const root = asRecord(payload);
+  const templatesSource = root.templates ?? root.contractTypes ?? root.contract_types ?? root.items ?? [];
+  const templates = (Array.isArray(templatesSource) ? templatesSource : Object.values(asRecord(templatesSource)))
+    .map(normalizeContractTemplateDefinition)
+    .filter((template): template is AdminContractTemplateDefinition => template !== null);
+
+  return {
+    ok: true,
+    templates,
+    reqId: toStringOrNull(root.reqId ?? root.req_id) ?? undefined,
+  };
+}
+
+export async function listAdminContracts(): Promise<AdminContractListItem[]> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-contracts-list`, { headers });
+  if (!r.ok) await throwApiError(r);
+
+  const payload = await parseJsonOrText<Record<string, unknown>>(r);
+  const root = asRecord(payload);
+  const itemsSource = root.contracts ?? root.items ?? [];
+
+  return (Array.isArray(itemsSource) ? itemsSource : [])
+    .map(normalizeContractListItem)
+    .filter((item): item is AdminContractListItem => item !== null);
+}
+
+export async function createAdminContract(payload: AdminContractCreatePayload): Promise<AdminContractDetail> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-contracts-create`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      contractType: payload.contractType,
+      contactSubmissionId: payload.contactSubmissionId ?? null,
+      fieldValues: payload.fieldValues ?? {},
+      toggleValues: payload.toggleValues ?? {},
+    }),
+  });
+  if (!r.ok) await throwApiError(r);
+  return normalizeContractDetailPayload(await parseJsonOrText<Record<string, unknown>>(r));
+}
+
+export async function getAdminContractDetail(contractId: string): Promise<AdminContractDetail> {
+  const headers = await getProtectedEdgeHeaders();
+  const params = new URLSearchParams({ contractId });
+  const r = await fetch(`${BASE}/admin-contracts-detail?${params.toString()}`, { headers });
+  if (!r.ok) await throwApiError(r);
+  return normalizeContractDetailPayload(await parseJsonOrText<Record<string, unknown>>(r));
+}
+
+export async function saveAdminContract(payload: AdminContractSavePayload): Promise<AdminContractDetail> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-contracts-save`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      contractId: payload.contractId,
+      fieldValues: payload.fieldValues,
+      toggleValues: payload.toggleValues,
+      sections: payload.sections.map((section) => ({
+        key: section.key,
+        title: section.title,
+        included: section.included,
+        bodyText: section.bodyText,
+        editedManually: section.editedManually,
+      })),
+      status: payload.status,
+    }),
+  });
+  if (!r.ok) await throwApiError(r);
+  return normalizeContractDetailPayload(await parseJsonOrText<Record<string, unknown>>(r));
+}
+
+export async function deleteAdminContract(contractId: string): Promise<{
+  ok: true;
+  contractId: string;
+  status: "archived";
+  reqId?: string;
+}> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-contracts-delete`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ contractId }),
+  });
+  if (!r.ok) await throwApiError(r);
+
+  const payload = await parseJsonOrText<Record<string, unknown>>(r);
+  const root = asRecord(payload);
+
+  return {
+    ok: true,
+    contractId: toStringOrNull(root.contractId ?? root.contract_id) ?? contractId,
+    status: "archived",
+    reqId: toStringOrNull(root.reqId ?? root.req_id) ?? undefined,
+  };
+}
+
+// Media management services
 export async function uploadPhotos(category: string, files: File[] | FileList) {
   const token = await getAccessToken();
   if (!token) throw new Error("Not authenticated");
@@ -493,6 +870,7 @@ export async function deletePhoto(photoOrId: Pick<Photo, "id" | "url"> | string)
   if (error) throw error;
 }
 
+// Admin dashboard data services
 export async function getContactSubmissions(): Promise<Contact[]> {
   const { data, error } = await supabase.from("contact_submissions").select("*").order("created_at", { ascending: false });
   if (error) throw error;

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import Newsletter from '../newsletter/Newsletter';
-import FunJokesPopup from '../fun/FunJokesPopup';
+import Newsletter from '../../features/newsletter/components/Newsletter';
+import FunJokesPopup from '../../features/fun/components/FunJokesPopup';
 
 const Layout: React.FC = () => {
   const [funEnabled, setFunEnabled] = useState(false);
