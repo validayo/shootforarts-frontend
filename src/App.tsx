@@ -43,6 +43,7 @@ function App() {
           <AnimatePresence mode="wait">
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                <Route path={ROUTES.public.card} element={<Navigate to={ROUTES.public.book} replace />} />
                 <Route path={ROUTES.public.book} element={<BookLandingPage />} />
 
                 <Route path="/" element={<Layout />}>

@@ -1,6 +1,7 @@
 export const ROUTES = {
   public: {
     home: "/",
+    card: "/card",
     book: "/book",
     about: "/about",
     services: "/services",
