@@ -2,6 +2,7 @@
   "trailingSlash": false,
   "redirects": [
     { "source": "/index.html", "destination": "/", "permanent": true },
+    { "source": "/card", "destination": "/book", "permanent": false },
     { "source": "/book/index.html", "destination": "/book", "permanent": true },
     { "source": "/about/index.html", "destination": "/about", "permanent": true },
     { "source": "/services/index.html", "destination": "/services", "permanent": true },
