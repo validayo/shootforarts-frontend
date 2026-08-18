@@ -3,6 +3,7 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { BASE_URL, INDEXABLE_ROUTE_SHELL_PAGES } from './seo-pages.mjs';
+import { getPortfolioCategoryPageByCategory } from '../src/config/portfolioCategoryPages.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -91,16 +92,24 @@ function extractHomeOgTitleDesc() {
 }
 
 function extractAboutImage() {
-  const aboutComp = path.resolve(root, 'src', 'components', 'about', 'About.tsx');
-  if (!exists(aboutComp)) return null;
+  const aboutCandidates = [
+    path.resolve(root, 'src', 'features', 'about', 'components', 'About.tsx'),
+    path.resolve(root, 'src', 'components', 'about', 'About.tsx'),
+  ];
+  const aboutComp = aboutCandidates.find((candidate) => exists(candidate));
+  if (!aboutComp) return null;
   const src = fs.readFileSync(aboutComp, 'utf8');
   const m = src.match(/src=\"([^\"]*AYO\.(?:jpg|jpeg|png))\"/i);
   return m ? m[1] : null;
 }
 
 function extractServiceImages() {
-  const svcPath = path.resolve(root, 'src', 'pages', 'public', 'ServicesPage.tsx');
-  if (!exists(svcPath)) return [];
+  const serviceCandidates = [
+    path.resolve(root, 'src', 'features', 'services', 'pages', 'ServicesPage.tsx'),
+    path.resolve(root, 'src', 'pages', 'public', 'ServicesPage.tsx'),
+  ];
+  const svcPath = serviceCandidates.find((candidate) => exists(candidate));
+  if (!svcPath) return [];
   const txt = fs.readFileSync(svcPath, 'utf8');
   const start = txt.indexOf('const categoryImages');
   if (start === -1) return [];
@@ -113,6 +122,35 @@ function extractServiceImages() {
     images.push({ key: m[1], url: m[2] });
   }
   return images;
+}
+
+function buildPortfolioImageEntries(serviceImages) {
+  const imageMap = new Map(serviceImages.map((image) => [image.key, image.url]));
+
+  return [
+    {
+      loc: `${BASE_URL}${getPortfolioCategoryPageByCategory("PORTRAITS").path}`,
+      images: [
+        { key: "base", title: "Portrait photography by Shoot For Arts" },
+        { key: "creative", title: "Creative portrait photography by Shoot For Arts" },
+        { key: "prom", title: "Prom portrait photography by Shoot For Arts" },
+        { key: "grad", title: "Graduation portrait photography by Shoot For Arts" },
+      ]
+        .map((item) => {
+          const url = imageMap.get(item.key);
+          return url ? { loc: url, title: item.title } : null;
+        })
+        .filter(Boolean),
+    },
+    {
+      loc: `${BASE_URL}${getPortfolioCategoryPageByCategory("EVENTS").path}`,
+      images: imageMap.get("event") ? [{ loc: imageMap.get("event"), title: "Event photography by Shoot For Arts" }] : [],
+    },
+    {
+      loc: `${BASE_URL}${getPortfolioCategoryPageByCategory("WEDDINGS").path}`,
+      images: imageMap.get("wedding") ? [{ loc: imageMap.get("wedding"), title: "Wedding photography by Shoot For Arts" }] : [],
+    },
+  ].filter((entry) => entry.images.length > 0);
 }
 
 function generateImageSitemap() {
@@ -129,6 +167,7 @@ function generateImageSitemap() {
   const svcImages = extractServiceImages();
   if (svcImages.length) {
     urls.push({ loc: `${BASE_URL}/services`, images: svcImages.map(i => ({ loc: i.url, title: i.key })) });
+    urls.push(...buildPortfolioImageEntries(svcImages));
   }
 
   const xml = [

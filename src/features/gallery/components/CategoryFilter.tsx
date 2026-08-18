@@ -1,42 +1,42 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { GALLERY_FILTER_ITEMS } from "../../../config/portfolioCategoryPages.js";
 
 interface CategoryFilterProps {
   activeCategory: string;
-  setActiveCategory: (category: string) => void;
+  onCategorySelect: (category: string) => void;
 }
 
-const CategoryFilter: React.FC<CategoryFilterProps> = ({
-  activeCategory,
-  setActiveCategory,
-}) => {
-  const categories = ['ALL', 'PORTRAITS', 'EVENTS', 'WEDDINGS', 'EXTRAS'];
+const getFilterClassName = (isActive: boolean) =>
+  `${isActive ? "bg-blue-100 text-blue-600" : "text-primary hover:bg-gray-100"} px-4 py-1.5 text-sm md:text-base rounded-full transition-all duration-300`;
 
-  
-  return (
-    <motion.div 
-      className="flex justify-center mb-8 px-4 md:px-0"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2, duration: 0.5 }}
-    >
-      <div className="inline-flex flex-wrap justify-center gap-2">
-        {categories.map((category) => (
-          <button
-            key={category}
-            onClick={() => setActiveCategory(category)}
-            className={`${
-              activeCategory === category
-                ? 'bg-blue-100 text-blue-600'
-                : 'text-primary hover:bg-gray-100'
-            } px-4 py-1.5 text-sm md:text-base rounded-full transition-all duration-300`}
-          >
-            {category.toLowerCase()}
+const CategoryFilter: React.FC<CategoryFilterProps> = ({ activeCategory, onCategorySelect }) => (
+  <motion.div
+    className="mb-8 flex justify-center px-4 md:px-0"
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.2, duration: 0.5 }}
+  >
+    <div className="inline-flex flex-wrap justify-center gap-2">
+      {GALLERY_FILTER_ITEMS.map((item) => {
+        const className = getFilterClassName(activeCategory === item.category);
+        if (item.path) {
+          return (
+            <Link key={item.category} to={item.path} state={null} className={className}>
+              {item.label}
+            </Link>
+          );
+        }
+
+        return (
+          <button key={item.category} type="button" onClick={() => onCategorySelect(item.category)} className={className}>
+            {item.label}
           </button>
-        ))}
-      </div>
-    </motion.div>
-  );
-};
+        );
+      })}
+    </div>
+  </motion.div>
+);
 
 export default CategoryFilter;

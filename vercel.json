@@ -13,6 +13,9 @@
   ],
   "rewrites": [
     { "source": "/book", "destination": "/book/index.html" },
+    { "source": "/portraits", "destination": "/portraits/index.html" },
+    { "source": "/events", "destination": "/events/index.html" },
+    { "source": "/weddings", "destination": "/weddings/index.html" },
     { "source": "/about", "destination": "/about/index.html" },
     { "source": "/services", "destination": "/services/index.html" },
     { "source": "/contact", "destination": "/contact/index.html" },
@@ -36,39 +39,39 @@
     },
     {
       "source": "/",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }]
     },
     {
       "source": "/book",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }]
+    },
+    {
+      "source": "/portraits",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }]
+    },
+    {
+      "source": "/events",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }]
+    },
+    {
+      "source": "/weddings",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }]
     },
     {
       "source": "/about",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }]
     },
     {
       "source": "/services",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }]
     },
     {
       "source": "/contact",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }]
     },
     {
       "source": "/contact/thank-you",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }]
     }
   ]
 }

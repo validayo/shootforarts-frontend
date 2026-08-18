@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import { isPortfolioCategoryRoutePath } from "../../config/routes";
 
 const HASH_SCROLL_OFFSET_PX = 120;
 const HASH_SCROLL_MAX_ATTEMPTS = 12;
@@ -7,8 +8,12 @@ const HASH_SCROLL_RETRY_MS = 80;
 
 const ScrollToTop = () => {
   const { pathname, hash } = useLocation();
+  const previousPathnameRef = useRef(pathname);
 
   useEffect(() => {
+    const previousPathname = previousPathnameRef.current;
+    previousPathnameRef.current = pathname;
+
     if (hash) {
       const targetId = hash.replace("#", "");
       let attempts = 0;
@@ -37,6 +42,10 @@ const ScrollToTop = () => {
           window.clearTimeout(timeoutId);
         }
       };
+    }
+
+    if (isPortfolioCategoryRoutePath(previousPathname) && isPortfolioCategoryRoutePath(pathname)) {
+      return;
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });

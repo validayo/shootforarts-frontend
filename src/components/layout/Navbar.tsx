@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Instagram, Menu, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { isPortfolioCategoryRoutePath } from '../../config/routes';
 
 interface NavbarProps {
   funEnabled?: boolean;
@@ -13,6 +14,7 @@ const Navbar: React.FC<NavbarProps> = ({ funEnabled = false, onToggleFun }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const isBookingRoute = location.pathname === "/contact" || location.pathname === "/contact/thank-you";
+  const isOverviewRoute = isPortfolioCategoryRoutePath(location.pathname);
   
   useEffect(() => {
     const handleScroll = () => {
@@ -60,7 +62,7 @@ const Navbar: React.FC<NavbarProps> = ({ funEnabled = false, onToggleFun }) => {
           </button>
         </div>
         
-        <Link to="/" className="absolute left-1/2 transform -translate-x-1/2" aria-label="Shoot For Arts home">
+        <Link to="/" state={null} className="absolute left-1/2 transform -translate-x-1/2" aria-label="Shoot For Arts home">
           <span className="text-2xl lg:text-3xl tracking-widest font-serif uppercase text-primary whitespace-nowrap">
             Shoot For Arts
           </span>
@@ -71,8 +73,9 @@ const Navbar: React.FC<NavbarProps> = ({ funEnabled = false, onToggleFun }) => {
           <ul className="flex space-x-8">
             <li>
               <Link 
-                to="/" 
-                className={`nav-link ${location.pathname === '/' ? 'nav-link-active' : ''}`}
+                to="/"
+                state={null}
+                className={`nav-link ${isOverviewRoute ? 'nav-link-active' : ''}`}
               >
                 overview
               </Link>
@@ -134,7 +137,8 @@ const Navbar: React.FC<NavbarProps> = ({ funEnabled = false, onToggleFun }) => {
             {funEnabled ? 'Fun: On' : 'Fun: Off'}
           </button>
           <Link 
-            to="/" 
+            to="/"
+            state={null}
             className="text-2xl font-serif"
             onClick={() => setMobileMenuOpen(false)}
           >
