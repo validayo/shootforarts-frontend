@@ -2,11 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { BASE_URL, FONT_STYLESHEET, ROUTE_SHELL_PAGES, SHARED_OG_IMAGE, SHARED_THEME_COLOR } from "./seo-pages.mjs";
+import { GALLERY_FILTER_ITEMS } from "../src/config/portfolioCategoryPages.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, "..");
-const ROUTE_SHELL_BUILD_ID = Date.now().toString(36);
+const APP_SHELL_REQUEST_PATH = "/index.html?route-shell=app-shell";
 
 const APP_BOOTSTRAP_SCRIPT = String.raw`(function () {
   function injectScript(src) {
@@ -33,7 +34,7 @@ const APP_BOOTSTRAP_SCRIPT = String.raw`(function () {
       '<p style="margin:0;"><a href="/" style="color:#7c5c41;text-decoration:underline;">Go to home</a></p></div></div>';
   }
 
-  fetch("/index.html?route-shell=${ROUTE_SHELL_BUILD_ID}", { cache: "no-store" })
+  fetch("${APP_SHELL_REQUEST_PATH}", { cache: "no-store" })
     .then(function (response) {
       if (!response.ok) throw new Error("Failed to load app shell");
       return response.text();
@@ -77,6 +78,28 @@ const toBreadcrumbSchema = (page) => ({
 });
 
 const renderRobotsMeta = (robots) => (robots ? `    <meta name="robots" content="${escapeAttribute(robots)}" />\n` : "");
+
+const renderAccessiblePortfolioLinks = () => {
+  const links = GALLERY_FILTER_ITEMS.filter((item) => item.path);
+  return links
+    .map(
+      (item) => `          <a href="${escapeAttribute(item.path)}">${escapeHtml(item.label)}</a>`
+    )
+    .join("\n");
+};
+
+const renderAccessibleShellContent = (page) => {
+  if (!page.accessibleHeading) {
+    return "";
+  }
+
+  return `      <div style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0, 0, 0, 0);white-space:nowrap;border:0;">
+        <h1>${escapeHtml(page.accessibleHeading)}</h1>
+        <nav aria-label="Portfolio categories">
+${renderAccessiblePortfolioLinks()}
+        </nav>
+      </div>`;
+};
 
 const renderRouteShell = (page) => {
   const canonicalUrl = toCanonicalUrl(page.route);
@@ -123,7 +146,8 @@ ${breadcrumbJson}
     </script>
   </head>
   <body style="margin:0;background:${escapeAttribute(page.backgroundColor)};">
-    <div id="root" style="min-height:100vh;"></div>
+    <div id="root" style="min-height:100vh;">${renderAccessibleShellContent(page)}
+    </div>
     <script>
 ${APP_BOOTSTRAP_SCRIPT}
     </script>

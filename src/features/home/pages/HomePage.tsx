@@ -1,9 +1,11 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Gallery from "../../gallery/components/Gallery";
 import NewsletterPopup from "../../newsletter/components/NewsletterPopup";
 import SEO from "../../../components/seo/SEO";
 import { trackHomeCtaClick } from "../../../lib/analytics/events";
+import { ROUTES } from "../../../config/routes";
+import { getPortfolioCategoryPageByPath, getPortfolioCategoryPath } from "../../../config/portfolioCategoryPages.js";
 
 const featuredSessions = [
   {
@@ -59,21 +61,40 @@ const getBookingWindowLabel = () => {
 };
 
 const HomePage: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const bookingWindowLabel = getBookingWindowLabel();
+  const categoryPage = getPortfolioCategoryPageByPath(location.pathname);
+  const isExtrasState =
+    location.pathname === ROUTES.public.home &&
+    typeof location.state === "object" &&
+    location.state !== null &&
+    "galleryCategory" in location.state &&
+    location.state.galleryCategory === "EXTRAS";
+  const activeCategory = isExtrasState ? "EXTRAS" : categoryPage.category;
+
+  const handleCategorySelect = (category: string) => {
+    if (category === "EXTRAS") {
+      navigate(ROUTES.public.home, { state: { galleryCategory: "EXTRAS" } });
+      return;
+    }
+
+    navigate(getPortfolioCategoryPath(category), { state: null });
+  };
 
   return (
     <div className="pt-10">
       <SEO
-        title="Shoot For Arts | Toronto Photographer for Portraits, Headshots, Branding & Events"
-        description="Shoot For Arts is a Toronto photographer led by Ayo, creating portraits, headshots, branding sessions, graduation photos, and event coverage with a clean, story-driven style."
-        ogTitle="Shoot For Arts | Toronto Photographer for Portraits, Headshots, Branding & Events"
-        ogDescription="Explore portraits, headshots, branding sessions, graduation photos, and event coverage by Shoot For Arts in Toronto."
+        title={categoryPage.title}
+        description={categoryPage.description}
+        ogTitle={categoryPage.ogTitle}
+        ogDescription={categoryPage.ogDescription}
         ogImage="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png"
-        canonicalPath="/"
+        canonicalPath={categoryPage.path}
       />
-      <h1 className="sr-only">Shoot For Arts is a Toronto photographer for portraits, events, graduations, and creative shoots.</h1>
+      <h1 className="sr-only">{categoryPage.h1}</h1>
       <NewsletterPopup />
-      <Gallery />
+      <Gallery activeCategory={activeCategory} onCategorySelect={handleCategorySelect} />
 
       <section className="px-4 pb-12 pt-8">
         <div className="mx-auto max-w-5xl">

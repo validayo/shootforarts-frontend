@@ -1,3 +1,6 @@
+import { INDEXABLE_PORTFOLIO_CATEGORY_PAGES } from "../src/config/portfolioCategoryPages.js";
+import { SERVICES_PAGE_SEO } from "../src/config/publicPageMetadata.js";
+
 export const BASE_URL = "https://shootforarts.com";
 export const SHARED_OG_IMAGE =
   "https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png";
@@ -5,7 +8,28 @@ export const SHARED_THEME_COLOR = "#7c5c41";
 export const FONT_STYLESHEET =
   "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap";
 
+const PORTFOLIO_ROUTE_SHELL_PAGES = INDEXABLE_PORTFOLIO_CATEGORY_PAGES.filter((page) => page.outputPath).map((page) => ({
+  route: page.path,
+  outputPath: page.outputPath,
+  title: page.title,
+  description: page.description,
+  ogTitle: page.ogTitle,
+  ogDescription: page.ogDescription,
+  breadcrumbs: [
+    { name: "Home", path: "/" },
+    { name: page.breadcrumbName, path: page.path },
+  ],
+  backgroundColor: "#ffffff",
+  sourceFiles: page.sourceFiles,
+  robots: page.robots,
+  changefreq: page.changefreq,
+  priority: page.priority,
+  indexable: true,
+  accessibleHeading: page.h1,
+}));
+
 export const ROUTE_SHELL_PAGES = [
+  ...PORTFOLIO_ROUTE_SHELL_PAGES,
   {
     route: "/about",
     outputPath: "public/about/index.html",
@@ -28,18 +52,16 @@ export const ROUTE_SHELL_PAGES = [
   {
     route: "/services",
     outputPath: "public/services/index.html",
-    title: "Toronto Photography Services | Portraits, Headshots, Branding & Events | Shoot For Arts",
-    description:
-      "Explore Toronto photography services from Shoot For Arts, including portraits, headshots, branding sessions, grad photos, event coverage, weddings, and creative shoots.",
-    ogTitle: "Toronto Photography Services | Shoot For Arts",
-    ogDescription:
-      "View portraits, headshots, branding sessions, grad photos, event coverage, weddings, and creative photography packages from Shoot For Arts.",
+    title: SERVICES_PAGE_SEO.title,
+    description: SERVICES_PAGE_SEO.description,
+    ogTitle: SERVICES_PAGE_SEO.ogTitle,
+    ogDescription: SERVICES_PAGE_SEO.ogDescription,
     breadcrumbs: [
       { name: "Home", path: "/" },
       { name: "Services", path: "/services" },
     ],
     backgroundColor: "#ffffff",
-    sourceFiles: ["src/pages/public/ServicesPage.tsx"],
+    sourceFiles: ["src/pages/public/ServicesPage.tsx", "src/features/services/pages/ServicesPage.tsx", "src/config/publicPageMetadata.js"],
     changefreq: "weekly",
     priority: "0.9",
     indexable: true,

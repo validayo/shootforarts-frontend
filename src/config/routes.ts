@@ -1,6 +1,11 @@
+import { isPortfolioCategoryPath } from "./portfolioCategoryPages.js";
+
 export const ROUTES = {
   public: {
     home: "/",
+    portraits: "/portraits",
+    events: "/events",
+    weddings: "/weddings",
     card: "/card",
     book: "/book",
     about: "/about",
@@ -23,6 +28,8 @@ export const ROUTES = {
 
 export const isAdminRoutePath = (pathname: string): boolean =>
   pathname === ROUTES.admin.base || pathname.startsWith(`${ROUTES.admin.base}/`);
+
+export const isPortfolioCategoryRoutePath = (pathname: string): boolean => isPortfolioCategoryPath(pathname);
 
 const NO_INDEX_PUBLIC_ROUTES = new Set<string>([ROUTES.public.book, ROUTES.public.contactThankYou]);
 

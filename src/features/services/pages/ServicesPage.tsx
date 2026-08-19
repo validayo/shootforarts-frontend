@@ -5,6 +5,8 @@ import SEO from "../../../components/seo/SEO";
 import Accordion from "../components/Accordion";
 import { addOnOptions } from "../../../utils";
 import { trackServiceBookNow, trackServicesBottomCtaClick } from "../../../lib/analytics/events";
+import { ROUTES } from "../../../config/routes";
+import { SERVICES_PAGE_SEO } from "../../../config/publicPageMetadata.js";
 
 const servicesFaqItems = [
   {
@@ -113,6 +115,11 @@ const ServicesPage: React.FC = () => {
     wedding: "Wedding Photography",
     addons: undefined, // not a direct bookable service
   };
+  const portfolioLinkBySection: Record<string, { to: string; label: string } | undefined> = {
+    base: { to: ROUTES.public.portraits, label: "View portrait portfolio" },
+    event: { to: ROUTES.public.events, label: "View event portfolio" },
+    wedding: { to: ROUTES.public.weddings, label: "View wedding portfolio" },
+  };
 
   useEffect(() => {
     const scriptId = "services-faq-jsonld";
@@ -145,12 +152,12 @@ const ServicesPage: React.FC = () => {
   return (
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto">
       <SEO
-        title="Toronto Photography Services | Portraits, Headshots, Branding & Events | Shoot For Arts"
-        description="Explore Toronto photography services from Shoot For Arts, including portraits, headshots, branding sessions, grad photos, event coverage, weddings, and creative shoots."
-        ogTitle="Toronto Photography Services | Shoot For Arts"
-        ogDescription="View portraits, headshots, branding sessions, grad photos, event coverage, weddings, and creative photography packages from Shoot For Arts."
+        title={SERVICES_PAGE_SEO.title}
+        description={SERVICES_PAGE_SEO.description}
+        ogTitle={SERVICES_PAGE_SEO.ogTitle}
+        ogDescription={SERVICES_PAGE_SEO.ogDescription}
         ogImage="https://obhiuvlfopgtbgjuznok.supabase.co/storage/v1/object/public/images/others/metadata.png"
-        canonicalPath="/services"
+        canonicalPath={SERVICES_PAGE_SEO.canonicalPath}
       />
 
       {sections.map((section, index) => (
@@ -171,19 +178,29 @@ const ServicesPage: React.FC = () => {
             <Accordion category={section.label} tiers={section.tiers} defaultOpenIndex={section.key === "addons" ? 0 : null} />
             {serviceKeyMap[section.key] && (
               <div className="mt-6 flex justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    const selectedService = serviceKeyMap[section.key]!;
-                    trackServiceBookNow(selectedService);
-                    navigate(`/contact?service=${encodeURIComponent(selectedService)}`);
-                  }}
-                  aria-label={`Book ${serviceKeyMap[section.key]} now`}
-                  className="inline-flex items-center px-6 py-2.5 rounded-full border border-primary text-primary bg-transparent hover:bg-primary hover:text-white transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
-                >
-                  Book Now
-                </motion.button>
+                <div className="flex flex-col items-center gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      const selectedService = serviceKeyMap[section.key]!;
+                      trackServiceBookNow(selectedService);
+                      navigate(`/contact?service=${encodeURIComponent(selectedService)}`);
+                    }}
+                    aria-label={`Book ${serviceKeyMap[section.key]} now`}
+                    className="inline-flex items-center rounded-full border border-primary bg-transparent px-6 py-2.5 text-primary shadow-sm transition-colors duration-300 hover:bg-primary hover:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    Book Now
+                  </motion.button>
+                  {portfolioLinkBySection[section.key] && (
+                    <Link
+                      to={portfolioLinkBySection[section.key]!.to}
+                      className="text-xs text-primary/90 underline-offset-4 transition hover:underline"
+                    >
+                      {portfolioLinkBySection[section.key]!.label}
+                    </Link>
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -37,9 +37,14 @@ const normalizePhotos = (photos: Photo[]): GalleryPhoto[] => {
     }));
 };
 
-const Gallery: React.FC = () => {
+interface GalleryProps {
+  activeCategory?: string;
+  onCategorySelect?: (category: string) => void;
+}
+
+const Gallery: React.FC<GalleryProps> = ({ activeCategory: controlledCategory, onCategorySelect }) => {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
-  const [activeCategory, setActiveCategory] = useState("ALL");
+  const [internalActiveCategory, setInternalActiveCategory] = useState("ALL");
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -52,20 +57,22 @@ const Gallery: React.FC = () => {
   const [lightboxPreparing, setLightboxPreparing] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const activeCategoryRef = useRef(activeCategory);
+  const resolvedActiveCategory = controlledCategory ?? internalActiveCategory;
+  const setActiveCategory = onCategorySelect ?? setInternalActiveCategory;
+  const activeCategoryRef = useRef(resolvedActiveCategory);
   const zoomImportRef = useRef<Promise<ZoomPlugin | null> | null>(null);
 
   useEffect(() => {
-    activeCategoryRef.current = activeCategory;
-  }, [activeCategory]);
+    activeCategoryRef.current = resolvedActiveCategory;
+  }, [resolvedActiveCategory]);
 
   useEffect(() => {
     try {
-      trackGalleryView(activeCategory);
+      trackGalleryView(resolvedActiveCategory);
     } catch (_) {
       // no-op
     }
-  }, [activeCategory]);
+  }, [resolvedActiveCategory]);
 
   const loadZoomPlugin = useCallback(async () => {
     if (zoomPlugin) return zoomPlugin;
@@ -130,7 +137,7 @@ const Gallery: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    const categoryKey = activeCategory === "ALL" ? "ALL" : activeCategory;
+    const categoryKey = resolvedActiveCategory === "ALL" ? "ALL" : resolvedActiveCategory;
 
     const loadPhotos = async () => {
       setLoading(true);
@@ -154,7 +161,7 @@ const Gallery: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeCategory]);
+  }, [resolvedActiveCategory]);
 
   const ensureFullResolution = useCallback(() => {
     if (fullFetchStatus !== "idle") return;
@@ -246,7 +253,7 @@ const Gallery: React.FC = () => {
   return (
     <div className="py-6 md:py-8 mt-16 md:mt-20" ref={containerRef}>
       <div className="container-custom">
-        <CategoryFilter activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+        <CategoryFilter activeCategory={resolvedActiveCategory} onCategorySelect={setActiveCategory} />
       </div>
 
       {loading && photos.length === 0 && (
