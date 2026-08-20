@@ -420,7 +420,7 @@ describe("AdminInvoicesPage", () => {
     await waitFor(() => expect(saveAdminInvoice).toHaveBeenCalledWith(expect.objectContaining({
       invoiceId: "invoice-1",
     })));
-    expect(screen.getByText("Invoice settings saved and current draft updated.")).toBeInTheDocument();
+    expect(await screen.findByText("Invoice settings saved and current draft updated.")).toBeInTheDocument();
   });
 
   it("permanently deletes a saved invoice after confirmation", async () => {
