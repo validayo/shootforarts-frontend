@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Loader2, Save, Trash2 } from "lucide-react";
+import { useAppFeedback } from "../../../../components/ui/appFeedbackContext";
 import type { Photo } from "../../../../utils";
 import {
   deletePhoto,
@@ -97,6 +98,7 @@ const SortablePhotoCard: React.FC<SortablePhotoCardProps> = ({ photo, index, dnd
 };
 
 const AdminGalleryManager: React.FC = () => {
+  const { showToast, confirm } = useAppFeedback();
   const currentSeason = useMemo(() => currentSeasonUTC(), []);
   const [topPhotos, setTopPhotos] = useState<Photo[]>([]);
   const [seasonPhotos, setSeasonPhotos] = useState<Photo[]>([]);
@@ -111,6 +113,14 @@ const AdminGalleryManager: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
 
   const topCount = topPhotos.length;
+
+  useEffect(() => {
+    if (message) showToast(message, { type: "success" });
+  }, [message, showToast]);
+
+  useEffect(() => {
+    if (error) showToast(error, { type: "error" });
+  }, [error, showToast]);
 
   const refreshManagers = useCallback(async () => {
     setLoadingManagers(true);
@@ -233,7 +243,12 @@ const AdminGalleryManager: React.FC = () => {
 
   const handleDeletePhoto = useCallback(
     async (photo: Photo) => {
-      const ok = window.confirm("Delete this photo record? This cannot be undone.");
+      const ok = await confirm({
+        title: "Delete this photo?",
+        description: "This removes the photo record from the gallery manager. This cannot be undone.",
+        confirmLabel: "Delete photo",
+        destructive: true,
+      });
       if (!ok) return;
 
       setBusyPhotoId(photo.id);
@@ -254,7 +269,7 @@ const AdminGalleryManager: React.FC = () => {
         setBusyPhotoId(null);
       }
     },
-    []
+    [confirm]
   );
 
   const handleSaveTopOrder = useCallback(async () => {
@@ -302,9 +317,6 @@ const AdminGalleryManager: React.FC = () => {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="mx-auto max-w-7xl space-y-6">
-          {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-          {message && <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{message}</div>}
-
           <section className="mb-6 rounded-2xl bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Top Picks Manager</h2>
