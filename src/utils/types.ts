@@ -53,6 +53,213 @@ export interface Contact {
   extra_questions?: Record<string, unknown>;
 }
 
+export type InvoiceStatus = "draft" | "sent" | "payment_sent" | "partially_paid" | "paid" | "past_due" | "void";
+export type InvoicePricingMode = "fixed" | "hourly" | "custom_quote" | "variable";
+export type InvoicePaymentTermsMode = "full" | "deposit_balance";
+
+export interface ServiceCatalogService {
+  id: string;
+  slug: string;
+  display_name: string;
+  description: string | null;
+  visibility: string;
+  booking_eligible: boolean;
+  sort_order: number;
+}
+
+export interface ServiceCatalogTier {
+  id: string;
+  service_id: string;
+  slug: string;
+  display_name: string;
+  pricing_mode: InvoicePricingMode;
+  price_label?: string | null;
+  fixed_amount_cents: number | null;
+  hourly_rate_cents: number | null;
+  minimum_hours: number | null;
+  duration_minutes: number | null;
+  deliverables_json: string[];
+  description: string | null;
+  visibility: string;
+  booking_eligible: boolean;
+  sort_order: number;
+}
+
+export interface ServiceCatalogAddon {
+  id: string;
+  service_id: string | null;
+  slug: string;
+  display_name: string;
+  pricing_mode: InvoicePricingMode;
+  price_label?: string | null;
+  fixed_amount_cents: number | null;
+  hourly_rate_cents: number | null;
+  description: string | null;
+  visibility: string;
+  sort_order: number;
+}
+
+export interface AdminServiceCatalogResponse {
+  ok: boolean;
+  services: ServiceCatalogService[];
+  tiers: ServiceCatalogTier[];
+  addons: ServiceCatalogAddon[];
+  reqId?: string;
+}
+
+export interface InvoiceSettings {
+  id: string;
+  invoice_prefix: string;
+  default_currency: string;
+  tax_enabled_default: boolean;
+  tax_label: string | null;
+  tax_rate_percent: number | null;
+  invoice_number_start: number | null;
+  next_invoice_number: number | null;
+  default_deposit_percent: number;
+  default_payment_terms: InvoicePaymentTermsMode;
+  payment_instructions: string | null;
+  etransfer_destination: string | null;
+  payment_notification_channel: string;
+  business_billing_address?: string | null;
+  business_contact_email?: string | null;
+  business_contact_phone?: string | null;
+}
+
+export interface InvoiceLineItem {
+  id?: string;
+  invoice_id?: string;
+  source_service_catalog_tier_id?: string | null;
+  source_service_catalog_addon_id?: string | null;
+  item_type: "service_tier" | "addon" | "custom";
+  name: string;
+  description?: string | null;
+  pricing_mode: InvoicePricingMode;
+  quantity: number;
+  unit_price_cents: number;
+  minimum_hours?: number | null;
+  line_total_cents?: number;
+  sort_order?: number;
+}
+
+export interface InvoicePaymentSchedule {
+  id: string;
+  invoice_id: string;
+  label: string;
+  due_date: string | null;
+  amount_cents: number;
+  amount_paid_cents: number;
+  remaining_amount_cents: number;
+  status: "upcoming" | "due" | "past_due" | "awaiting_verification" | "partially_paid" | "paid";
+  sort_order: number;
+}
+
+export interface InvoicePaymentNotification {
+  id: string;
+  invoice_id: string;
+  payment_schedule_id: string;
+  client_name: string | null;
+  client_reference: string | null;
+  message: string | null;
+  proof_bucket: string | null;
+  proof_path: string | null;
+  verification_status: "pending" | "confirmed" | "rejected";
+  submitted_at: string;
+}
+
+export interface InvoiceRecord {
+  id: string;
+  invoice_number: string;
+  status: InvoiceStatus;
+  contact_submission_id?: string | null;
+  client_name: string;
+  client_email: string | null;
+  client_phone?: string | null;
+  client_address?: string | null;
+  issue_date: string;
+  due_date: string | null;
+  currency: string;
+  subtotal_cents: number;
+  tax_enabled: boolean;
+  tax_label: string | null;
+  tax_rate_percent: number | null;
+  tax_cents: number;
+  total_cents: number;
+  amount_paid_cents: number;
+  amount_due_cents: number;
+  notes: string | null;
+  payment_method?: string;
+  payment_instructions_snapshot?: string | null;
+  etransfer_destination_snapshot?: string | null;
+  show_business_billing_address?: boolean;
+  business_billing_address_snapshot?: string | null;
+  business_contact_email_snapshot?: string | null;
+  business_contact_phone_snapshot?: string | null;
+  sent_at?: string | null;
+  last_sent_at?: string | null;
+  updated_at?: string;
+}
+
+export interface AdminInvoiceDetailResponse {
+  ok?: boolean;
+  invoice: InvoiceRecord;
+  lineItems: InvoiceLineItem[];
+  schedules: InvoicePaymentSchedule[];
+  notifications: InvoicePaymentNotification[];
+  payments?: unknown[];
+  events?: unknown[];
+  publicUrl?: string;
+  reqId?: string;
+}
+
+export interface AdminInvoiceListResponse {
+  ok: boolean;
+  invoices: InvoiceRecord[];
+  reqId?: string;
+}
+
+export interface InvoiceWritePayload {
+  invoiceId?: string;
+  contactSubmissionId?: string | null;
+  clientName: string;
+  clientEmail?: string | null;
+  clientPhone?: string | null;
+  clientAddress?: string | null;
+  issueDate?: string | null;
+  dueDate?: string | null;
+  taxEnabled?: boolean;
+  taxLabel?: string | null;
+  taxRatePercent?: number | null;
+  notes?: string | null;
+  showBusinessBillingAddress?: boolean;
+  lineItems: Array<{
+    sourceServiceCatalogTierId?: string | null;
+    sourceServiceCatalogAddonId?: string | null;
+    itemType?: "service_tier" | "addon" | "custom";
+    name: string;
+    description?: string | null;
+    pricingMode: InvoicePricingMode;
+    quantity: number;
+    unitPriceCents: number;
+    minimumHours?: number | null;
+  }>;
+  paymentTerms?: {
+    mode: InvoicePaymentTermsMode;
+    depositPercent?: number | null;
+    dueDate?: string | null;
+    depositDueDate?: string | null;
+    balanceDueDate?: string | null;
+  };
+}
+
+export interface PublicInvoiceResponse {
+  ok: boolean;
+  invoice: InvoiceRecord;
+  lineItems: InvoiceLineItem[];
+  schedules: InvoicePaymentSchedule[];
+  reqId?: string;
+}
+
 export interface CalendarEvent {
   title: string;
   start: Date;

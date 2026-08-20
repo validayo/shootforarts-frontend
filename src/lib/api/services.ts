@@ -31,6 +31,12 @@ import {
   type AdminContractsTemplateManifestResponse,
   type AdminContractToggleDefinition,
   type AdminContractType,
+  type AdminInvoiceDetailResponse,
+  type AdminInvoiceListResponse,
+  type AdminServiceCatalogResponse,
+  type InvoiceSettings,
+  type InvoiceWritePayload,
+  type PublicInvoiceResponse,
 } from "../../utils/types";
 import type { AdminSubscriber } from "../../features/admin/shared/helpers";
 import { supabase, supabaseAnonKey } from "../supabase";
@@ -133,6 +139,28 @@ function toStringOrNull(value: unknown): string | null {
 
 function toBoolean(value: unknown, fallback = false): boolean {
   return typeof value === "boolean" ? value : fallback;
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function dollarsToCents(value: unknown): number | null {
+  const parsed = toNumberOrNull(value);
+  return parsed == null ? null : Math.round(parsed * 100);
+}
+
+function normalizeVisibility(record: Record<string, unknown>): string {
+  const existing = toStringOrNull(record.visibility);
+  if (existing) return existing;
+  return toBoolean(record.is_visible_public, true) ? "public" : "internal";
+}
+
+function normalizeBookingEligible(record: Record<string, unknown>): boolean {
+  if (typeof record.booking_eligible === "boolean") return record.booking_eligible;
+  return toBoolean(record.is_bookable, true);
 }
 
 function toStringArray(value: unknown): string[] {
@@ -735,7 +763,6 @@ export async function saveAdminContract(payload: AdminContractSavePayload): Prom
 export async function deleteAdminContract(contractId: string): Promise<{
   ok: true;
   contractId: string;
-  status: "archived";
   reqId?: string;
 }> {
   const headers = await getProtectedEdgeHeaders();
@@ -752,9 +779,228 @@ export async function deleteAdminContract(contractId: string): Promise<{
   return {
     ok: true,
     contractId: toStringOrNull(root.contractId ?? root.contract_id) ?? contractId,
-    status: "archived",
     reqId: toStringOrNull(root.reqId ?? root.req_id) ?? undefined,
   };
+}
+
+// Invoice services
+export async function getAdminServiceCatalog(): Promise<AdminServiceCatalogResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-service-catalog`, { headers });
+  if (!r.ok) await throwApiError(r);
+  const payload = await parseJsonOrText<Record<string, unknown>>(r);
+  const root = asRecord(payload);
+  const services = Array.isArray(root.services) ? root.services : [];
+  const tiers = Array.isArray(root.tiers) ? root.tiers : [];
+  const addons = Array.isArray(root.addons) ? root.addons : [];
+
+  return {
+    ok: toBoolean(root.ok, true),
+    services: services.map((service) => {
+      const record = asRecord(service);
+      return {
+        id: toStringOrNull(record.id) ?? "",
+        slug: toStringOrNull(record.slug ?? record.service_slug) ?? "",
+        display_name: toStringOrNull(record.display_name) ?? "",
+        description: toStringOrNull(record.description),
+        visibility: normalizeVisibility(record),
+        booking_eligible: normalizeBookingEligible(record),
+        sort_order: toNumberOrNull(record.sort_order) ?? 0,
+      };
+    }).filter((service) => service.id && service.display_name),
+    tiers: tiers.map((tier) => {
+      const record = asRecord(tier);
+      return {
+        id: toStringOrNull(record.id) ?? "",
+        service_id: toStringOrNull(record.service_id) ?? "",
+        slug: toStringOrNull(record.slug ?? record.tier_slug) ?? "",
+        display_name: toStringOrNull(record.display_name) ?? "",
+        pricing_mode: (toStringOrNull(record.pricing_mode) ?? "fixed") as AdminServiceCatalogResponse["tiers"][number]["pricing_mode"],
+        price_label: toStringOrNull(record.price_label),
+        fixed_amount_cents: toNumberOrNull(record.fixed_amount_cents) ?? dollarsToCents(record.fixed_amount_cad),
+        hourly_rate_cents: toNumberOrNull(record.hourly_rate_cents) ?? dollarsToCents(record.hourly_rate_cad),
+        minimum_hours: toNumberOrNull(record.minimum_hours),
+        duration_minutes: toNumberOrNull(record.duration_minutes),
+        deliverables_json: toStringArray(record.deliverables_json),
+        description: toStringOrNull(record.description),
+        visibility: normalizeVisibility(record),
+        booking_eligible: normalizeBookingEligible(record),
+        sort_order: toNumberOrNull(record.sort_order) ?? 0,
+      };
+    }).filter((tier) => tier.id && tier.service_id && tier.display_name),
+    addons: addons.map((addon) => {
+      const record = asRecord(addon);
+      return {
+        id: toStringOrNull(record.id) ?? "",
+        service_id: toStringOrNull(record.service_id),
+        slug: toStringOrNull(record.slug ?? record.addon_slug) ?? "",
+        display_name: toStringOrNull(record.display_name) ?? "",
+        pricing_mode: (toStringOrNull(record.pricing_mode) ?? "fixed") as AdminServiceCatalogResponse["addons"][number]["pricing_mode"],
+        price_label: toStringOrNull(record.price_label),
+        fixed_amount_cents: toNumberOrNull(record.fixed_amount_cents) ?? dollarsToCents(record.fixed_amount_cad),
+        hourly_rate_cents: toNumberOrNull(record.hourly_rate_cents) ?? dollarsToCents(record.hourly_rate_cad),
+        description: toStringOrNull(record.description),
+        visibility: normalizeVisibility(record),
+        sort_order: toNumberOrNull(record.sort_order) ?? 0,
+      };
+    }).filter((addon) => addon.id && addon.display_name),
+    reqId: toStringOrNull(root.reqId ?? root.req_id) ?? undefined,
+  };
+}
+
+export async function getInvoiceSettings(): Promise<{ ok: boolean; settings: InvoiceSettings; reqId?: string }> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-invoice-settings`, { headers });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<{ ok: boolean; settings: InvoiceSettings; reqId?: string }>(r);
+}
+
+export async function saveInvoiceSettings(input: {
+  invoicePrefix: string;
+  defaultCurrency: string;
+  taxEnabledDefault: boolean;
+  taxLabel?: string | null;
+  taxRatePercent?: number | null;
+  invoiceNumberStart?: number | null;
+  nextInvoiceNumber?: number | null;
+  defaultDepositPercent: number;
+  defaultPaymentTerms: "full" | "deposit_balance";
+  paymentInstructions?: string | null;
+  etransferDestination?: string | null;
+  paymentNotificationChannel: string;
+  businessBillingAddress?: string | null;
+  businessContactEmail?: string | null;
+  businessContactPhone?: string | null;
+}): Promise<{ ok: boolean; settings: InvoiceSettings; reqId?: string }> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-invoice-settings`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(input),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<{ ok: boolean; settings: InvoiceSettings; reqId?: string }>(r);
+}
+
+export async function listAdminInvoices(status: string = "all"): Promise<AdminInvoiceListResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const params = new URLSearchParams({ status });
+  const r = await fetch(`${BASE}/admin-invoices-list?${params.toString()}`, { headers });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminInvoiceListResponse>(r);
+}
+
+export async function getAdminInvoiceDetail(invoiceId: string): Promise<AdminInvoiceDetailResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const params = new URLSearchParams({ invoiceId });
+  const r = await fetch(`${BASE}/admin-invoices-detail?${params.toString()}`, { headers });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminInvoiceDetailResponse>(r);
+}
+
+export async function createAdminInvoice(payload: InvoiceWritePayload): Promise<AdminInvoiceDetailResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-invoices-create`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminInvoiceDetailResponse>(r);
+}
+
+export async function saveAdminInvoice(payload: InvoiceWritePayload & { invoiceId: string }): Promise<AdminInvoiceDetailResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-invoices-save`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminInvoiceDetailResponse>(r);
+}
+
+export async function sendAdminInvoice(invoiceId: string, options?: { sendCopyToSelf?: boolean }): Promise<AdminInvoiceDetailResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-invoices-send`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ invoiceId, sendCopyToSelf: options?.sendCopyToSelf === true }),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminInvoiceDetailResponse>(r);
+}
+
+export async function voidAdminInvoice(invoiceId: string, reason?: string): Promise<AdminInvoiceDetailResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-invoices-void`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ invoiceId, reason }),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminInvoiceDetailResponse>(r);
+}
+
+export async function confirmAdminInvoicePayment(input: {
+  notificationId: string;
+  amountCents?: number;
+  paymentDate?: string;
+  reference?: string;
+  internalNote?: string;
+}): Promise<AdminInvoiceDetailResponse> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-invoices-confirm-payment`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(input),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<AdminInvoiceDetailResponse>(r);
+}
+
+export async function deleteAdminInvoice(invoiceId: string): Promise<{ ok: boolean; invoiceId: string; invoiceNumber?: string; reqId?: string }> {
+  const headers = await getProtectedEdgeHeaders();
+  const r = await fetch(`${BASE}/admin-invoices-delete`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ invoiceId }),
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<{ ok: boolean; invoiceId: string; invoiceNumber?: string; reqId?: string }>(r);
+}
+
+export async function getPublicInvoice(token: string): Promise<PublicInvoiceResponse> {
+  const params = new URLSearchParams({ token });
+  const r = await fetch(`${BASE}/public-invoice-detail?${params.toString()}`);
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<PublicInvoiceResponse>(r);
+}
+
+export async function notifyPublicInvoicePayment(input: {
+  token: string;
+  scheduleId: string;
+  idempotencyKey: string;
+  clientName?: string;
+  clientReference?: string;
+  message?: string;
+  proof?: File | null;
+}): Promise<{ ok: boolean; notification?: unknown; reqId?: string }> {
+  const form = new FormData();
+  form.set("token", input.token);
+  form.set("scheduleId", input.scheduleId);
+  form.set("idempotencyKey", input.idempotencyKey);
+  if (input.clientName) form.set("clientName", input.clientName);
+  if (input.clientReference) form.set("clientReference", input.clientReference);
+  if (input.message) form.set("message", input.message);
+  if (input.proof) form.set("proof", input.proof, input.proof.name);
+
+  const r = await fetch(`${BASE}/public-invoice-notify-payment`, {
+    method: "POST",
+    body: form,
+  });
+  if (!r.ok) await throwApiError(r);
+  return parseJsonOrText<{ ok: boolean; notification?: unknown; reqId?: string }>(r);
 }
 
 // Media management services

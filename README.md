@@ -44,7 +44,8 @@ Backend services are maintained separately; this repository is the frontend appl
 
 - Public routes: `/`, `/about`, `/services`, `/contact`
 - Ads landing page: `/book` (conversion-focused, intentionally `noindex`)
-- Admin routes: `/sfaadmin/login`, `/sfaadmin/dashboard`, `/sfaadmin/calendar`, `/sfaadmin/upload`, `/sfaadmin/gallery-manager`
+- Private invoice routes: `/invoice/:token`, `/invoice/:token/pay`
+- Admin routes: `/sfaadmin/login`, `/sfaadmin/dashboard`, `/sfaadmin/calendar`, `/sfaadmin/upload`, `/sfaadmin/gallery-manager`, `/sfaadmin/invoices`
 
 ## Main Data Flows
 
@@ -52,6 +53,7 @@ Backend services are maintained separately; this repository is the frontend appl
 - Contact: frontend -> `POST {BASE}/contact-form`
 - Newsletter: frontend -> `POST {BASE}/newsletter`
 - Admin uploads: frontend -> authenticated `POST {UPLOAD_BASE}/upload-photos`
+- Invoices: admin frontend -> authenticated `admin-invoices-*` Edge Functions; client private-link pages -> `public-invoice-detail` / `public-invoice-notify-payment`
 
 ## Security Snapshot
 
@@ -60,6 +62,7 @@ Backend services are maintained separately; this repository is the frontend appl
 - `ProtectedRoute` is a UX gate, not the primary security boundary.
 - Public forms use honeypot, minimum-fill-time, and cooldown protections.
 - CSP and security headers configured in `vercel.json`.
+- Private invoice pages use `noindex,nofollow,noarchive,noimageindex`, omit canonical/social metadata, and receive `Cache-Control: private, no-store` plus `X-Robots-Tag` headers from Vercel.
 
 ## Performance Snapshot
 
@@ -114,6 +117,17 @@ Use `VITE_*` only for values safe to expose to the client bundle.
 - `VITE_ADMIN_HCAPTCHA_VERIFY_URL` (optional): server endpoint that verifies hCaptcha tokens
 - `VITE_ADMIN_HCAPTCHA_ENFORCE_SERVER_VERIFY` (optional): require server verification before login (`true`/`false`)
 
+Backend-only invoice secret/config names are not `VITE_*` values and must stay in the backend/Supabase secret store:
+
+- `INVOICE_TOKEN_ENCRYPTION_KEY`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- `RESEND_FROM_NAME`
+- `RESEND_REPLY_TO_EMAIL`
+- `INVOICE_EMAIL_COPY_TO`
+- `INVOICE_PAYMENT_DISCORD_WEBHOOK_URL`
+- `PUBLIC_SITE_URL`
+
 ## Project Map
 
 - `src/pages/public/`: public route pages
@@ -142,6 +156,10 @@ Use `VITE_*` only for values safe to expose to the client bundle.
 - Admin dashboard feature page: `src/features/admin/dashboard/pages/AdminDashboardPage.tsx`
 - Admin gallery manager route entry: `src/pages/admin/AdminGalleryManagerPage.tsx`
 - Admin gallery manager module: `src/features/admin/gallery/components/AdminGalleryManager.tsx`
+- Admin invoices route entry: `src/pages/admin/invoices/AdminInvoicesPage.tsx`
+- Admin invoices module: `src/features/admin/invoices/`
+- Public invoice pages: `src/features/invoices/pages/`
+- Invoice print/PDF utilities: `src/features/invoices/utils/invoicePdf.ts`
 - API service layer: `src/lib/api/services.ts`
 - Auth/session helpers: `src/lib/auth/session.ts`, `src/contexts/AuthContext.tsx`
 - SEO component: `src/components/seo/SEO.tsx`

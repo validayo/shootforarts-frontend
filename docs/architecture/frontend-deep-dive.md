@@ -84,6 +84,7 @@ flowchart LR
 - Newsletter: handles subscriptions and protected subscriber access paths for admin workflows.
 - Gallery: serves ordered photo datasets for public rendering (including prioritized selections).
 - Uploads: the Render upload backend processes admin-uploaded images, stores optimized assets, records photo metadata, and emits operational notifications.
+- Invoices: owns service catalog pricing, invoice settings, invoice numbering, encrypted public tokens, Resend email sending, e-transfer notifications, payment confirmation, and private payment-proof storage.
 
 ### Asset optimization
 
@@ -117,6 +118,7 @@ See [Security and Abuse Controls](#14-security-and-abuse-controls) for implement
 - Protected assets:
   - Admin-only actions (uploads, photo ranking, deletion).
   - Contact submissions and newsletter subscriber data.
+  - Invoice admin records, payment proofs, invoice settings, and public invoice bearer tokens.
 - Primary controls:
   - Supabase auth for admin sign-in.
   - RLS policies on sensitive tables/storage.
@@ -126,6 +128,8 @@ See [Security and Abuse Controls](#14-security-and-abuse-controls) for implement
 - Intentionally public:
   - Portfolio images rendered on public pages.
   - Marketing page metadata and static route shells in [`public/`](../public/).
+- Private-link but not indexable:
+  - `/invoice/:token` and `/invoice/:token/pay` are accessible only with the secret token link, use private/no-store/noindex behavior, and are excluded from public navigation, sitemaps, schema, and analytics token payloads.
 
 ## Performance Notes
 
@@ -142,7 +146,9 @@ The site has two major surfaces:
 - Public marketing/portfolio pages:
   `/, /about, /services, /contact`
 - Admin surface:
-  `/sfaadmin/login, /sfaadmin/dashboard, /sfaadmin/calendar, /sfaadmin/upload, /sfaadmin/gallery-manager`
+  `/sfaadmin/login, /sfaadmin/dashboard, /sfaadmin/calendar, /sfaadmin/upload, /sfaadmin/gallery-manager, /sfaadmin/invoices`
+- Private invoice surface:
+  `/invoice/:token, /invoice/:token/pay`
 
 Core capabilities:
 
@@ -151,6 +157,8 @@ Core capabilities:
 - Contact inquiry flow with anti-spam controls.
 - Newsletter signup in footer and popup.
 - Admin auth, inquiry/subscriber management, export, calendar view, and photo management.
+- Invoice admin for service-catalog line items, inquiry/client prefill, invoice settings, send/resend, void, delete, payment confirmation, and print/PDF.
+- Client private-link invoices with e-transfer payment notification.
 
 ## 2) Runtime Architecture
 
@@ -161,6 +169,7 @@ Core capabilities:
 - Global layout shell in [`src/components/layout/Layout.tsx`](../src/components/layout/Layout.tsx).
 - Route-level SEO metadata set dynamically by [`src/components/seo/SEO.tsx`](../src/components/seo/SEO.tsx).
 - Route analytics + robots noindex handling for admin routes in [`src/components/routing/RouteChangeTracker.tsx`](../src/components/routing/RouteChangeTracker.tsx).
+- Private invoice metadata handling in [`src/components/seo/SEO.tsx`](../src/components/seo/SEO.tsx) and [`src/config/routes.ts`](../src/config/routes.ts).
 
 ### External backend surfaces used by frontend
 
@@ -186,6 +195,10 @@ Core capabilities:
   authenticated `POST {UPLOAD_BASE}/upload-photos`.
 - Admin gallery manager:
   direct Supabase `photos` table and storage object operations.
+- Admin invoices:
+  authenticated calls to `admin-service-catalog`, `admin-invoice-settings`, and `admin-invoices-*`.
+- Public invoices:
+  private-link calls to `public-invoice-detail` and `public-invoice-notify-payment`; the token is sent only to the invoice APIs and is not intentionally sent to analytics.
 
 ## 3) Project Structure
 
@@ -242,6 +255,12 @@ Top-level:
   Route entry that hands off to [`src/features/admin/dashboard/pages/AdminDashboardPage.tsx`](../src/features/admin/dashboard/pages/AdminDashboardPage.tsx), which coordinates the data, calendar, and upload surfaces.
 - `/sfaadmin/gallery-manager` -> [`src/pages/admin/AdminGalleryManagerPage.tsx`](../src/pages/admin/AdminGalleryManagerPage.tsx) (protected)
   Route entry for [`src/features/admin/gallery/pages/AdminGalleryManagerPage.tsx`](../src/features/admin/gallery/pages/AdminGalleryManagerPage.tsx) and [`src/features/admin/gallery/components/AdminGalleryManager.tsx`](../src/features/admin/gallery/components/AdminGalleryManager.tsx).
+- `/sfaadmin/invoices` -> [`src/pages/admin/invoices/AdminInvoicesPage.tsx`](../src/pages/admin/invoices/AdminInvoicesPage.tsx) (protected)
+  Route entry for [`src/features/admin/invoices/pages/AdminInvoicesPage.tsx`](../src/features/admin/invoices/pages/AdminInvoicesPage.tsx).
+- `/invoice/:token` -> [`src/pages/public/PublicInvoicePage.tsx`](../src/pages/public/PublicInvoicePage.tsx)
+  Private-link invoice view with Pay Now, print, and PDF actions.
+- `/invoice/:token/pay` -> [`src/pages/public/PublicInvoicePaymentPage.tsx`](../src/pages/public/PublicInvoicePaymentPage.tsx)
+  Private-link payment selection and e-transfer notification flow.
 
 Routing details:
 
@@ -249,6 +268,13 @@ Routing details:
 - [`src/components/routing/ProtectedRoute.tsx`](../src/components/routing/ProtectedRoute.tsx) redirects unauthenticated users to `/sfaadmin/login`.
 - `/sfaadmin` auto-redirects to login or dashboard based on current auth session.
 - `*` fallback redirects unknown paths to `/`.
+
+Invoice route details:
+
+- private invoice pages use a generic document title and robots meta: `noindex,nofollow,noarchive,noimageindex`.
+- private invoice pages intentionally omit canonical, Open Graph, and Twitter metadata.
+- Vercel sends `X-Robots-Tag: noindex, nofollow, noarchive, noimageindex`, `Cache-Control: private, no-store`, and a restrictive referrer policy for `/invoice/(.*)`.
+- invoice URLs are not included in public nav, sitemap output, image sitemap output, public schema, or static SEO route shells.
 
 ## 5) Key Feature Modules
 
@@ -300,6 +326,28 @@ Routing details:
 - Assigns/removes top flag and season tags.
 - Deletes both storage object (if resolvable) and DB record.
 
+### Admin invoices ([`src/features/admin/invoices/pages/AdminInvoicesPage.tsx`](../src/features/admin/invoices/pages/AdminInvoicesPage.tsx))
+
+- Creates invoices manually or from inquiry/client prefill.
+- Loads approved service catalog tiers from the backend and snapshots selected service/tier pricing into invoice line items.
+- Supports full-payment and deposit/balance schedules.
+- Saves draft invoice data, line items, tax settings, notes, client address, optional business billing address snapshot, and sender contact snapshots.
+- Sends/resends invoices through backend Resend infrastructure and can optionally copy the business inbox when configured.
+- Voids invoices without reusing invoice numbers.
+- Permanently deletes invoices from admin/client access when explicitly confirmed.
+- Confirms received e-transfer payments from admin only.
+- Uses compact responsive selectors and mobile-safe invoice editing layouts.
+
+### Public invoices ([`src/features/invoices/pages/`](../src/features/invoices/pages/))
+
+- `/invoice/:token` renders the client-facing invoice from a backend private-link detail response.
+- Paid invoices remain viewable with amount due `0`, but do not expose payment actions.
+- Void/cancelled invoices remain non-payable.
+- Print and PDF generation use the current invoice detail, items, totals, schedule, sender/billing snapshots, and no separate payment-instructions block.
+- `/invoice/:token/pay` lets a client select payable scheduled payments, view e-transfer instructions, and notify Shoot For Arts that payment was sent.
+- Payment proof upload is optional and backend-owned; proof storage remains private.
+- Successful client notification redirects to a confirmation state after the backend call resolves.
+
 ## 6) Data and Service Layer
 
 Main API wrapper:
@@ -322,6 +370,7 @@ Functions exposed:
 - `deletePhoto(photoOrId)`
 - `getContactSubmissions()`
 - `getNewsletterSubscribers()`
+- invoice admin/public helpers for catalog, settings, list/detail/create/save/send/void/delete/confirm-payment, public detail, and public payment notification
 
 Auth helpers:
 
@@ -345,6 +394,7 @@ Important:
 
 - `VITE_*` variables are injected into the client bundle at build time. Do not store private server secrets in `VITE_*`.
 - Values are intentionally omitted for security and because this repo is intended for review, not third-party deployment.
+- Invoice secrets including `INVOICE_TOKEN_ENCRYPTION_KEY`, Resend configuration, and Discord webhook URLs live only in the backend/Supabase secret store.
 
 ## 8) Development Notes
 
@@ -456,7 +506,9 @@ Primary deployment target:
 
 - redirects `/home` -> `/`
 - rewrites `/sfaadmin` and `/sfaadmin/*` to `/index.html` (SPA handling)
+- rewrites `/invoice/:token` and `/invoice/:token/pay` to `/index.html` (SPA handling)
 - route-specific cache headers for public pages
+- private/no-store/noindex headers for `/invoice/(.*)`
 - global security headers, including a baseline Content Security Policy (CSP)
 
 CI pipeline:
@@ -483,6 +535,7 @@ Auth controls:
 - admin routes gated by Supabase session state.
 - route robots meta set to `noindex,nofollow` on `/sfaadmin*`.
 - `ProtectedRoute` is a UX guard only; it is not the primary data-protection boundary.
+- private invoice routes rely on bearer-token URLs plus backend token-hash lookup, not route secrecy alone.
 
 RLS and policies:
 
@@ -500,11 +553,13 @@ Frontend expects and uses:
   `id, url, category, uploaded_at, is_top, top_rank, season_tag, season_rank`
 - `contact_submissions` mapped into admin/contact views.
 - `newsletter_subscribers` for admin list/export.
+- invoice data returned by backend Edge Functions for admin invoices, public invoice detail, and public payment notification.
 
 Important:
 
 - migration history contains iterative schema evolution.
 - when setting up a fresh environment, validate that actual Supabase table columns match what [`src/lib/api/services.ts`](../src/lib/api/services.ts) selects/updates.
+- invoice public token hashes/encrypted tokens are backend-only fields and should never be modeled as public frontend payload fields.
 
 ## 16) Known Oddities / Maintenance Notes
 
@@ -527,6 +582,12 @@ Important:
   [`src/features/admin/dashboard/pages/AdminDashboardPage.tsx`](../src/features/admin/dashboard/pages/AdminDashboardPage.tsx)
 - Admin top/season photo ranking:
   [`src/features/admin/gallery/components/AdminGalleryManager.tsx`](../src/features/admin/gallery/components/AdminGalleryManager.tsx)
+- Admin invoice behavior:
+  [`src/features/admin/invoices/pages/AdminInvoicesPage.tsx`](../src/features/admin/invoices/pages/AdminInvoicesPage.tsx)
+- Public invoice behavior:
+  [`src/features/invoices/pages/PublicInvoicePage.tsx`](../src/features/invoices/pages/PublicInvoicePage.tsx), [`src/features/invoices/pages/PublicInvoicePaymentPage.tsx`](../src/features/invoices/pages/PublicInvoicePaymentPage.tsx)
+- Invoice print/PDF:
+  [`src/features/invoices/utils/invoicePdf.ts`](../src/features/invoices/utils/invoicePdf.ts)
 - Analytics event logic:
   [`src/lib/analytics/events.ts`](../src/lib/analytics/events.ts)
 - SEO metadata defaults:

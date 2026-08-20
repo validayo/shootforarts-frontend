@@ -1,6 +1,7 @@
-﻿import React, { useState, useRef } from "react";
+﻿import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Photo } from "../../../../utils";
+import { useAppFeedback } from "../../../../components/ui/appFeedbackContext";
 import { trackPhotoUpload } from "../../../../lib/analytics/events";
 import { UPLOAD_BASE } from "../../../../lib/api/services";
 import { getAccessToken } from "../../../../lib/auth/session";
@@ -13,6 +14,7 @@ interface AdminUploadProps {
 const MAX_FILE_SIZE_MB = 13;
 
 const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
+  const { showToast } = useAppFeedback();
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const [category, setCategory] = useState<string>("");
@@ -21,6 +23,14 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [progressMap, setProgressMap] = useState<{ [filename: string]: number }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (error) showToast(error, { type: "error" });
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (showSuccess) showToast("Upload complete. Photos were optimized via Sharp.", { type: "success" });
+  }, [showSuccess, showToast]);
 
   /** Handle selecting files (append to current selection; no replacement) */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -181,15 +191,6 @@ const AdminUpload: React.FC<AdminUploadProps> = ({ onUploadComplete }) => {
     <motion.div className="container-custom py-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
       <div className="max-w-xl mx-auto">
         <h2 className="text-3xl font-serif mb-8">Upload Photos</h2>
-
-        {error && <div className="bg-red-50 text-red-800 p-4 mb-6">{error}</div>}
-
-        {showSuccess && (
-          <motion.div className="bg-green-50 text-green-900 p-4 mb-6 rounded text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <h3 className="text-xl font-semibold mb-2">✅ Upload Complete!</h3>
-            <p>Your photos were uploaded successfully and optimized via Sharp.</p>
-          </motion.div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

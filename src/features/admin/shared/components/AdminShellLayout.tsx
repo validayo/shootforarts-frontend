@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Calendar as CalendarIcon, FileText, Image, LogOut, Menu, MessageSquare, Upload, Users, X } from "lucide-react";
+import { Calendar as CalendarIcon, FileText, Image, LogOut, Menu, MessageSquare, Receipt, Upload, Users, X } from "lucide-react";
 import { ROUTES } from "../../../../config/routes";
 
-type AdminNavKey = "dashboard" | "assistant" | "contracts" | "calendar" | "upload" | "gallery";
+type AdminNavKey = "dashboard" | "assistant" | "contracts" | "invoices" | "calendar" | "upload" | "gallery";
 
 interface AdminShellLayoutProps {
   title: string;
@@ -22,6 +22,7 @@ const navItems: Array<{
   { key: "dashboard", label: "Dashboard", href: ROUTES.admin.dashboard, icon: Users },
   { key: "assistant", label: "Assistant", href: ROUTES.admin.assistant, icon: MessageSquare },
   { key: "contracts", label: "Contracts", href: ROUTES.admin.contracts, icon: FileText },
+  { key: "invoices", label: "Invoices", href: ROUTES.admin.invoices, icon: Receipt },
   { key: "calendar", label: "Calendar", href: ROUTES.admin.calendar, icon: CalendarIcon },
   { key: "upload", label: "Upload", href: ROUTES.admin.upload, icon: Upload },
   { key: "gallery", label: "Gallery Manager", href: ROUTES.admin.galleryManager, icon: Image },
@@ -41,15 +42,15 @@ const AdminShellLayout: React.FC<AdminShellLayoutProps> = ({ title, subtitle, ac
   };
 
   return (
-    <div className="min-h-screen w-full max-w-none overflow-x-hidden bg-gray-50 lg:h-screen lg:overflow-hidden">
+    <div className="min-h-dvh w-full max-w-none overflow-x-hidden bg-gray-50 lg:h-dvh lg:overflow-hidden">
       <a
         href="#admin-main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-gray-900 focus:px-4 focus:py-2 focus:text-white"
       >
         Skip to admin content
       </a>
-      <div className="w-full max-w-none lg:flex lg:h-screen">
-        <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-gray-200 bg-white/95 lg:flex">
+      <div className="w-full max-w-none lg:flex lg:h-dvh">
+        <aside className="sticky top-0 hidden h-dvh w-72 shrink-0 flex-col border-r border-gray-200 bg-white/95 lg:flex">
           <div className="border-b border-gray-200 px-6 py-6">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-500">Admin</p>
             <h1 className="mt-2 text-2xl font-semibold text-gray-900">Shoot for Arts</h1>
@@ -76,7 +77,7 @@ const AdminShellLayout: React.FC<AdminShellLayoutProps> = ({ title, subtitle, ac
           </div>
         </aside>
 
-        <div className="min-w-0 w-full max-w-none flex-1 lg:flex lg:h-screen lg:flex-col lg:overflow-hidden">
+        <div className="min-w-0 w-full max-w-none flex-1 lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden">
           <div className="sticky top-0 z-40 w-full max-w-none border-b border-gray-200 bg-white/95 backdrop-blur">
             <div className="flex w-full max-w-none items-center justify-between px-4 py-3 sm:px-6 lg:px-10">
               <div className="min-w-0">
@@ -106,7 +107,7 @@ const AdminShellLayout: React.FC<AdminShellLayoutProps> = ({ title, subtitle, ac
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="Close navigation menu"
               />
-              <div className="absolute right-0 top-0 h-full w-[84%] max-w-sm border-l border-gray-200 bg-white p-4 shadow-2xl">
+              <div className="absolute right-0 top-0 flex h-full w-[min(22rem,88vw)] flex-col border-l border-gray-200 bg-white p-4 shadow-2xl">
                 <div className="mb-4 flex items-center justify-between">
                   <p className="text-sm font-semibold text-gray-900">Navigation</p>
                   <button
@@ -117,7 +118,7 @@ const AdminShellLayout: React.FC<AdminShellLayoutProps> = ({ title, subtitle, ac
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="space-y-1">
+                <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
                   {navItems.map(({ key, label, href, icon: Icon }) => (
                     <Link
                       key={key}
@@ -146,7 +147,7 @@ const AdminShellLayout: React.FC<AdminShellLayoutProps> = ({ title, subtitle, ac
 
           <main
             id="admin-main"
-            className="w-full max-w-none min-w-0 px-4 py-6 sm:px-6 lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:px-10 lg:py-8"
+            className="w-full max-w-none min-w-0 px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:px-6 sm:py-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:px-10 lg:py-8"
           >
             <div className="mb-6 w-full max-w-none rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900">{title}</h3>

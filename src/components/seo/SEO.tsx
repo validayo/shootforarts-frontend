@@ -6,7 +6,9 @@ type SEOProps = {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
-  canonicalPath?: string; // path like "/about"
+  canonicalPath?: string | null; // path like "/about"
+  privatePage?: boolean;
+  robots?: string;
 };
 
 const setMeta = (name: string, content: string, attr: "name" | "property" = "name") => {
@@ -29,10 +31,30 @@ const ensureLink = (rel: string, href: string) => {
   el.setAttribute("href", href);
 };
 
-const SEO = ({ title, description, ogTitle, ogDescription, ogImage, canonicalPath }: SEOProps) => {
+const removeMeta = (name: string, attr: "name" | "property" = "name") => {
+  document.querySelectorAll<HTMLMetaElement>(`meta[${attr}='${name}']`).forEach((el) => el.remove());
+};
+
+const removeLink = (rel: string) => {
+  document.querySelectorAll<HTMLLinkElement>(`link[rel='${rel}']`).forEach((el) => el.remove());
+};
+
+const removePublicSocialMeta = () => {
+  ["og:title", "og:description", "og:site_name", "og:image", "og:url", "og:type"].forEach((name) => removeMeta(name, "property"));
+  ["twitter:card", "twitter:title", "twitter:description", "twitter:image"].forEach((name) => removeMeta(name));
+};
+
+const SEO = ({ title, description, ogTitle, ogDescription, ogImage, canonicalPath, privatePage = false, robots }: SEOProps) => {
   useEffect(() => {
     document.title = title;
     setMeta("description", description);
+    if (robots) setMeta("robots", robots);
+
+    if (privatePage) {
+      removePublicSocialMeta();
+      removeLink("canonical");
+      return;
+    }
 
     // Open Graph
     setMeta("og:title", ogTitle || title, "property");
@@ -49,11 +71,10 @@ const SEO = ({ title, description, ogTitle, ogDescription, ogImage, canonicalPat
     if (ogImage) setMeta("twitter:image", ogImage);
 
     // Canonical link
-    ensureLink("canonical", url);
-  }, [title, description, ogTitle, ogDescription, ogImage, canonicalPath]);
+    if (canonicalPath !== null) ensureLink("canonical", url);
+  }, [title, description, ogTitle, ogDescription, ogImage, canonicalPath, privatePage, robots]);
 
   return null;
 };
 
 export default SEO;
-

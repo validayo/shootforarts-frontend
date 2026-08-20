@@ -26,6 +26,8 @@ import {
   getAdminContractsTemplateManifest,
   getAdminAIInbox,
   getAdminAIInquiry,
+  getAdminServiceCatalog,
+  getInvoiceSettings,
   getGallery,
   listAdminContracts,
   markAdminAIDraftSent,
@@ -34,6 +36,7 @@ import {
   saveAdminContract,
   saveAdminAIContextNote,
   saveAdminAIDraftEdit,
+  saveInvoiceSettings,
   sendAdminAIApprovedDraft,
   submitContact,
   subscribe,
@@ -199,6 +202,155 @@ describe("api/services wrappers", () => {
         apikey: "anon-key",
       },
       body: JSON.stringify({ seenAt: "2026-04-19T00:00:00.000Z" }),
+    });
+  });
+
+  it("normalizes raw service catalog CAD prices into invoice cents", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          services: [
+            {
+              id: "service-events",
+              service_slug: "event-photography",
+              display_name: "Event Photography",
+              description: "Hourly event coverage.",
+              is_visible_public: true,
+              is_bookable: true,
+              sort_order: 10,
+            },
+          ],
+          tiers: [
+            {
+              id: "tier-event",
+              service_id: "service-events",
+              tier_slug: "tier-1",
+              display_name: "Tier 1",
+              description: "Hourly event photography coverage.",
+              pricing_mode: "hourly",
+              price_label: "$125/hr",
+              fixed_amount_cad: null,
+              hourly_rate_cad: 125,
+              minimum_hours: 2,
+              duration_minutes: null,
+              deliverables_json: ["2-hour minimum"],
+              is_visible_public: true,
+              is_bookable: true,
+              sort_order: 1,
+            },
+          ],
+          addons: [],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const catalog = await getAdminServiceCatalog();
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/admin-service-catalog`, {
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+    });
+    expect(catalog.services[0]).toMatchObject({
+      slug: "event-photography",
+      display_name: "Event Photography",
+      visibility: "public",
+      booking_eligible: true,
+    });
+    expect(catalog.tiers[0]).toMatchObject({
+      slug: "tier-1",
+      pricing_mode: "hourly",
+      price_label: "$125/hr",
+      fixed_amount_cents: null,
+      hourly_rate_cents: 12500,
+      minimum_hours: 2,
+      deliverables_json: ["2-hour minimum"],
+    });
+  });
+
+  it("fetches invoice settings with sender contact and billing address fields", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          settings: {
+            id: "default",
+            invoice_prefix: "SFA",
+            default_currency: "CAD",
+            tax_enabled_default: false,
+            tax_label: null,
+            tax_rate_percent: null,
+            invoice_number_start: null,
+            next_invoice_number: 8,
+            default_deposit_percent: 50,
+            default_payment_terms: "deposit_balance",
+            payment_instructions: "Send payment.",
+            etransfer_destination: "contact@shootforarts.com",
+            payment_notification_channel: "invoice-payments",
+            business_billing_address: "Shoot For Arts Studio\nToronto, ON",
+            business_contact_email: "contact@shootforarts.com",
+            business_contact_phone: "647-555-0100",
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const response = await getInvoiceSettings();
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/admin-invoice-settings`, {
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+    });
+    expect(response.settings).toMatchObject({
+      business_billing_address: "Shoot For Arts Studio\nToronto, ON",
+      business_contact_email: "contact@shootforarts.com",
+      business_contact_phone: "647-555-0100",
+    });
+  });
+
+  it("sends invoice settings sender contact and billing address fields", async () => {
+    const input = {
+      invoicePrefix: "SFA",
+      defaultCurrency: "CAD",
+      taxEnabledDefault: false,
+      taxLabel: null,
+      taxRatePercent: null,
+      invoiceNumberStart: null,
+      nextInvoiceNumber: 8,
+      defaultDepositPercent: 50,
+      defaultPaymentTerms: "deposit_balance" as const,
+      paymentInstructions: "Send payment.",
+      etransferDestination: "contact@shootforarts.com",
+      paymentNotificationChannel: "invoice-payments",
+      businessBillingAddress: "Shoot For Arts Studio\nToronto, ON",
+      businessContactEmail: "contact@shootforarts.com",
+      businessContactPhone: "647-555-0100",
+    };
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, settings: {} }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await saveInvoiceSettings(input);
+
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/admin-invoice-settings`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer admin-token",
+        "Content-Type": "application/json",
+        apikey: "anon-key",
+      },
+      body: JSON.stringify(input),
     });
   });
 
@@ -607,7 +759,7 @@ describe("api/services wrappers", () => {
     expect(saved.fieldValues).toEqual({ clientName: "Armi" });
     expect(saved.photographerBusinessName).toBe("Shoot For Arts");
     expect(saved.photographerSignatureName).toBe("Ayodeji Adigun, Shoot For Arts");
-    expect(deleted).toEqual({ ok: true, contractId: "contract-1", status: "archived", reqId: undefined });
+    expect(deleted).toEqual({ ok: true, contractId: "contract-1", reqId: undefined });
     expect(fetchMock).toHaveBeenNthCalledWith(1, `${BASE}/admin-contracts-create`, expect.objectContaining({
       method: "POST",
       body: JSON.stringify({
