@@ -28,6 +28,7 @@ I confirm:
 - CI is green (`quality`, `e2e-smoke`).
 - Public sitemap files were generated during build.
 - Admin routes are only under `/sfaadmin/*`.
+- Private invoice routes are excluded from sitemaps and use noindex/noarchive/no-store headers.
 - Contact form submits and shows success state.
 
 ## 3) Deploy Flow
@@ -40,6 +41,8 @@ I confirm:
    - `/services`
    - `/contact`
    - `/sfaadmin/login`
+   - `/sfaadmin/invoices`
+   - a test `/invoice/:token`
 
 ## 4) Rollback Procedure
 
@@ -84,6 +87,33 @@ What I check:
 1. I verify storage bucket access and RLS policies.
 2. I confirm upload backend is healthy (`VITE_UPLOAD_BASE`).
 3. I re-test with a small image file and inspect network response.
+
+### Invoice Admin Failures
+
+Symptoms:
+- `/sfaadmin/invoices` fails to load catalog, settings, invoice list, or invoice detail.
+- Save/send/void/delete/confirm payment returns a backend error.
+
+What I check:
+1. I confirm the admin session is valid and the request includes the Supabase bearer token.
+2. I check the relevant `admin-invoice-*`, `admin-invoice-settings`, or `admin-service-catalog` Edge Function logs.
+3. I confirm backend invoice secrets are configured in Supabase, especially Resend, Discord payment notification, public site URL, and token encryption secret names.
+4. I verify the invoice settings row has e-transfer destination, payment instructions, sender contact, and billing address when those snapshots are needed.
+
+### Public Invoice Failures
+
+Symptoms:
+- A client private invoice link shows unavailable.
+- Pay Now is missing on a payable invoice.
+- Payment notification does not submit or confirm.
+
+What I check:
+1. I verify the invoice is not void and has payable schedules when payment should be available.
+2. I confirm paid invoices remain viewable with amount due `0`.
+3. I check `public-invoice-detail` and `public-invoice-notify-payment` logs.
+4. I verify Vercel still sends `X-Robots-Tag: noindex, nofollow, noarchive, noimageindex` and `Cache-Control: private, no-store` for `/invoice/(.*)`.
+5. I verify the invoice URL is not in public navigation, sitemap output, schema, static route shells, or analytics payloads.
+6. I confirm payment proof uploads remain private and are not exposed as public bucket URLs.
 
 ## 6) Monthly Maintenance
 

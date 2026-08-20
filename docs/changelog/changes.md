@@ -274,3 +274,15 @@ This file tracks meaningful frontend updates so I can quickly see what changed, 
   - `docs/workflows/`
 - Updated README and technical docs to match the new feature-first source layout and the moved doc paths.
 - Why: keep operational docs and source references usable after the contracts rollout and structure refactor.
+
+## 2026-08-20
+
+### Invoice system rollout
+
+- Added the invoice admin workflow under `/sfaadmin/invoices` for creating, editing, sending/resending, voiding, deleting, printing, downloading, and confirming payments.
+- Added backend-backed service catalog package selection with approved pricing, inquiry/client prefill, full-payment schedules, and deposit/balance schedules.
+- Added private-link public invoice pages at `/invoice/:token` and `/invoice/:token/pay` for client invoice review and e-transfer payment notification.
+- Added invoice settings for currency, tax defaults, payment instructions, e-transfer destination, sender contact, and optional business billing address snapshots.
+- Added Resend invoice email sending, optional admin email copy, and Discord payment-review notifications that deep-link to the authenticated admin invoice page.
+- Added invoice privacy controls: noindex/noarchive/no-store headers, no sitemap/schema/nav exposure, hash-based public lookup, encrypted public tokens, plaintext token removal, and a database constraint preventing future plaintext token storage.
+- Why: bring invoice collection into the Shoot For Arts admin workflow while keeping client links private and backend-owned.
