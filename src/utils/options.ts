@@ -79,11 +79,11 @@ export const serviceTierReminders: Record<string, Record<string, TierReminder>> 
   "Grad Photoshoots": {
     "Tier 1": {
       price: "$100",
-      includes: ["30-minute session", "15 edited photos", "Single graduate"],
+      includes: ["30-minute session", "8 edited photos", "Single graduate only"],
     },
     "Tier 2": {
-      price: "$200",
-      includes: ["1-hour session", "25 edited photos", "Includes family or friend group shots"],
+      price: "$180",
+      includes: ["1-hour session", "15 edited photos", "Includes family or friend group shots"],
     },
   },
 };

@@ -6,6 +6,7 @@ import RouteChangeTracker from "./components/routing/RouteChangeTracker";
 import ScrollToTop from "./components/routing/ScrollToTop";
 import ProtectedRoute from "./components/routing/ProtectedRoute";
 import AppErrorBoundary from "./components/routing/AppErrorBoundary";
+import { AppFeedbackProvider } from "./components/ui/AppFeedback";
 import { ROUTES } from "./config/routes";
 
 const Layout = lazy(() => import("./components/layout/Layout"));
@@ -15,11 +16,14 @@ const AboutPage = lazy(() => import("./pages/public/AboutPage"));
 const ServicesPage = lazy(() => import("./pages/public/ServicesPage"));
 const ContactPage = lazy(() => import("./pages/public/ContactPage"));
 const ContactThankYouPage = lazy(() => import("./pages/public/ContactThankYouPage"));
+const PublicInvoicePage = lazy(() => import("./pages/public/PublicInvoicePage"));
+const PublicInvoicePaymentPage = lazy(() => import("./pages/public/PublicInvoicePaymentPage"));
 const NotFoundPage = lazy(() => import("./pages/public/NotFoundPage"));
 const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminPage"));
 const AdminAssistantPage = lazy(() => import("./pages/admin/AdminAssistantPage"));
 const AdminContractsPage = lazy(() => import("./pages/admin/contracts/AdminContractsPage"));
+const AdminInvoicesPage = lazy(() => import("./pages/admin/invoices/AdminInvoicesPage"));
 const AdminGalleryManagerPage = lazy(() => import("./pages/admin/AdminGalleryManagerPage"));
 
 const AdminIndexRedirect = () => {
@@ -36,86 +40,98 @@ const PageLoader = () => (
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppErrorBoundary>
-          <RouteChangeTracker />
-          <ScrollToTop />
-          <AnimatePresence mode="wait">
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path={ROUTES.public.card} element={<Navigate to={ROUTES.public.book} replace />} />
-                <Route path={ROUTES.public.book} element={<BookLandingPage />} />
+      <AppFeedbackProvider>
+        <BrowserRouter>
+          <AppErrorBoundary>
+            <RouteChangeTracker />
+            <ScrollToTop />
+            <AnimatePresence mode="wait">
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path={ROUTES.public.card} element={<Navigate to={ROUTES.public.book} replace />} />
+                  <Route path={ROUTES.public.book} element={<BookLandingPage />} />
+                  <Route path={ROUTES.public.invoicePay} element={<PublicInvoicePaymentPage />} />
+                  <Route path={ROUTES.public.invoice} element={<PublicInvoicePage />} />
 
-                <Route path="/" element={<Layout />}>
-                  <Route index element={<HomePage />} />
-                  <Route path="portraits" element={<HomePage />} />
-                  <Route path="events" element={<HomePage />} />
-                  <Route path="weddings" element={<HomePage />} />
-                  <Route path="about" element={<AboutPage />} />
-                  <Route path="services" element={<ServicesPage />} />
-                  <Route path="contact" element={<ContactPage />} />
-                  <Route path="contact/thank-you" element={<ContactThankYouPage />} />
+                  <Route path="/" element={<Layout />}>
+                    <Route index element={<HomePage />} />
+                    <Route path="portraits" element={<HomePage />} />
+                    <Route path="events" element={<HomePage />} />
+                    <Route path="weddings" element={<HomePage />} />
+                    <Route path="about" element={<AboutPage />} />
+                    <Route path="services" element={<ServicesPage />} />
+                    <Route path="contact" element={<ContactPage />} />
+                    <Route path="contact/thank-you" element={<ContactThankYouPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Route>
+
+                  <Route path={ROUTES.admin.login} element={<AdminLoginPage />} />
+                  <Route
+                    path={ROUTES.admin.dashboard}
+                    element={
+                      <ProtectedRoute>
+                        <AdminDashboardPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.admin.assistant}
+                    element={
+                      <ProtectedRoute>
+                        <AdminAssistantPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.admin.contracts}
+                    element={
+                      <ProtectedRoute>
+                        <AdminContractsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.admin.invoices}
+                    element={
+                      <ProtectedRoute>
+                        <AdminInvoicesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.admin.calendar}
+                    element={
+                      <ProtectedRoute>
+                        <AdminDashboardPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path={ROUTES.admin.calendarAlias} element={<Navigate to={ROUTES.admin.calendar} replace />} />
+                  <Route
+                    path={ROUTES.admin.upload}
+                    element={
+                      <ProtectedRoute>
+                        <AdminDashboardPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.admin.galleryManager}
+                    element={
+                      <ProtectedRoute>
+                        <AdminGalleryManagerPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path={ROUTES.admin.base} element={<AdminIndexRedirect />} />
+
                   <Route path="*" element={<NotFoundPage />} />
-                </Route>
-
-                <Route path={ROUTES.admin.login} element={<AdminLoginPage />} />
-                <Route
-                  path={ROUTES.admin.dashboard}
-                  element={
-                    <ProtectedRoute>
-                      <AdminDashboardPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path={ROUTES.admin.assistant}
-                  element={
-                    <ProtectedRoute>
-                      <AdminAssistantPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path={ROUTES.admin.contracts}
-                  element={
-                    <ProtectedRoute>
-                      <AdminContractsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path={ROUTES.admin.calendar}
-                  element={
-                    <ProtectedRoute>
-                      <AdminDashboardPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path={ROUTES.admin.calendarAlias} element={<Navigate to={ROUTES.admin.calendar} replace />} />
-                <Route
-                  path={ROUTES.admin.upload}
-                  element={
-                    <ProtectedRoute>
-                      <AdminDashboardPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path={ROUTES.admin.galleryManager}
-                  element={
-                    <ProtectedRoute>
-                      <AdminGalleryManagerPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path={ROUTES.admin.base} element={<AdminIndexRedirect />} />
-
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Suspense>
-          </AnimatePresence>
-        </AppErrorBoundary>
-      </BrowserRouter>
+                </Routes>
+              </Suspense>
+            </AnimatePresence>
+          </AppErrorBoundary>
+        </BrowserRouter>
+      </AppFeedbackProvider>
     </AuthProvider>
   );
 }
